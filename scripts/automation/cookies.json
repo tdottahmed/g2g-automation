@@ -1,0 +1,122 @@
+[
+    {
+        "name": "_uetsid",
+        "value": "3a8c3c5092e911f085ea39544516507f",
+        "domain": ".g2g.com",
+        "path": "/",
+        "expires": 1758028685,
+        "httpOnly": false,
+        "secure": true,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "_uetvid",
+        "value": "3a8c555092e911f0a0599f3615f84c3d",
+        "domain": ".g2g.com",
+        "path": "/",
+        "expires": 1799913485,
+        "httpOnly": false,
+        "secure": true,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "active_device_token",
+        "value": "0bb289f8c34f146c49565879085ac6c0",
+        "domain": ".www.g2g.com",
+        "path": "/",
+        "expires": 1768511909,
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "amzn_consent",
+        "value": "%7B%22geo%22%3A%7B%22countryCode%22%3A%22BD%22%7D%2C%22amazonConsentFormat%22%3A%7B%22amznAdStorage%22%3A%22GRANTED%22%2C%22amznUserData%22%3A%22GRANTED%22%7D%2C%22timestamp%22%3A%222025-09-16T10%3A38%3A05.896Z%22%2C%22version%22%3A%221%22%7D",
+        "domain": "www.g2g.com",
+        "path": "/",
+        "expires": 1758019085,
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "Strict"
+    },
+    {
+        "name": "CookieConsent",
+        "value": "{stamp:'-1',necessary:true,preferences:true,statistics:true,marketing:true,method:'implied',ver:1,utc:1758019085895,region:'BD'}",
+        "domain": "www.g2g.com",
+        "path": "/",
+        "expires": 1758080285,
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "g2g_regional",
+        "value": "%7B%22country%22%3A%22BD%22%2C%22currency%22%3A%22USD%22%2C%22language%22%3A%22en%22%7D",
+        "domain": ".www.g2g.com",
+        "path": "/",
+        "expires": 1799913510,
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "long_lived_token",
+        "value": "ccee8b71f0960fdc5d6eb0563c032343",
+        "domain": ".www.g2g.com",
+        "path": "/",
+        "expires": 1768511909,
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "noticebar_cookie",
+        "value": "1",
+        "domain": ".www.g2g.com",
+        "path": "/",
+        "expires": 1799951883,
+        "httpOnly": false,
+        "secure": true,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "refresh_token",
+        "value": "1002957135.10d836fdf7e4e3e22ecad2454efd3fd9",
+        "domain": ".www.g2g.com",
+        "path": "/",
+        "expires": 1769923109,
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "RT",
+        "value": "z=1&dm=www.g2g.com&si=86027c42-c1ff-4a7a-9323-4f0f5ef1deca&ss=mfmf654q&sl=1&tt=253&rl=1",
+        "domain": ".www.g2g.com",
+        "path": "/",
+        "expires": 1758639814,
+        "httpOnly": false,
+        "secure": true,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "ttcsid",
+        "value": "1758019085793::FvEjbSYaB8sg7YbttVc4.1.1758019111366",
+        "domain": ".g2g.com",
+        "path": "/",
+        "expires": 1799952511,
+        "httpOnly": false,
+        "secure": true,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "ttcsid_D101IURC77UEHH7PTG80",
+        "value": "1758019085793::vA38Cf8k5Snbx792FFQG.1.1758019111662",
+        "domain": ".g2g.com",
+        "path": "/",
+        "expires": 1799952511,
+        "httpOnly": false,
+        "secure": true,
+        "sameSite": "Lax"
+    }
+]
