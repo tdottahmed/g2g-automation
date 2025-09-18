@@ -2,7 +2,7 @@ import { chromium } from "playwright";
 import { isLoggedIn, loadAuthState, loginWithOTP, saveAuthState } from "./utils/auth.js";
 import { rl } from "./utils/index.js";
 import { navigateToAccounts } from "./utils/sell.js";
-import { fillOfferForm } from "./utils/offerDetails.js"; // Import from the new file
+import {testTownHallSelection} from "./utils/offerDetails.js"; // Import from the new file
 
 export const CONFIG = {
     authFile: "g2g_auth_state.json",
@@ -59,10 +59,9 @@ async function main() {
             throw new Error("Failed to navigate to accounts section");
         }
 
-        // Fill the offer form
-        const formFilled = await fillOfferForm(page);
-        if (!formFilled) {
-            throw new Error("Failed to fill offer form");
+        const townHallSelected = await testTownHallSelection(page, "12");
+        if (!townHallSelected) {
+            console.log("❌ Failed to select Town Hall Level");
         }
 
         console.log("✅ Offer creation process completed successfully!");
