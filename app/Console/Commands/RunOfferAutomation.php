@@ -28,16 +28,14 @@ class RunOfferAutomation extends Command
     public function handle(): void
     {
         $rateLimit = cache()->get('offer_automation_rate_limit', 3);
-        dd($rateLimit);
 
         $templates = OfferTemplate::where('is_active', true)
             ->orderBy('last_posted_at')
-            ->limit($rateLimit)
             ->get();
 
         foreach ($templates as $index => $template) {
-            PostOfferTemplate::dispatch($template)
-                ->delay(now()->addSeconds(intval(60 / $rateLimit) * $index));
+            PostOfferTemplate::dispatch($template);
+            // ->delay(now()->addSeconds(intval(60 / $rateLimit) * $index));
 
             $template->update(['last_posted_at' => now()]);
         }

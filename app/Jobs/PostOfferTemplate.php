@@ -28,8 +28,7 @@ class PostOfferTemplate implements ShouldQueue
     public function handle(): void
     {
         try {
-            // Call Node.js API with template data
-            $response = Http::post(env('NODE_API_URL') . '/create-offer', [
+            $data = json_encode([
                 'title' => $this->template->title,
                 'description' => $this->template->description,
                 'th_level' => $this->template->th_level,
@@ -43,9 +42,20 @@ class PostOfferTemplate implements ShouldQueue
                 'delivery_method' => $this->template->delivery_method,
             ]);
 
-            // Optional: store last_posted_at or response status if needed
+            // Escape shell arguments for safety
+            $escapedData = escapeshellarg($data);
+
+            $output = null;
+            $status = null;
+            exec("node " . base_path("scripts/automation/post-offers.js") . " $escapedData", $output, $status);
+
+            if ($status !== 0) {
+                logger()->error('Node script failed: ' . implode("\n", $output));
+            } else {
+                logger()->info('Node script executed successfully: ' . implode("\n", $output));
+            }
         } catch (\Throwable $e) {
-            logger()->error('Offer post failed for template ' . $this->template->id . ': ' . $e->getMessage());
+            logger()->error('Offer post failed: ' . $e->getMessage());
         }
     }
 }
