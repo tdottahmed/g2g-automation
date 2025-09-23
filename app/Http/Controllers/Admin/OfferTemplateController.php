@@ -3,9 +3,116 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\OfferTemplate;
+use App\Models\UserAccount;
 use Illuminate\Http\Request;
 
 class OfferTemplateController extends Controller
 {
-    //
+    public function index()
+    {
+        $offers = OfferTemplate::latest()->get();
+        return view('admin.offer-templates.index', compact('offers'));
+    }
+
+    public function create()
+    {
+        $userAccounts = UserAccount::latest()->get();
+        return view('admin.offer-templates.create', compact('userAccounts'));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'user_account_id' => 'required|integer|exists:user_accounts,id',
+            'title'           => 'required|string|max:255',
+            'th_level'        => 'nullable|integer',
+            'king_level'      => 'nullable|integer',
+            'queen_level'     => 'nullable|integer',
+            'warden_level'    => 'nullable|integer',
+            'champion_level'  => 'nullable|integer',
+            'price'           => 'required|numeric|min:0',
+            'currency'        => 'required|string|max:3',
+            'region'          => 'required|string|max:255',
+        ]);
+
+        $data = [
+            'user_account_id' => $request->user_account_id,
+            'title'           => $request->title,
+            'description'     => $request->description,
+            'th_level'        => $request->th_level,
+            'king_level'      => $request->king_level,
+            'queen_level'     => $request->queen_level,
+            'warden_level'    => $request->warden_level,
+            'champion_level'  => $request->champion_level,
+            'price'           => $request->price,
+            'currency'        => $request->currency,
+            'region'          => $request->region,
+        ];
+        try {
+            $offerTemplate = OfferTemplate::create($data);
+            return redirect()
+                ->route('offer-templates.index')
+                ->with('success', 'Offer template created successfully.');
+        } catch (\Throwable $th) {
+            logger()->error('Error creating offer template: ' . $th->getMessage());
+            return back()
+                ->with('error', 'An error occurred while creating the offer template. Please try again.')
+                ->withInput();
+        }
+    }
+
+    public function edit(OfferTemplate $offerTemplate)
+    {
+        $userAccounts = UserAccount::latest()->get();
+        return view('admin.offer-templates.edit', compact('offerTemplate', 'userAccounts'));
+    }
+
+    public function update(Request $request, OfferTemplate $offerTemplate)
+    {
+        $request->validate([
+            'user_account_id' => 'required|integer|exists:user_accounts,id',
+            'title'           => 'required|string|max:255',
+            'th_level'        => 'nullable|integer',
+            'king_level'      => 'nullable|integer',
+            'queen_level'     => 'nullable|integer',
+            'warden_level'    => 'nullable|integer',
+            'champion_level'  => 'nullable|integer',
+            'price'           => 'required|numeric|min:0',
+            'currency'        => 'required|string|max:3',
+            'region'          => 'required|string|max:255',
+        ]);
+
+        $data = [
+            'user_account_id' => $request->user_account_id,
+            'title'           => $request->title,
+            'description'     => $request->description,
+            'th_level'        => $request->th_level,
+            'king_level'      => $request->king_level,
+            'queen_level'     => $request->queen_level,
+            'warden_level'    => $request->warden_level,
+            'champion_level'  => $request->champion_level,
+            'price'           => $request->price,
+            'currency'        => $request->currency,
+            'region'          => $request->region,
+        ];
+
+        try {
+            $offerTemplate->update($data);
+            return redirect()
+                ->route('offer-templates.index')
+                ->with('success', 'Offer template updated successfully.');
+        } catch (\Throwable $th) {
+            logger()->error('Error updating offer template: ' . $th->getMessage());
+            return back()
+                ->withErrors(['error' => 'An error occurred while updating the offer template. Please try again.'])
+                ->withInput();
+        }
+    }
+
+    public function destroy(OfferTemplate $offerTemplate)
+    {
+        $offerTemplate->delete();
+        return redirect()->route('offer-templates.index')->with('success', 'Offer template deleted successfully.');
+    }
 }
