@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\UserAccountController;
 
 Route::group(['middleware' => ['role:super-admin|admin|staff|user']], function () {
     Route::resource('roles', RoleController::class);
@@ -15,4 +16,6 @@ Route::group(['middleware' => ['role:super-admin|admin|staff|user']], function (
 
     Route::get('settings/organization', [ApplicationSetupController::class, 'index'])->name('applicationSetup.index');
     Route::post('settings/organization', [ApplicationSetupController::class, 'update'])->name('applicationSetup.update');
+
+    Route::resource('user-accounts', UserAccountController::class);
 });
