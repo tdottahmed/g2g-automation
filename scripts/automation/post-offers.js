@@ -1,8 +1,22 @@
 import { chromium } from "playwright";
-import { isLoggedIn, loadAuthState, loginWithOTP, saveAuthState } from "./utils/auth.js";
-import { rl } from "./utils/index.js";
-import { navigateToAccounts } from "./utils/sell.js";
-import {testTownHallSelection} from "./utils/offerDetails.js"; // Import from the new file
+import {
+    isLoggedIn,
+    loadAuthState,
+    loginWithOTP,
+    saveAuthState,
+} from "./utils/auth.js";
+import { rl, humanDelay } from "./utils/index.js";
+import {
+    navigateToAccountsSection,
+    clickContinueButton,
+} from "./utils/sell.js";
+import {
+    selectChampionLevel,
+    selectKingLevel,
+    selectQueenLevel,
+    selectTownHallLevel,
+    selectWardenLevel,
+} from "./utils/offerDetails.js";
 
 export const CONFIG = {
     authFile: "g2g_auth_state.json",
@@ -12,67 +26,72 @@ export const CONFIG = {
         password: "@#aocy123%&",
     },
     headless: false,
-    slowMo: 50,
+    slowMo: 120,
 };
 
 async function main() {
     let browser = null;
-    let context = null;
 
     try {
         browser = await chromium.launch({
             headless: CONFIG.headless,
             slowMo: CONFIG.slowMo,
+            args: ["--start-maximized"],
         });
-        context = await browser.newContext();
 
-        const hasAuthState = await loadAuthState(context);
-        console.log("Auth States:", hasAuthState);
+        const context = await browser.newContext({
+            viewport: { width: 1366, height: 768 },
+        });
+
         const page = await context.newPage();
 
-        let loggedIn = false;
-        if (hasAuthState) {
-            loggedIn = await isLoggedIn(page);
-        }
+        // Load session
+        const hasAuthState = await loadAuthState(context);
+        console.log("Auth States:", hasAuthState);
 
-        if (loggedIn) {
-            console.log("✅ Using existing authentication session");
+        let loggedIn = hasAuthState && (await isLoggedIn(page));
+        if (!loggedIn) {
+            console.log("❌ Performing fresh login...");
+            await page.goto(`${CONFIG.baseUrl}/login`, {
+                waitUntil: "networkidle",
+            });
+            await page.type('input[name="email"]', CONFIG.credentials.email);
+            await page.type(
+                'input[name="password"]',
+                CONFIG.credentials.password
+            );
+            await page.keyboard.press("Enter");
+            await loginWithOTP(page);
+            await saveAuthState(context);
         } else {
-            console.log("❌ No valid session found, performing login...");
-            const loginSuccess = await loginWithOTP(page);
-
-            if (loginSuccess) {
-                const saveSuccess = await saveAuthState(context);
-                if (saveSuccess) {
-                    console.log("✅ Session saved successfully!");
-                } else {
-                    console.log("❌ Failed to save session");
-                }
-            } else {
-                throw new Error("Login failed");
-            }
+            console.log("✅ Using existing session");
         }
 
-        // Navigate to accounts section
-        const navSuccess = await navigateToAccounts(page);
-        if (!navSuccess) {
-            throw new Error("Failed to navigate to accounts section");
-        }
+        // Navigate Accounts **before Continue**
+        const navSuccess = await navigateToAccountsSection(page);
+        if (!navSuccess)
+            throw new Error("Failed to navigate to Accounts section");
 
-        const townHallSelected = await testTownHallSelection(page, "12");
-        if (!townHallSelected) {
-            console.log("❌ Failed to select Town Hall Level");
-        }
+        // Click Continue button → now we are on Offer creation page
+        const continueClicked = await clickContinueButton(page);
+        if (!continueClicked)
+            throw new Error("Failed to click Continue button");
 
-        console.log("✅ Offer creation process completed successfully!");
+        await page.waitForLoadState("domcontentloaded");
+        await page.waitForTimeout(2000); // lazy-render buffer
 
+        await selectTownHallLevel(page, "12");
+        await selectKingLevel(page, "65");
+        await selectQueenLevel(page, "65");
+        await selectWardenLevel(page, "40");
+        await selectChampionLevel(page, "25");
+
+        console.log("✅ Full flow completed!");
     } catch (error) {
         console.error("❌ Process failed:", error.message);
     } finally {
         rl.close();
-        if (browser) {
-            console.log("⚠️ Browser kept open for debugging. Close it manually when done.");
-        }
+        if (browser) console.log("⚠️ Browser kept open for debugging.");
     }
 }
 

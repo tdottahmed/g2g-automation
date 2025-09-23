@@ -1,101 +1,79 @@
-
-// Select Town Hall Level
-export async function selectTownHallLevel(page, level = "12") {
+export async function selectDropdownOption(page, labelText, value) {
     try {
-        console.log(`🎯 Selecting Town Hall Level: ${level}`);
+        console.log(`🎯 Selecting ${labelText}: ${value}`);
 
-        // Wait for the form to load
-        await page.waitForSelector('div:has-text("Town Hall Level")', { timeout: 10000 });
+        await page.waitForLoadState("domcontentloaded");
+        await page.waitForTimeout(1500);
 
-        // Find the dropdown button for Town Hall Level
-        // Using a more direct approach based on the HTML structure
-        const dropdownButton = page.locator('div:has-text("Town Hall Level") + div button:has-text("Please select")');
+        // Find the label
+        const label = page.locator(
+            `div.text-font-2nd:has-text("${labelText}")`
+        );
+        await label.waitFor({ timeout: 20000 });
 
-        if (await dropdownButton.count() > 0) {
-            await dropdownButton.click();
-            console.log("✅ Opened Town Hall Level dropdown");
+        // Find the dropdown button in the same row as label
+        const dropdownButton = label.locator(
+            'xpath=ancestor::div[contains(@class,"col-12")]//button[contains(@class,"g-btn-select")]'
+        );
+        if ((await dropdownButton.count()) === 0) {
+            console.log(`❌ Could not find ${labelText} dropdown button`);
+            return false;
+        }
 
-            // Wait for the dropdown to appear
-            await page.waitForSelector('input[placeholder="Type to filter"]', { timeout: 5000 });
+        // Click the button
+        await dropdownButton.first().click({ force: true });
+        console.log(`✅ Clicked ${labelText} dropdown button`);
+        await page.waitForTimeout(500);
 
-            // Type the level in the search field
-            const searchInput = page.locator('input[placeholder="Type to filter"]');
-            await searchInput.fill(level);
-            console.log(`🔍 Typed level: ${level}`);
-
-            // Wait a moment for the search results to filter
-            await page.waitForTimeout(1000);
-
-            // Try to find and click the option
-            // Using a more specific selector for the option
-            const option = page.locator(`.q-item .q-item__section:has-text("${level}")`);
-
-            if (await option.count() > 0) {
-                await option.click();
-                console.log(`✅ Selected Town Hall Level: ${level}`);
-
-                // Wait for the dropdown to close
-                await page.waitForSelector('input[placeholder="Type to filter"]', { state: 'hidden', timeout: 3000 });
-                return true;
-            } else {
-                console.log(`❌ Option ${level} not found`);
-
-                // Debug: List all available options
-                const allOptions = await page.$$eval('.q-item', options =>
-                    options.map(option => option.textContent.trim())
-                );
-                console.log("Available options:", allOptions);
-
-                await page.keyboard.press('Escape');
+        // Now locate any visible dropdown menu globally
+        const dropdownMenu = page.locator(".q-menu:visible");
+        await dropdownMenu
+            .first()
+            .waitFor({ timeout: 10000 })
+            .catch(() => {
+                console.log(`❌ Dropdown menu did not appear for ${labelText}`);
                 return false;
-            }
-        } else {
-            console.log("❌ Town Hall Level dropdown button not found");
+            });
 
-            // Alternative approach: Try to find any dropdown button
-            const allDropdowns = await page.$$('button:has-text("Please select")');
-            console.log(`Found ${allDropdowns.length} dropdown buttons total`);
-
-            if (allDropdowns.length > 0) {
-                console.log("Trying first dropdown button...");
-                await allDropdowns[0].click();
-
-                // Continue with the selection process
-                await page.waitForSelector('input[placeholder="Type to filter"]', { timeout: 5000 });
-                const searchInput = page.locator('input[placeholder="Type to filter"]');
-                await searchInput.fill(level);
-                await page.waitForTimeout(1000);
-
-                const option = page.locator(`.q-item .q-item__section:has-text("${level}")`);
-                if (await option.count() > 0) {
-                    await option.click();
-                    console.log(`✅ Selected Town Hall Level: ${level}`);
-                    return true;
-                }
-            }
-
-            return false;
+        // Search box inside dropdown (if exists)
+        const searchInput = dropdownMenu.locator(
+            'input[placeholder="Type to filter"]'
+        );
+        if ((await searchInput.count()) > 0) {
+            await searchInput.fill(value);
+            await page.waitForTimeout(500);
         }
-    } catch (error) {
-        console.error("❌ Failed to select Town Hall Level:", error.message);
-        await page.keyboard.press('Escape').catch(() => {});
-        return false;
-    }
-}
 
-// Simple test function
-export async function testTownHallSelection(page, level = "12") {
-    try {
-        const success = await selectTownHallLevel(page, level);
-        if (success) {
-            console.log("✅ Town Hall Level selection successful!");
+        // Select the option
+        const option = dropdownMenu.locator(`.q-item:has-text("${value}")`);
+        if ((await option.count()) > 0) {
+            await option.first().click({ force: true });
+            console.log(`✅ Selected ${labelText}: ${value}`);
             return true;
-        } else {
-            console.log("❌ Town Hall Level selection failed");
-            return false;
         }
+
+        console.log(`❌ No option found for ${labelText} ${value}`);
+        await page.keyboard.press("Escape").catch(() => {});
+        return false;
     } catch (error) {
-        console.error("❌ Town Hall Level selection test failed:", error.message);
+        console.error(`❌ Failed to select ${labelText}:`, error.message);
+        await page.keyboard.press("Escape").catch(() => {});
         return false;
     }
 }
+
+// 🔹 Convenience wrappers
+export const selectTownHallLevel = (page, level) =>
+    selectDropdownOption(page, "Town Hall Level", level);
+
+export const selectKingLevel = (page, level) =>
+    selectDropdownOption(page, "King Level", level);
+
+export const selectQueenLevel = (page, level) =>
+    selectDropdownOption(page, "Queen Level", level);
+
+export const selectWardenLevel = (page, level) =>
+    selectDropdownOption(page, "Warden Level", level);
+
+export const selectChampionLevel = (page, level) =>
+    selectDropdownOption(page, "Champion Level", level);

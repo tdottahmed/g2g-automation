@@ -111,3 +111,36 @@ export async function loginWithOTP(page) {
     }
 }
 
+// Add this function to your auth.js or utils
+export async function clearProblematicStorage(page) {
+    try {
+        // Clear localStorage and sessionStorage
+        await page.evaluate(() => {
+            localStorage.clear();
+            sessionStorage.clear();
+        });
+
+        // Clear specific cookies that might cause issues
+        const cookies = await page.context().cookies();
+        const problematicCookies = cookies.filter(cookie =>
+            cookie.name.includes('track') ||
+            cookie.name.includes('session') ||
+            cookie.name.includes('auth')
+        );
+
+        for (const cookie of problematicCookies) {
+            await page.context().clearCookies({
+                name: cookie.name,
+                domain: cookie.domain
+            });
+        }
+
+        console.log("✅ Cleared problematic storage and cookies");
+        return true;
+    } catch (error) {
+        console.error("❌ Failed to clear storage:", error.message);
+        return false;
+    }
+}
+
+
