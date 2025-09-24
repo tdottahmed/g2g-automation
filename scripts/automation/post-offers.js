@@ -39,12 +39,35 @@ function getSelector(obj, index, defaultValue) {
     return selector.replace(":NUMBER:", index + 1);
 }
 
-// function Input(element, value, type) {
-
-// }
 async function main() {
-    let browser = null;
+    console.log("Raw args:", process.argv);
 
+    /**
+     * @type {Values} inputData ↓ 9
+     */
+    let inputData = {};
+    try {
+        // inputData = JSON.parse(process.argv[2] || "{}");
+        inputData = {
+            Title: "Test Title",
+            Description:
+                "t is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters",
+            "Town Hall Level": 17,
+            "King Level": "85+",
+            "Queen Level": "101+",
+            "Warden Level": "82+",
+            "Champion Level": "50+",
+            "Default price (unit)": "150.00",
+            "Minimum purchase quantity": null,
+            "Media gallery": null,
+            "Instant delivery": 1,
+        };
+        console.log("📥 Parsed inputData:", inputData);
+    } catch (e) {
+        console.error("❌ Failed to parse input:", e.message);
+        process.exit(1);
+    }
+    let browser = null;
     try {
         browser = await chromium.launch({
             headless: CONFIG.headless,
@@ -133,14 +156,6 @@ async function main() {
                     )}`
                 );
 
-                const levels = {
-                    "Town Hall Level": "17",
-                    "King Level": "95+",
-                    "Queen Level": "90+",
-                    "Warden Level": "60+",
-                    "Champion Level": "30+",
-                };
-
                 const {
                     items: fieldItems,
                     selector: defaultFieldSelector,
@@ -170,10 +185,13 @@ async function main() {
                         return;
                     }
 
+                    const value = inputData[label];
                     switch (fieldType) {
                         case "dropdown":
-                            const value = levels[label];
                             await selectDropdownOption(page, fieldEl, value);
+                            break;
+                        case "text":
+                            await fillInput(page, fieldEl, value, label);
                             break;
 
                         default:
@@ -195,11 +213,10 @@ async function main() {
 }
 
 async function selectDropdownOption(page, fieldEl, value) {
+    const btn = fieldEl.locator("div:nth-child(2) .g-btn-select").first();
+    const labelEl = fieldEl.locator("div:nth-child(1) .text-font-2nd");
+    const labelText = (await labelEl.first().innerText()).trim();
     try {
-        const btn = fieldEl.locator("div:nth-child(2) .g-btn-select").first();
-        const labelEl = fieldEl.locator("div:nth-child(1) .text-font-2nd");
-        const labelText = (await labelEl.first().innerText()).trim();
-
         console.log(`Selecting ${labelText} = ${value}`);
         await humanDelay(800, 1500); // 👈 Now delay works!
         await btn.click({ force: true });
@@ -256,53 +273,22 @@ async function selectDropdownOption(page, fieldEl, value) {
     }
 }
 
-/**
- *
- * @param {*} page
- * @param {Levels} levels
- */
-export async function selectLevels(page, levels) {
-    await page.waitForLoadState("domcontentloaded");
-    await page.waitForTimeout(1500);
+async function fillInput(page, fieldEl, value, label = "Input") {
+    try {
+        const input = fieldEl.locator(".q-field__native").first();
 
-    // Get all form rows
-    const items = page.locator(
-        "form > .row >.col-12:nth-of-type(1) .g-cu-form-card .g-cu-form-card__section:nth-of-type(2) > div:nth-of-type(2) > div > .row"
-    );
-    const itemCount = await items.count();
-    console.log(`Found ${itemCount} form rows`);
-
-    for (let i = 0; i < itemCount; i++) {
-        console.log(`Processing row ${i}...`);
-        const row = items.nth(i);
-
-        const label = row.locator("div:nth-child(1) .text-font-2nd");
-        const labelText = (await label.first().innerText()).trim();
-        if ((await label.count()) === 0) {
-            console.log(`Skipping row ${i}, label not found`);
+        if ((await input.count()) === 0) {
             return false;
         }
-        const value = levels[labelText];
-        if (!value) {
-            console.log(`Skipping row ${i}, no value found for ${labelText}`);
-            return false;
-        }
-        console.log(
-            `Processing row ${i} with label ${labelText} and value ${value}`
-        );
-        // Find label in this row
-        const dropdownButton = row.locator("div:nth-child(2) .g-btn-select");
-        if ((await dropdownButton.count()) === 0) {
-            console.log(`❌ Could not find ${labelText} dropdown button`);
-            return false;
-        }
-
-        await selectDropdownOption(
-            page,
-            dropdownButton.first(),
-            value,
-            labelText
-        );
+        await humanDelay(800, 1500); // 👈 Now delay works!
+        await input.fill("");
+        await input.type(value, { delay: 100 });
+        console.log(`🖱️ Filled ${label} input with ${value}`);
+        await page.waitForTimeout(500);
+        return true;
+    } catch (error) {
+        console.error(`❌ Failed to fill input ${label}:`, error.message);
+        return false;
     }
 }
 

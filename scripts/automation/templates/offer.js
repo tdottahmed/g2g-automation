@@ -31,6 +31,23 @@ const offerCards = {
                             ],
                         },
                     },
+                    {
+                        name: "Title & Description",
+                        fields: {
+                            selector: "div.q-col-gutter-sm",
+                            type: "dropdown",
+                            items: [
+                                {
+                                    label: "Title",
+                                    type: "text",
+                                },
+                                {
+                                    label: "Description",
+                                    type: "text",
+                                },
+                            ],
+                        },
+                    },
                 ],
             },
         },

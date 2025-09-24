@@ -4,20 +4,20 @@ namespace App\Jobs;
 
 use App\Models\OfferTemplate;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class PostOfferTemplate implements ShouldQueue
 {
-    use Queueable;
+    use Dispatchable, Queueable;
+
+    protected OfferTemplate $template;
 
     /**
      * Create a new job instance.
      */
-
-    protected OfferTemplate $template;
-
     public function __construct(OfferTemplate $template)
     {
         $this->template = $template;
@@ -28,6 +28,7 @@ class PostOfferTemplate implements ShouldQueue
      */
     public function handle(): void
     {
+        // Prepare data from database
         $data = json_encode([
             'Title' => $this->template->title,
             'Description' => $this->template->description,
@@ -42,29 +43,42 @@ class PostOfferTemplate implements ShouldQueue
             'Instant delivery' => $this->template->instant_delivery
         ]);
 
+        $scriptPath = base_path('scripts/automation/post-offers.js');
 
-        
         try {
-            $escapedData = escapeshellarg($data);
+            // Pass JSON directly as argument, no escapeshellarg
+            $process = new Process([
+                'node',
+                $scriptPath,
+                $data
+            ]);
 
-            $scriptPath = base_path('scripts/automation/post-offers.js');
-            $process = new Process(['node', $scriptPath, $escapedData]);
+            // Optional: set working directory if needed
+            $process->setWorkingDirectory(base_path('scripts/automation'));
 
-            // Set timeout (optional)
-            $process->setTimeout(60); // 60 seconds
+            // Optional: set timeout
+            $process->setTimeout(60);
 
-            // Run process
+            // Run the Node script
             $process->run();
 
+            // Check for errors
             if (!$process->isSuccessful()) {
-                // Log error
-                logger()->error('Node script failed: ' . $process->getErrorOutput());
+                logger()->error('Node script failed', [
+                    'error' => $process->getErrorOutput(),
+                    'output' => $process->getOutput(),
+                ]);
                 throw new ProcessFailedException($process);
             }
 
-            logger()->info('Node script executed successfully: ' . $process->getOutput());
+            // Log success
+            logger()->info('Node script executed successfully', [
+                'output' => $process->getOutput(),
+            ]);
         } catch (\Throwable $e) {
-            logger()->error('Exception while running Node script: ' . $e->getMessage());
+            logger()->error('Exception while running Node script', [
+                'message' => $e->getMessage(),
+            ]);
         }
     }
 }
