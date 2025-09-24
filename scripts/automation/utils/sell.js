@@ -144,7 +144,7 @@ export async function selectGameBrand(
     try {
         console.log(`🎮 Selecting game brand: ${gameName}`);
 
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(6000);
 
         await page.waitForSelector('button:has-text("Select brand")', {
             timeout: 10000,
@@ -155,7 +155,7 @@ export async function selectGameBrand(
 
         const searchInput = page.locator('input[placeholder="Type to filter"]');
         await searchInput.fill(gameName);
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(6000);
 
         let gameSelected = false;
         const exactGameOption = page.locator(`text=/${gameName}/i`);

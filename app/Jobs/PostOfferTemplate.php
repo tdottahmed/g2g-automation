@@ -5,7 +5,8 @@ namespace App\Jobs;
 use App\Models\OfferTemplate;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Http;
+use Symfony\Component\Process\Process;
+use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class PostOfferTemplate implements ShouldQueue
 {
@@ -27,36 +28,43 @@ class PostOfferTemplate implements ShouldQueue
      */
     public function handle(): void
     {
-        // try {
         $data = json_encode([
-            'title' => $this->template->title,
-            'description' => $this->template->description,
-            'th_level' => $this->template->th_level,
-            'king_level' => $this->template->king_level,
-            'queen_level' => $this->template->queen_level,
-            'warden_level' => $this->template->warden_level,
-            'champion_level' => $this->template->champion_level,
-            'price' => $this->template->price,
-            'currency' => $this->template->currency,
-            'medias' => $this->template->medias,
-            'delivery_method' => $this->template->delivery_method,
+            'Title' => $this->template->title,
+            'Description' => $this->template->description,
+            'Town Hall Level' => $this->template->th_level,
+            'King Level' => $this->template->king_level,
+            'Queen Level' => $this->template->queen_level,
+            'Warden Level' => $this->template->warden_level,
+            'Champion Level' => $this->template->champion_level,
+            'Default price (unit)' => $this->template->price,
+            'Minimum purchase quantity' => $this->template->min_purchase_quantity,
+            'Media gallery' => $this->template->medias,
+            'Instant delivery' => $this->template->instant_delivery
         ]);
-        dd($data);
 
-        // Escape shell arguments for safety
-        $escapedData = escapeshellarg($data);
 
-        $output = null;
-        $status = null;
-        exec("node " . base_path("scripts/automation/post-offers.js") . " $escapedData", $output, $status);
+        
+        try {
+            $escapedData = escapeshellarg($data);
 
-        if ($status !== 0) {
-            logger()->error('Node script failed: ' . implode("\n", $output));
-        } else {
-            logger()->info('Node script executed successfully: ' . implode("\n", $output));
+            $scriptPath = base_path('scripts/automation/post-offers.js');
+            $process = new Process(['node', $scriptPath, $escapedData]);
+
+            // Set timeout (optional)
+            $process->setTimeout(60); // 60 seconds
+
+            // Run process
+            $process->run();
+
+            if (!$process->isSuccessful()) {
+                // Log error
+                logger()->error('Node script failed: ' . $process->getErrorOutput());
+                throw new ProcessFailedException($process);
+            }
+
+            logger()->info('Node script executed successfully: ' . $process->getOutput());
+        } catch (\Throwable $e) {
+            logger()->error('Exception while running Node script: ' . $e->getMessage());
         }
-        // } catch (\Throwable $e) {
-        //     logger()->error('Offer post failed: ' . $e->getMessage());
-        // }
     }
 }

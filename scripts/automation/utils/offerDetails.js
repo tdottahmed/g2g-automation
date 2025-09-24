@@ -1,54 +1,16 @@
-export async function selectDropdownOption(page, labelText, value) {
+
+async function selectDropdownOption(page, btn, value) {
     try {
-        console.log(`🎯 Selecting ${labelText}: ${value}`);
+        await btn.click({ force: true });
+        console.log(`🖱️ Clicked ${labelText} dropdown button in row ${i}`);
+        await page.waitForTimeout(800);
 
-        await page.waitForLoadState("domcontentloaded");
-        await page.waitForTimeout(1500);
-
-        // Find the label
-        const label = page.locator(
-            `div.text-font-2nd:has-text("${labelText}")`
+        // Locate wrapper relative to this button
+        const dropdownWrapper = btn.locator(
+            " + div.relative-position > div:not(.g-input-error)"
         );
-        await label.waitFor({ timeout: 20000 });
-
-        // Find all dropdown buttons in the same row as label
-        const dropdownButtons = label.locator(
-            'xpath=ancestor::div[contains(@class,"col-12")]//button[contains(@class,"g-btn-select")]'
-        );
-        const count = await dropdownButtons.count();
-        if (count === 0) {
-            console.log(`❌ Could not find ${labelText} dropdown button`);
-            return false;
-        }
-
-        let dropdownWrapper = null;
-        let clicked = false;
-
-        for (let i = 0; i < count; i++) {
-            const btn = dropdownButtons.nth(i);
-            await btn.click({ force: true });
-            console.log(
-                `🖱️ Tried clicking ${labelText} dropdown button [${i}]`
-            );
-            await page.waitForTimeout(500);
-
-            // Locate next sibling of the clicked button
-            const wrapper = btn.locator(
-                " + div.relative-position > div:not(.g-input-error)"
-            );
-
-            if ((await wrapper.count()) > 0) {
-                dropdownWrapper = wrapper;
-                console.log(
-                    `✅ Found working ${labelText} dropdown wrapper at index ${i}`
-                );
-                clicked = true;
-                break;
-            }
-        }
-
-        if (!clicked || !dropdownWrapper) {
-            console.log(`❌ Could not open ${labelText} dropdown`);
+        if ((await dropdownWrapper.count()) === 0) {
+            console.log(`❌ Could not find ${labelText} dropdown wrapper`);
             return false;
         }
 
@@ -56,10 +18,8 @@ export async function selectDropdownOption(page, labelText, value) {
         const filterInput = dropdownWrapper.locator(
             'label input[placeholder="Type to filter"]'
         );
-        if ((await filterInput.count()) == 0) {
-            console.log(`❌ Could not find ${labelText} filter input`);
-            return false;
-        }
+        if ((await filterInput.count()) === 0) return false;
+
         await filterInput.first().fill(value);
         await page.waitForTimeout(500);
 
@@ -67,17 +27,12 @@ export async function selectDropdownOption(page, labelText, value) {
         const dropdownMenu = dropdownWrapper.locator(
             "div:nth-child(2) .q-virtual-scroll__content"
         );
-        if ((await dropdownMenu.count()) === 0) {
-            console.log(`❌ Could not find ${labelText} dropdown menu`);
-            return false;
-        }
+        if ((await dropdownMenu.count()) === 0) return false;
 
-        // Option
         const option = dropdownMenu.locator(
             `.q-item .q-item__section:has-text("${value}")`
         );
         if ((await option.count()) === 0) {
-            console.log(`❌ No option found for ${labelText} ${value}`);
             await page.keyboard.press("Escape").catch(() => {});
             return false;
         }
@@ -85,9 +40,6 @@ export async function selectDropdownOption(page, labelText, value) {
         const firstOption = option.first();
         const innerHTML = await firstOption.innerHTML();
         if (!innerHTML.toLowerCase().includes(value.toLowerCase())) {
-            console.log(
-                `❌ No matching option found for ${labelText} ${value}`
-            );
             await page.keyboard.press("Escape").catch(() => {});
             return false;
         }
@@ -102,18 +54,47 @@ export async function selectDropdownOption(page, labelText, value) {
     }
 }
 
-// 🔹 Convenience wrappers
-export const selectTownHallLevel = (page, level) =>
-    selectDropdownOption(page, "Town Hall Level", level);
+/**
+ *
+ * @param {*} page
+ * @param {Levels} levels
+ */
+export async function selectLevels(page, levels) {
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(1500);
 
-export const selectKingLevel = (page, level) =>
-    selectDropdownOption(page, "King Level", level);
+    // Get all form rows
+    const items = page.locator(
+        ".g-cu-form-card>.g-cu-form-card__section:nth-child(2) .col-12 .row"
+    );
+    const itemCount = await items.count();
+    console.log(`Found ${itemCount} form rows`);
 
-export const selectQueenLevel = (page, level) =>
-    selectDropdownOption(page, "Queen Level", level);
+    for (let i = 0; i < itemCount; i++) {
+        console.log(`Processing row ${i}...`);
 
-export const selectWardenLevel = (page, level) =>
-    selectDropdownOption(page, "Warden Level", level);
+        const label = row.locator("div:nth-child(1) .text-font-2nd");
+        const labelText = (await label.first().innerText()).trim();
+        if ((await label.count()) === 0) {
+            console.log(`Skipping row ${i}, label not found`);
+            return false;
+        }
+        const value = levels[labelText];
+        if (!value) {
+            console.log(`Skipping row ${i}, no value found for ${labelText}`);
+            return false;
+        }
+        console.log(
+            `Processing row ${i} with label ${labelText} and value ${value}`
+        );
+        const row = items.nth(i);
+        // Find label in this row
+        const dropdownButton = row.locator("div:nth-child(2) .g-btn-select");
+        if ((await dropdownButton.count()) === 0) {
+            console.log(`❌ Could not find ${labelText} dropdown button`);
+            return false;
+        }
 
-export const selectChampionLevel = (page, level) =>
-    selectDropdownOption(page, "Champion Level", level);
+        await selectDropdownOption(page, dropdownButton.first(), value);
+    }
+}
