@@ -11,30 +11,48 @@ export async function selectDropdownOption(page, labelText, value) {
         );
         await label.waitFor({ timeout: 20000 });
 
-        // Find the dropdown button in the same row as label
-        const dropdownButton = label.locator(
+        // Find all dropdown buttons in the same row as label
+        const dropdownButtons = label.locator(
             'xpath=ancestor::div[contains(@class,"col-12")]//button[contains(@class,"g-btn-select")]'
         );
-        if ((await dropdownButton.count()) === 0) {
+        const count = await dropdownButtons.count();
+        if (count === 0) {
             console.log(`❌ Could not find ${labelText} dropdown button`);
             return false;
         }
 
-        // Click the button
-        await dropdownButton.first().click({ force: true });
-        console.log(`✅ Clicked ${labelText} dropdown button`);
-        await page.waitForTimeout(500);
+        let dropdownWrapper = null;
+        let clicked = false;
 
-        // Now Locate next sibling of the dropdown button which has the input field for the filter and options
-        const dropdownWrapper = dropdownButton.locator(
-            " + div.relative-position > div:not(.g-input-error)"
-        );
+        for (let i = 0; i < count; i++) {
+            const btn = dropdownButtons.nth(i);
+            await btn.click({ force: true });
+            console.log(
+                `🖱️ Tried clicking ${labelText} dropdown button [${i}]`
+            );
+            await page.waitForTimeout(500);
 
-        if ((await dropdownWrapper.count()) === 0) {
-            console.log(`❌ Could not find ${labelText} dropdown wrapper`);
+            // Locate next sibling of the clicked button
+            const wrapper = btn.locator(
+                " + div.relative-position > div:not(.g-input-error)"
+            );
+
+            if ((await wrapper.count()) > 0) {
+                dropdownWrapper = wrapper;
+                console.log(
+                    `✅ Found working ${labelText} dropdown wrapper at index ${i}`
+                );
+                clicked = true;
+                break;
+            }
+        }
+
+        if (!clicked || !dropdownWrapper) {
+            console.log(`❌ Could not open ${labelText} dropdown`);
             return false;
         }
 
+        // Filter input
         const filterInput = dropdownWrapper.locator(
             'label input[placeholder="Type to filter"]'
         );
@@ -45,6 +63,7 @@ export async function selectDropdownOption(page, labelText, value) {
         await filterInput.first().fill(value);
         await page.waitForTimeout(500);
 
+        // Dropdown menu
         const dropdownMenu = dropdownWrapper.locator(
             "div:nth-child(2) .q-virtual-scroll__content"
         );
@@ -52,6 +71,8 @@ export async function selectDropdownOption(page, labelText, value) {
             console.log(`❌ Could not find ${labelText} dropdown menu`);
             return false;
         }
+
+        // Option
         const option = dropdownMenu.locator(
             `.q-item .q-item__section:has-text("${value}")`
         );
@@ -61,9 +82,7 @@ export async function selectDropdownOption(page, labelText, value) {
             return false;
         }
 
-        const firstOption = await option.first();
-
-        // Check First option inerthtml includes the value (case insensitive)
+        const firstOption = option.first();
         const innerHTML = await firstOption.innerHTML();
         if (!innerHTML.toLowerCase().includes(value.toLowerCase())) {
             console.log(
