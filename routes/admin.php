@@ -21,5 +21,6 @@ Route::group(['middleware' => ['role:super-admin|admin|staff|user']], function (
 
     Route::resource('user-accounts', UserAccountController::class);
     Route::resource('offer-templates', OfferTemplateController::class);
+    Route::post('offer-templates/toggle-status/{id}', [OfferTemplateController::class, 'toggleStatus'])->name('offer-templates.toggle-status');
     Route::resource('levels', LevelController::class);
 });

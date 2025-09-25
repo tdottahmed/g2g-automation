@@ -23,18 +23,33 @@
       <x-data-display.tbody>
         @forelse ($offers as $offer)
           <tr>
-            <td>{{ $offer->title }}</td>
+            <td>{{ $offer->title }}
+              <span
+                    class="badge bg-{{ $offer->is_active ? 'success' : 'warning' }}">{{ $offer->is_active ? __('Active') : __('Inactive') }}</span>
+            </td>
+            </td>
             <td>{{ $offer->userAccount->owner_name ?? '-' }}</td>
             <td>{{ $offer->price }}</td>
             <td>{{ $offer->currency }}</td>
             <td>{{ $offer->region }}</td>
             <td>
-              @if ($offer->is_active)
-                <span class="badge bg-success">{{ __('Active') }}</span>
-              @else
-                <span class="badge bg-secondary">{{ __('Inactive') }}</span>
-              @endif
+              <form action="{{ route('offer-templates.toggle-status', $offer->id) }}" method="POST" class="d-inline">
+                @csrf
+                @if ($offer->is_active)
+                  <input type="hidden" name="status" value="0">
+                  <button type="submit" class="btn btn-outline-danger off-offer-btn" title="Deactivate this template">
+                    <i class="ri-stop-circle-line me-1"></i> {{ __('Deactivate') }}
+                  </button>
+                @else
+                  <input type="hidden" name="status" value="1">
+                  <button type="submit" class="btn btn-outline-success start-offer-btn" title="Activate this template">
+                    <i class="ri-play-circle-fill me-1"></i> {{ __('Activate') }}
+                  </button>
+                @endif
+              </form>
+
             </td>
+
             <x-data-display.table-actions>
               <li>
                 <a href="{{ route('offer-templates.edit', $offer->id) }}" class="dropdown-item">
@@ -63,4 +78,34 @@
       </x-data-display.tbody>
     </x-data-display.table>
   </x-data-display.card>
+
+  @push('scripts')
+    <script>
+      document.querySelectorAll('.start-offer-btn, .off-offer-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          const form = this.closest('form');
+          const isActivate = this.classList.contains('start-offer-btn');
+
+          Swal.fire({
+            title: isActivate ? 'Activate this offer?' : 'Deactivate this offer?',
+            text: "You can change this status anytime.",
+            icon: 'question',
+            showCancelButton: true,
+            customClass: {
+              confirmButton: 'btn btn-primary w-xs me-2 mt-2',
+              cancelButton: 'btn btn-danger w-xs mt-2',
+            },
+            confirmButtonText: isActivate ? 'Yes, activate it!' : 'Yes, deactivate it!',
+            buttonsStyling: false,
+            showCloseButton: true,
+          }).then((result) => {
+            if (result.isConfirmed) {
+              form.submit();
+            }
+          });
+        });
+      });
+    </script>
+  @endpush
 </x-layouts.admin.master>

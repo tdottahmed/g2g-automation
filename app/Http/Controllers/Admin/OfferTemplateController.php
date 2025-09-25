@@ -115,4 +115,21 @@ class OfferTemplateController extends Controller
         $offerTemplate->delete();
         return redirect()->route('offer-templates.index')->with('success', 'Offer template deleted successfully.');
     }
+
+    public function toggleStatus(Request $request, $id)
+    {
+        $offer = OfferTemplate::findOrFail($id);
+
+        // If status is passed, set it directly
+        if ($request->has('status')) {
+            $offer->is_active = $request->input('status');
+        } else {
+            // fallback toggle
+            $offer->is_active = !$offer->is_active;
+        }
+
+        $offer->save();
+
+        return redirect()->back()->with('success', 'Offer status updated successfully!');
+    }
 }
