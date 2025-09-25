@@ -50,6 +50,16 @@ async function main() {
         // inputData = JSON.parse(process.argv[2] || "{}");
         inputData = {
             Title: "Test Title",
+            mediaData: [
+                {
+                    title: "Test Media 1",
+                    Link: "https://www.dropbox.com/scl/fi/1ox7w331djf9fh1jkhlom/InCollage_20250826_170111747.jpg?rlkey=ah2ar9dqcpko9gsw5qs5gkcza&st=q0vbgmo1&raw=1",
+                },
+                {
+                    title: "Test Media 2",
+                    Link: "https://www.dropbox.com/scl/fi/1ox7w331djf9fh1jkhlom/InCollage_20250826_170111747.jpg?rlkey=ah2ar9dqcpko9gsw5qs5gkcza&st=q0vbgmo1&raw=1",
+                },
+            ],
             Description:
                 "t is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters",
             "Town Hall Level": "17",
@@ -67,6 +77,7 @@ async function main() {
         console.error("❌ Failed to parse input:", e.message);
         process.exit(1);
     }
+
     let browser = null;
     try {
         browser = await chromium.launch({
@@ -208,6 +219,10 @@ async function main() {
                 }
             }
         }
+        await fillPricingSection(page, inputData["Default price (unit)"]);
+
+        const mediaData = inputData.mediaData || [];
+        await fillMediaGallery(page, mediaData);
 
         console.log("✅ Full flow completed!");
     } catch (error) {
@@ -294,6 +309,110 @@ async function fillInput(page, fieldEl, value, label = "Input") {
         return true;
     } catch (error) {
         console.error(`❌ Failed to fill input ${label}:`, error.message);
+        return false;
+    }
+}
+
+/**
+ * Fill Pricing section manually (only price input)
+ * @param {import('playwright').Page} page
+ * @param {string|number} price - e.g., "150.00"
+ */
+async function fillPricingSection(page, price) {
+    try {
+        const pricingSection = page
+            .locator(".g-cu-form-card__section:has-text('Pricing')")
+            .first();
+
+        if ((await pricingSection.count()) === 0) {
+            console.log("❌ Could not find Pricing section");
+            return false;
+        }
+
+        const priceInput = pricingSection
+            .locator("input.q-field__native")
+            .first();
+        if ((await priceInput.count()) === 0) {
+            console.log("❌ Could not find Default price input");
+            return false;
+        }
+
+        await priceInput.fill("");
+        await priceInput.type(price.toString(), { delay: 100 });
+        console.log(`🖱️ Filled Default price (unit) with: ${price}`);
+
+        return true;
+    } catch (error) {
+        console.error("❌ Failed to fill Pricing section:", error.message);
+        return false;
+    }
+}
+
+/**
+ * Fill Media Gallery
+ * @param {import('playwright').Page} page
+ * @param {Array<{title: string, Link: string}>} medias
+ */
+async function fillMediaGallery(page, medias = []) {
+    if (!medias.length) return;
+
+    try {
+        const mediaSection = page
+            .locator(".g-cu-form-card__section:has-text('Media gallery')")
+            .first();
+
+        if ((await mediaSection.count()) === 0) {
+            console.log("❌ Could not find Media gallery section");
+            return false;
+        }
+
+        // Loop through each media item in JSON
+        for (let i = 0; i < medias.length; i++) {
+            const { title, Link } = medias[i];
+
+            // Click 'Add media' button if not first item
+            if (i > 0) {
+                const addBtn = mediaSection
+                    .locator("button:has-text('Add media')")
+                    .first();
+                if ((await addBtn.count()) > 0) {
+                    await addBtn.click();
+                    await page.waitForTimeout(500); // wait for new input to render
+                }
+            }
+
+            // Fill Media Title
+            const titleInput = mediaSection
+                .locator(`input[placeholder="Media title"]`)
+                .nth(i);
+            if ((await titleInput.count()) > 0) {
+                await titleInput.fill("");
+                await titleInput.type(title, { delay: 100 });
+                console.log(`🖱️ Filled media title: ${title}`);
+            } else {
+                console.log(
+                    `❌ Could not find media title input for item ${i}`
+                );
+            }
+
+            // Fill Link
+            const linkInput = mediaSection
+                .locator(`input[placeholder="https://"]`)
+                .nth(i);
+            if ((await linkInput.count()) > 0) {
+                await linkInput.fill("");
+                await linkInput.type(Link, { delay: 100 });
+                console.log(`🖱️ Filled media link: ${Link}`);
+            } else {
+                console.log(`❌ Could not find media link input for item ${i}`);
+            }
+
+            await page.waitForTimeout(300); // small delay for stability
+        }
+
+        return true;
+    } catch (error) {
+        console.error("❌ Failed to fill Media gallery:", error.message);
         return false;
     }
 }
