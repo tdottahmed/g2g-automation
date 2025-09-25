@@ -52,11 +52,11 @@ async function main() {
             Title: "Test Title",
             Description:
                 "t is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters",
-            "Town Hall Level": 17,
+            "Town Hall Level": "17",
             "King Level": "85+",
-            "Queen Level": "101+",
-            "Warden Level": "82+",
-            "Champion Level": "50+",
+            "Queen Level": "95+",
+            "Warden Level": "65+",
+            "Champion Level": "45+",
             "Default price (unit)": "150.00",
             "Minimum purchase quantity": null,
             "Media gallery": null,
@@ -117,25 +117,27 @@ async function main() {
         await page.waitForTimeout(5000); // lazy-render buffer
 
         const { selector: cardSelector, items } = formStructure;
-        items.forEach(async (cardObj, index) => {
-            if (!cardObj) return; // Skip null items
 
-            const cardSel = getSelector(cardObj, index, cardSelector);
+        for (let [cardIndex, cardObj] of items.entries()) {
+            if (!cardObj) continue; // Skip null items
 
+            const cardSel = getSelector(cardObj, cardIndex, cardSelector);
             const cardEl = page.locator(cardSel).first();
 
             if ((await cardEl.count()) === 0) {
                 console.log(`❌ Could not find card in the dom: ${cardSel}`);
-                return;
+                continue;
             }
+
             const { items: sectionItems, selector: defaultSectionSelector } =
                 cardObj.sections;
-            sectionItems.forEach(async (sectionObj, index) => {
-                if (!sectionObj) return; // Skip null items
+
+            for (let [sectionIndex, sectionObj] of sectionItems.entries()) {
+                if (!sectionObj) continue; // Skip null items
 
                 const sectionSel = getSelector(
                     sectionObj,
-                    index,
+                    sectionIndex,
                     defaultSectionSelector
                 );
 
@@ -145,7 +147,7 @@ async function main() {
                     console.log(
                         `❌ Could not find section in the dom: ${sectionSel}`
                     );
-                    return;
+                    continue;
                 }
 
                 console.log(
@@ -161,39 +163,42 @@ async function main() {
                     selector: defaultFieldSelector,
                     type: defaultFieldType,
                 } = sectionObj.fields;
-                for (let [index, fieldObj] of fieldItems.entries()) {
+
+                for (let [fieldIndex, fieldObj] of fieldItems.entries()) {
                     if (!fieldObj) continue; // Skip null items
 
                     const label = fieldObj.label;
                     const fieldSel = getSelector(
                         fieldObj,
-                        index,
+                        fieldIndex,
                         defaultFieldSelector
                     );
-                    const fieldEl = sectionEl.locator(fieldSel).nth(index);
+                    const fieldEl = sectionEl.locator(fieldSel).nth(fieldIndex);
 
                     if ((await fieldEl.count()) === 0) {
                         console.log(
                             `❌ Could not find field in the dom: ${fieldSel}`
                         );
-                        return;
+                        continue;
                     }
 
                     const fieldType = fieldObj.type || defaultFieldType;
                     if (!fieldType) {
                         console.log(`❌ Field type not specified: ${fieldSel}`);
-                        return;
+                        continue;
                     }
 
                     const value = inputData[label];
+
                     switch (fieldType) {
                         case "dropdown":
                             await selectDropdownOption(page, fieldEl, value);
+                            await page.waitForTimeout(500); // 👈 Now this works!
                             break;
                         case "text":
                             await fillInput(page, fieldEl, value, label);
+                            await page.waitForTimeout(500); // 👈 Add delay here too
                             break;
-
                         default:
                             console.log(
                                 `❌ Unsupported field type: ${fieldType}`
@@ -201,8 +206,9 @@ async function main() {
                             break;
                     }
                 }
-            });
-        });
+            }
+        }
+
         console.log("✅ Full flow completed!");
     } catch (error) {
         console.error("❌ Process failed:", error.message);

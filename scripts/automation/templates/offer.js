@@ -35,7 +35,7 @@ const offerCards = {
                         name: "Title & Description",
                         fields: {
                             selector: "div.q-col-gutter-sm",
-                            type: "dropdown",
+                            type: "text",
                             items: [
                                 {
                                     label: "Title",
