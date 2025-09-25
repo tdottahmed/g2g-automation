@@ -16,11 +16,11 @@ return new class extends Migration
             $table->foreignId('user_account_id')->constrained('user_accounts')->onDelete('cascade');
             $table->string('title');
             $table->longText('description');
-            $table->integer('th_level')->nullable();
-            $table->integer('king_level')->nullable();
-            $table->integer('queen_level')->nullable();
-            $table->integer('warden_level')->nullable();
-            $table->integer('champion_level')->nullable();
+            $table->string('th_level')->nullable();
+            $table->string('king_level')->nullable();
+            $table->string('queen_level')->nullable();
+            $table->string('warden_level')->nullable();
+            $table->string('champion_level')->nullable();
             $table->boolean('is_active')->default(false);
             $table->json('medias')->nullable();
             $table->string('currency')->default('USD');

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ApplicationSetup;
+use App\Models\Level;
 use Illuminate\Support\Facades\Storage;
 
 if (!function_exists('uploadFile')) {
@@ -87,5 +88,16 @@ if (!function_exists('getSetting')) {
     {
         $setting = ApplicationSetup::where('type', $name)->first();
         return $setting ? $setting->value : '';
+    }
+}
+
+if (!function_exists('getLevelsByType')) {
+    function getLevelsByType(string $type): array
+    {
+        return Level::where('type', $type)
+            ->where('active', true)
+            ->orderBy('id', 'desc')
+            ->pluck('value', 'value')
+            ->toArray();
     }
 }

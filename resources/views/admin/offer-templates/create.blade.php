@@ -1,4 +1,5 @@
 <x-layouts.admin.master>
+
   <x-data-display.card>
     <x-slot name="header">
       <div class="d-flex justify-content-between align-items-center">
@@ -9,41 +10,42 @@
     </x-slot>
 
     <x-data-entry.form action="{{ route('offer-templates.store') }}">
+      <input type="hidden" name="region" value="Global" />
+      <input type="hidden" name="currency" value="USD" />
 
       <x-data-entry.select name="user_account_id" label="User Account" :options="$userAccounts->pluck('owner_name', 'id')" :selected="old('user_account_id', $offerTemplate->user_account_id ?? null)"
                            placeholder="Select User Account" required />
 
       <x-data-entry.input type="text" name="title" label="Title" placeholder="Enter title" required />
-      <x-data-entry.editor name="description" label="Description" placeholder="Enter description" />
-
+      <x-data-entry.text-area name="description" label="Description" placeholder="Enter description" rows="3" />
 
       <div class="row">
         <div class="col-md-6">
-          <x-data-entry.select name="th_level" label="Town Hall Level" :options="$thLevels"
+          <x-data-entry.select name="th_level" label="Town Hall Level" :options="getLevelsByType('Town Hall')"
                                placeholder="Select TH Level" />
         </div>
         <div class="col-md-6">
-          <x-data-entry.select name="king_level" label="King Level" :options="$kingLevels" placeholder="Select King Level" />
+          <x-data-entry.select name="king_level" label="King Level" :options="getLevelsByType('King')" placeholder="Select King Level" />
         </div>
         <div class="col-md-6">
-          <x-data-entry.select name="queen_level" label="Queen Level" :options="$queenLevels"
+          <x-data-entry.select name="queen_level" label="Queen Level" :options="getLevelsByType('Queen')"
                                placeholder="Select Queen Level" />
         </div>
         <div class="col-md-6">
-          <x-data-entry.select name="warden_level" label="Warden Level" :options="$wardenLevels"
+          <x-data-entry.select name="warden_level" label="Warden Level" :options="getLevelsByType('Warden')"
                                placeholder="Select Warden Level" />
         </div>
         <div class="col-md-6">
-          <x-data-entry.select name="champion_level" label="Champion Level" :options="$championLevels"
+          <x-data-entry.select name="champion_level" label="Champion Level" :options="getLevelsByType('Champion')"
                                placeholder="Select Champion Level" />
         </div>
       </div>
 
       <x-data-entry.input type="number" step="0.01" name="price" label="Price" placeholder="Enter price"
                           required />
-      <x-data-entry.input type="text" name="currency" label="Currency" placeholder="Currency" value="USD"
-                          required />
-      <x-data-entry.input type="text" name="region" label="Region" placeholder="Region" value="Global" />
+      <x-data-entry.input type="text" name="currency" label="Currency" placeholder="Currency" value="USD" required
+                          disabled />
+      <x-data-entry.input type="text" name="region" label="Region" placeholder="Region" value="Global" disabled />
 
     </x-data-entry.form>
   </x-data-display.card>
