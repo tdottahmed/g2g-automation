@@ -9,18 +9,35 @@
     </x-slot>
 
     <x-data-entry.form action="{{ route('offer-templates.store') }}">
+
       <x-data-entry.select name="user_account_id" label="User Account" :options="$userAccounts->pluck('owner_name', 'id')" :selected="old('user_account_id', $offerTemplate->user_account_id ?? null)"
                            placeholder="Select User Account" required />
-
 
       <x-data-entry.input type="text" name="title" label="Title" placeholder="Enter title" required />
       <x-data-entry.editor name="description" label="Description" placeholder="Enter description" />
 
-      <x-data-entry.input type="number" name="th_level" label="Town Hall Level" placeholder="TH Level" />
-      <x-data-entry.input type="number" name="king_level" label="King Level" placeholder="King Level" />
-      <x-data-entry.input type="number" name="queen_level" label="Queen Level" placeholder="Queen Level" />
-      <x-data-entry.input type="number" name="warden_level" label="Warden Level" placeholder="Warden Level" />
-      <x-data-entry.input type="number" name="champion_level" label="Champion Level" placeholder="Champion Level" />
+
+      <div class="row">
+        <div class="col-md-6">
+          <x-data-entry.select name="th_level" label="Town Hall Level" :options="$thLevels"
+                               placeholder="Select TH Level" />
+        </div>
+        <div class="col-md-6">
+          <x-data-entry.select name="king_level" label="King Level" :options="$kingLevels" placeholder="Select King Level" />
+        </div>
+        <div class="col-md-6">
+          <x-data-entry.select name="queen_level" label="Queen Level" :options="$queenLevels"
+                               placeholder="Select Queen Level" />
+        </div>
+        <div class="col-md-6">
+          <x-data-entry.select name="warden_level" label="Warden Level" :options="$wardenLevels"
+                               placeholder="Select Warden Level" />
+        </div>
+        <div class="col-md-6">
+          <x-data-entry.select name="champion_level" label="Champion Level" :options="$championLevels"
+                               placeholder="Select Champion Level" />
+        </div>
+      </div>
 
       <x-data-entry.input type="number" step="0.01" name="price" label="Price" placeholder="Enter price"
                           required />
@@ -28,8 +45,6 @@
                           required />
       <x-data-entry.input type="text" name="region" label="Region" placeholder="Region" value="Global" />
 
-      {{-- <x-data-entry.checkbox name="is_active" label="Active" />
-      <x-data-entry.checkbox name="instant_delivery" label="Instant Delivery" checked /> --}}
     </x-data-entry.form>
   </x-data-display.card>
 </x-layouts.admin.master>

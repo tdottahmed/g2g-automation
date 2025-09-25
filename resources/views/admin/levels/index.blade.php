@@ -2,51 +2,48 @@
   <x-data-display.card>
     <x-slot name="header">
       <div class="d-flex justify-content-between align-items-center">
-        <h5 class="card-title">{{ __('Offer Templates') }}</h5>
-        <x-action.link href="{{ route('offer-templates.create') }}" icon="ri-add-line">
-          {{ __('Create Offer Template') }}
+        <h5 class="card-title">{{ __('Levels') }}</h5>
+        <x-action.link href="{{ route('levels.create') }}" icon="ri-add-line">
+          {{ __('Create Level') }}
         </x-action.link>
       </div>
     </x-slot>
 
     <x-data-display.table>
       <x-data-display.thead>
-        <th>{{ __('Title') }}</th>
-        <th>{{ __('User Account') }}</th>
-        <th>{{ __('Price') }}</th>
-        <th>{{ __('Currency') }}</th>
-        <th>{{ __('Region') }}</th>
+        <th>{{ __('ID') }}</th>
+        <th>{{ __('Type') }}</th>
+        <th>{{ __('Value') }}</th>
         <th>{{ __('Status') }}</th>
         <th>{{ __('Actions') }}</th>
       </x-data-display.thead>
 
       <x-data-display.tbody>
-        @forelse ($offers as $offer)
+        @forelse ($levels as $level)
           <tr>
-            <td>{{ $offer->title }}</td>
-            <td>{{ $offer->userAccount->owner_name ?? '-' }}</td>
-            <td>{{ $offer->price }}</td>
-            <td>{{ $offer->currency }}</td>
-            <td>{{ $offer->region }}</td>
+            <td>{{ $level->id }}</td>
+            <td>{{ ucfirst($level->type) }}</td>
+            <td>{{ $level->value }}</td>
             <td>
-              @if ($offer->is_active)
+              @if ($level->active)
                 <span class="badge bg-success">{{ __('Active') }}</span>
               @else
                 <span class="badge bg-secondary">{{ __('Inactive') }}</span>
               @endif
             </td>
+
             <x-data-display.table-actions>
               <li>
-                <a href="{{ route('offer-templates.edit', $offer->id) }}" class="dropdown-item">
+                <a href="{{ route('levels.edit', $level->id) }}" class="dropdown-item">
                   <i class="ri-edit-box-line"></i> {{ __('Edit') }}
                 </a>
               </li>
               <li>
-                <form method="POST" action="{{ route('offer-templates.destroy', $offer->id) }}">
+                <form method="POST" action="{{ route('levels.destroy', $level->id) }}">
                   @csrf
                   @method('DELETE')
                   <button type="submit" class="dropdown-item text-danger remove-item-btn"
-                          onclick="return confirm('{{ __('Are you sure you want to delete this offer?') }}')">
+                          onclick="return confirm('{{ __('Are you sure you want to delete this level?') }}')">
                     <i class="ri-delete-bin-line"></i> {{ __('Delete') }}
                   </button>
                 </form>
@@ -56,7 +53,7 @@
         @empty
           <tr>
             <td colspan="7" class="text-muted text-center">
-              {{ __('No offers found.') }}
+              {{ __('No levels found.') }}
             </td>
           </tr>
         @endforelse

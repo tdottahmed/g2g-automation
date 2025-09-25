@@ -33,6 +33,7 @@
 
         <x-layouts.admin.partials.sidebar-menu-item route="user-accounts.index" icon="ri-user-3-line"
                                                     label="User Accounts" />
+        <x-layouts.admin.partials.sidebar-menu-item route="levels.index" icon="ri-list-check-2-line" label="Levels" />
         <x-layouts.admin.partials.sidebar-menu-item route="offer-templates.index" icon="ri-price-tag-3-line"
                                                     label="Offer Templates" />
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\UserAccountController;
+use App\Http\Controllers\LevelController;
 
 Route::group(['middleware' => ['role:super-admin|admin|staff|user']], function () {
     Route::resource('roles', RoleController::class);
@@ -20,4 +21,5 @@ Route::group(['middleware' => ['role:super-admin|admin|staff|user']], function (
 
     Route::resource('user-accounts', UserAccountController::class);
     Route::resource('offer-templates', OfferTemplateController::class);
+    Route::resource('levels', LevelController::class);
 });
