@@ -25,8 +25,46 @@
       <x-data-entry.text-area name="description" label="Description" placeholder="Enter description" rows="3"
                               value="{{ old('description', $offerTemplate->description) }}" />
 
+      {{-- Medias --}}
+      <div class="card mt-3 border-0 shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="ri-play-circle-line text-primary me-1"></i> {{ __('Medias') }}
+          </h5>
+          <button type="button" class="btn btn-sm btn-primary" id="add-media-btn">
+            <i class="ri-add-line me-1"></i> {{ __('Add Media') }}
+          </button>
+        </div>
+
+        <div class="card-body" id="media-wrapper">
+          @php
+            $medias = old('medias', json_decode($offerTemplate->medias, true) ?? [['title' => '', 'link' => '']]);
+          @endphp
+
+          @foreach ($medias as $index => $media)
+            <div class="row g-2 align-items-end media-row mb-2" data-id="{{ $index }}">
+              <div class="col-md-3">
+                <label class="form-label">{{ __('Media Title') }}</label>
+                <input type="text" name="medias[{{ $index }}][title]" class="form-control"
+                       placeholder="Enter title" value="{{ $media['title'] ?? '' }}">
+              </div>
+              <div class="col-md-8">
+                <label class="form-label">{{ __('Media Link') }}</label>
+                <input type="url" name="medias[{{ $index }}][link]" class="form-control"
+                       placeholder="https://example.com" value="{{ $media['link'] ?? '' }}">
+              </div>
+              <div class="col-md-1">
+                <button type="button" class="btn btn-danger remove-media-btn w-100 {{ $index == 0 ? 'd-none' : '' }}">
+                  <i class="ri-delete-bin-line"></i>
+                </button>
+              </div>
+            </div>
+          @endforeach
+        </div>
+      </div>
+
       {{-- Levels --}}
-      <div class="row">
+      <div class="row mt-3">
         <div class="col-md-6">
           <x-data-entry.select name="th_level" label="Town Hall Level" :options="getLevelsByType('Town Hall')" :selected="old('th_level', $offerTemplate->th_level)"
                                placeholder="Select TH Level" />
@@ -53,13 +91,54 @@
       <x-data-entry.input type="number" step="0.01" name="price" label="Price"
                           value="{{ old('price', $offerTemplate->price) }}" required />
 
-      {{-- Currency (Disabled) --}}
+      {{-- Currency --}}
       <x-data-entry.input type="text" name="currency" label="Currency"
                           value="{{ old('currency', $offerTemplate->currency ?? 'USD') }}" required disabled />
 
-      {{-- Region (Disabled) --}}
+      {{-- Region --}}
       <x-data-entry.input type="text" name="region" label="Region"
                           value="{{ old('region', $offerTemplate->region ?? 'Global') }}" disabled />
+
     </x-data-entry.form>
   </x-data-display.card>
+
+  @push('scripts')
+    <script>
+      $(document).ready(function() {
+        let mediaIndex = {{ count($medias) }};
+
+        function createMediaRow(index) {
+          return `
+                <div class="row g-2 align-items-end mb-2 media-row" data-id="${index}">
+                    <div class="col-md-3">
+                        <label class="form-label">{{ __('Media Title') }}</label>
+                        <input type="text" name="medias[${index}][title]" class="form-control" placeholder="Enter title">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">{{ __('Media Link') }}</label>
+                        <input type="url" name="medias[${index}][link]" class="form-control" placeholder="https://example.com">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-danger remove-media-btn w-100">
+                            <i class="ri-delete-bin-line"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Add new media row
+        $('#add-media-btn').on('click', function() {
+          $('#media-wrapper').append(createMediaRow(mediaIndex));
+          mediaIndex++;
+        });
+
+        // Remove media row
+        $('#media-wrapper').on('click', '.remove-media-btn', function() {
+          $(this).closest('.media-row').remove();
+        });
+      });
+    </script>
+  @endpush
+
 </x-layouts.admin.master>

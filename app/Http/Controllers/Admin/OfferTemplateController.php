@@ -34,6 +34,10 @@ class OfferTemplateController extends Controller
             'price'           => 'required|numeric|min:0',
             'currency'        => 'required|string|max:3',
             'region'          => 'required|string|max:255',
+            'medias'          => 'nullable|array',
+            'description'     => 'required',
+            'medias.*.title'  => 'nullable|string|max:255',
+            'medias.*.link'   => 'nullable|url|max:500',
         ]);
 
         $data = [
@@ -48,9 +52,12 @@ class OfferTemplateController extends Controller
             'price'           => $request->price,
             'currency'        => $request->currency,
             'region'          => $request->region,
+            'medias'          => $request->filled('medias') ? json_encode($request->medias) : null, // 👈 important
         ];
+
         try {
             $offerTemplate = OfferTemplate::create($data);
+
             return redirect()
                 ->route('offer-templates.index')
                 ->with('success', 'Offer template created successfully.');
@@ -61,6 +68,7 @@ class OfferTemplateController extends Controller
                 ->withInput();
         }
     }
+
 
     public function edit(OfferTemplate $offerTemplate)
     {
@@ -81,6 +89,9 @@ class OfferTemplateController extends Controller
             'price'           => 'required|numeric|min:0',
             'currency'        => 'required|string|max:3',
             'region'          => 'required|string|max:255',
+            'medias'          => 'nullable|array',
+            'medias.*.title'  => 'nullable|string|max:255',
+            'medias.*.link'   => 'nullable|url|max:500',
         ]);
 
         $data = [
@@ -95,10 +106,12 @@ class OfferTemplateController extends Controller
             'price'           => $request->price,
             'currency'        => $request->currency,
             'region'          => $request->region,
+            'medias'          => $request->filled('medias') ? array_values($request->medias) : null,
         ];
 
         try {
             $offerTemplate->update($data);
+
             return redirect()
                 ->route('offer-templates.index')
                 ->with('success', 'Offer template updated successfully.');
@@ -109,6 +122,7 @@ class OfferTemplateController extends Controller
                 ->withInput();
         }
     }
+
 
     public function destroy(OfferTemplate $offerTemplate)
     {
