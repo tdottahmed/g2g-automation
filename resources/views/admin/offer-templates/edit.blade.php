@@ -99,6 +99,47 @@
       <x-data-entry.input type="text" name="region" label="Region"
                           value="{{ old('region', $offerTemplate->region ?? 'Global') }}" disabled />
 
+      {{-- Delivery Method --}}
+      @php
+        $delivery = old(
+            'delivery_method',
+            json_decode($offerTemplate->delivery_method, true) ?? [
+                'quantity_from' => '',
+                'speed_hour' => '',
+                'speed_min' => '',
+            ],
+        );
+      @endphp
+
+      <div class="card mt-3 border-0 shadow-sm">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">
+            <i class="ri-truck-line text-primary me-1"></i> {{ __('Delivery Method') }}
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="delivery_method_type" value="manual" checked disabled>
+            <label class="form-check-label">{{ __('Manual') }}</label>
+          </div>
+
+          <div class="row mt-2">
+            <div class="col-md-4">
+              <x-data-entry.input type="number" name="delivery_quantity_from" label="Delivery Quantity From"
+                                  value="{{ $delivery['quantity_from'] ?? '' }}" required />
+            </div>
+            <div class="col-md-4">
+              <x-data-entry.input type="number" name="delivery_speed_hour" label="Delivery Speed (Hour)"
+                                  value="{{ $delivery['speed_hour'] ?? '' }}" required />
+            </div>
+            <div class="col-md-4">
+              <x-data-entry.input type="number" name="delivery_speed_min" label="Delivery Speed (Minute)"
+                                  value="{{ $delivery['speed_min'] ?? '' }}" required />
+            </div>
+          </div>
+        </div>
+      </div>
+
     </x-data-entry.form>
   </x-data-display.card>
 
@@ -109,31 +150,29 @@
 
         function createMediaRow(index) {
           return `
-                <div class="row g-2 align-items-end mb-2 media-row" data-id="${index}">
-                    <div class="col-md-3">
-                        <label class="form-label">{{ __('Media Title') }}</label>
-                        <input type="text" name="medias[${index}][title]" class="form-control" placeholder="Enter title">
-                    </div>
-                    <div class="col-md-8">
-                        <label class="form-label">{{ __('Media Link') }}</label>
-                        <input type="url" name="medias[${index}][link]" class="form-control" placeholder="https://example.com">
-                    </div>
-                    <div class="col-md-1">
-                        <button type="button" class="btn btn-danger remove-media-btn w-100">
-                            <i class="ri-delete-bin-line"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
+            <div class="row g-2 align-items-end mb-2 media-row" data-id="${index}">
+              <div class="col-md-3">
+                <label class="form-label">{{ __('Media Title') }}</label>
+                <input type="text" name="medias[${index}][title]" class="form-control" placeholder="Enter title">
+              </div>
+              <div class="col-md-8">
+                <label class="form-label">{{ __('Media Link') }}</label>
+                <input type="url" name="medias[${index}][link]" class="form-control" placeholder="https://example.com">
+              </div>
+              <div class="col-md-1">
+                <button type="button" class="btn btn-danger remove-media-btn w-100">
+                  <i class="ri-delete-bin-line"></i>
+                </button>
+              </div>
+            </div>
+          `;
         }
 
-        // Add new media row
         $('#add-media-btn').on('click', function() {
           $('#media-wrapper').append(createMediaRow(mediaIndex));
           mediaIndex++;
         });
 
-        // Remove media row
         $('#media-wrapper').on('click', '.remove-media-btn', function() {
           $(this).closest('.media-row').remove();
         });

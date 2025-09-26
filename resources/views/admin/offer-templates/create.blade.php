@@ -68,9 +68,50 @@
 
       <x-data-entry.input type="number" step="0.01" name="price" label="Price" placeholder="Enter price"
                           required />
-      <x-data-entry.input type="text" name="currency" label="Currency" placeholder="Currency" value="USD" required
+      {{-- Delivery Methods --}}
+      <div class="card mt-3 border-0 shadow-sm">
+        <div class="card-header bg-light">
+          <h5 class="mb-0"><i class="ri-truck-line text-primary me-1"></i> {{ __('Delivery Method') }}</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="delivery_method" id="delivery_auto" value="automatic"
+                     disabled>
+              <label class="form-check-label" for="delivery_auto">{{ __('Automatic') }}</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="delivery_method" id="delivery_manual" value="manual"
+                     checked disabled>
+              <label class="form-check-label" for="delivery_manual">{{ __('Manual') }}</label>
+            </div>
+          </div>
+
+          {{-- Manual delivery fields --}}
+          <div class="row g-2">
+            <div class="col-md-4">
+              <label class="form-label">{{ __('Delivery Quantity From') }}</label>
+              <input type="number" name="delivery_quantity_from" class="form-control" placeholder="Enter quantity"
+                     value="{{ old('delivery_quantity_from') }}" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{{ __('Delivery Speed Hour') }}</label>
+              <input type="number" name="delivery_speed_hour" class="form-control" placeholder="Hour"
+                     value="{{ old('delivery_speed_hour') }}" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{{ __('Delivery Speed Minute') }}</label>
+              <input type="number" name="delivery_speed_min" class="form-control" placeholder="Minute"
+                     value="{{ old('delivery_speed_min') }}" required>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <x-data-entry.input type="text" name="currency" label="Currency" placeholder="Currency" value="USD"
+                          required disabled />
+      <x-data-entry.input type="text" name="region" label="Region" placeholder="Region" value="Global"
                           disabled />
-      <x-data-entry.input type="text" name="region" label="Region" placeholder="Region" value="Global" disabled />
 
     </x-data-entry.form>
   </x-data-display.card>
