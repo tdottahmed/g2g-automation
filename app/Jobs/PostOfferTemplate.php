@@ -40,7 +40,10 @@ class PostOfferTemplate implements ShouldQueue
             'Default price (unit)' => $this->template->price,
             'Minimum purchase quantity' => $this->template->min_purchase_quantity,
             'Media gallery' => $this->template->medias,
-            'Instant delivery' => $this->template->instant_delivery
+            'Instant delivery' => $this->template->instant_delivery,
+            'user_email' => $this->template->userAccount->email,
+            'password' => decrypt($this->template->userAccount->password),
+            'cookies' => base_path('cookies/auth_state_' . $this->template->userAccount->id . '.json'),
         ]);
 
         $scriptPath = base_path('scripts/automation/post-offers.js');

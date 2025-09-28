@@ -11,26 +11,20 @@ import {
     clickContinueButton,
 } from "./utils/sell.js";
 
-export const CONFIG = {
-    authFile: "g2g_auth_state.json",
+// Dynamic configuration that will be set from Laravel
+let CONFIG = {
+    authFile: "",
     baseUrl: "https://www.g2g.com",
     credentials: {
-        email: "recoveryth0000@gmail.com",
-        password: "@#aocy123%&",
+        email: "",
+        password: "",
     },
-    headless: false,
+    headless: false, // Set to true in production
     slowMo: 120,
 };
 
 import formStructure from "./templates/offer.js";
 
-/**
- *
- * @param {Object} obj
- * @param {number} index
- * @param {string} defaultValue
- * @returns
- */
 function getSelector(obj, index, defaultValue) {
     let selector = defaultValue;
     if (obj && obj.selector) {
@@ -40,41 +34,35 @@ function getSelector(obj, index, defaultValue) {
 }
 
 async function main() {
-    console.log("Raw args:", process.argv);
-
-    /**
-     * @type {Values} inputData ↓ 9
-     */
     let inputData = {};
+
     try {
-        // inputData = JSON.parse(process.argv[2] || "{}");
-        inputData = {
-            Title: "Test Title",
-            mediaData: [
-                {
-                    title: "Test Media 1",
-                    Link: "https://www.dropbox.com/scl/fi/1ox7w331djf9fh1jkhlom/InCollage_20250826_170111747.jpg?rlkey=ah2ar9dqcpko9gsw5qs5gkcza&st=q0vbgmo1&raw=1",
-                },
-                {
-                    title: "Test Media 2",
-                    Link: "https://www.dropbox.com/scl/fi/1ox7w331djf9fh1jkhlom/InCollage_20250826_170111747.jpg?rlkey=ah2ar9dqcpko9gsw5qs5gkcza&st=q0vbgmo1&raw=1",
-                },
-            ],
-            Description:
-                "t is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters",
-            "Town Hall Level": "17",
-            "King Level": "85+",
-            "Queen Level": "95+",
-            "Warden Level": "65+",
-            "Champion Level": "45+",
-            "Default price (unit)": "150.00",
-            "Minimum purchase quantity": null,
-            "Media gallery": null,
-            "Instant delivery": 1,
-        };
-        console.log("📥 Parsed inputData:", inputData);
+        // Decode and parse the base64 encoded data from Laravel
+        const encodedData = process.argv[2];
+        if (!encodedData) {
+            throw new Error("No data provided from Laravel");
+        }
+
+        const decodedData = Buffer.from(encodedData, "base64").toString("utf8");
+        inputData = JSON.parse(decodedData);
+
+        console.log(
+            "📥 Received inputData from Laravel:",
+            JSON.stringify(inputData, null, 2)
+        );
+
+        // Update CONFIG with dynamic data from Laravel
+        CONFIG.credentials.email = inputData.user_email;
+        CONFIG.credentials.password = inputData.password;
+        CONFIG.authFile = inputData.cookies;
+
+        console.log("🔧 Using config:", {
+            email: CONFIG.credentials.email,
+            authFile: CONFIG.authFile,
+            headless: CONFIG.headless,
+        });
     } catch (e) {
-        console.error("❌ Failed to parse input:", e.message);
+        console.error("❌ Failed to parse input from Laravel:", e.message);
         process.exit(1);
     }
 
@@ -93,10 +81,10 @@ async function main() {
         const page = await context.newPage();
 
         // Load session
-        const hasAuthState = await loadAuthState(context);
+        const hasAuthState = await loadAuthState(context, CONFIG.authFile);
         console.log("Auth States:", hasAuthState);
 
-        let loggedIn = hasAuthState && (await isLoggedIn(page));
+        let loggedIn = hasAuthState && (await isLoggedIn(page, CONFIG.baseUrl));
         if (!loggedIn) {
             console.log("❌ Performing fresh login...");
             await page.goto(`${CONFIG.baseUrl}/login`, {
@@ -109,7 +97,7 @@ async function main() {
             );
             await page.keyboard.press("Enter");
             await loginWithOTP(page);
-            await saveAuthState(context);
+            await saveAuthState(context, CONFIG.authFile);
         } else {
             console.log("✅ Using existing session");
         }
@@ -204,11 +192,11 @@ async function main() {
                     switch (fieldType) {
                         case "dropdown":
                             await selectDropdownOption(page, fieldEl, value);
-                            await page.waitForTimeout(500); // 👈 Now this works!
+                            await page.waitForTimeout(500);
                             break;
                         case "text":
                             await fillInput(page, fieldEl, value, label);
-                            await page.waitForTimeout(500); // 👈 Add delay here too
+                            await page.waitForTimeout(500);
                             break;
                         default:
                             console.log(
@@ -219,17 +207,20 @@ async function main() {
                 }
             }
         }
+
         await fillPricingSection(page, inputData["Default price (unit)"]);
 
         const mediaData = inputData.mediaData || [];
         await fillMediaGallery(page, mediaData);
 
         console.log("✅ Full flow completed!");
+        process.exit(0); // Success exit
     } catch (error) {
         console.error("❌ Process failed:", error.message);
+        process.exit(1); // Error exit
     } finally {
         rl.close();
-        if (browser) console.log("⚠️ Browser kept open for debugging.");
+        if (browser) await browser.close();
     }
 }
 
@@ -299,13 +290,28 @@ async function fillInput(page, fieldEl, value, label = "Input") {
         const input = fieldEl.locator(".q-field__native").first();
 
         if ((await input.count()) === 0) {
+            console.log(`❌ Could not find ${label} input`);
             return false;
         }
-        await humanDelay(800, 1500); // 👈 Now delay works!
+
+        await humanDelay(800, 1500); // optional delay
+
+        // Clear any existing value
         await input.fill("");
-        await input.type(value, { delay: 100 });
-        console.log(`🖱️ Filled ${label} input with ${value}`);
+        // Focus the input
+        await input.click();
+
+        // Write to clipboard
+        await page.evaluate(async (text) => {
+            await navigator.clipboard.writeText(text);
+        }, value);
+
+        // Paste using keyboard shortcut
+        await page.keyboard.press("Control+V"); // On macOS use "Meta+V"
+
+        console.log(`📋 Pasted into ${label} input: ${value}`);
         await page.waitForTimeout(500);
+
         return true;
     } catch (error) {
         console.error(`❌ Failed to fill input ${label}:`, error.message);
@@ -381,28 +387,42 @@ async function fillMediaGallery(page, medias = []) {
                 }
             }
 
-            // Fill Media Title
+            // --- Fill Media Title ---
             const titleInput = mediaSection
                 .locator(`input[placeholder="Media title"]`)
                 .nth(i);
             if ((await titleInput.count()) > 0) {
-                await titleInput.fill("");
-                await titleInput.type(title, { delay: 100 });
-                console.log(`🖱️ Filled media title: ${title}`);
+                await titleInput.fill(""); // clear first
+                await titleInput.click();
+
+                // Copy to clipboard
+                await page.evaluate(async (text) => {
+                    await navigator.clipboard.writeText(text);
+                }, title);
+
+                // Paste
+                await page.keyboard.press("Control+V"); // or "Meta+V" on macOS
+                console.log(`📋 Pasted media title: ${title}`);
             } else {
                 console.log(
                     `❌ Could not find media title input for item ${i}`
                 );
             }
 
-            // Fill Link
+            // --- Fill Link ---
             const linkInput = mediaSection
                 .locator(`input[placeholder="https://"]`)
                 .nth(i);
             if ((await linkInput.count()) > 0) {
-                await linkInput.fill("");
-                await linkInput.type(Link, { delay: 100 });
-                console.log(`🖱️ Filled media link: ${Link}`);
+                await linkInput.fill(""); // clear first
+                await linkInput.click();
+
+                await page.evaluate(async (text) => {
+                    await navigator.clipboard.writeText(text);
+                }, Link);
+
+                await page.keyboard.press("Control+V"); // or "Meta+V" on macOS
+                console.log(`📋 Pasted media link: ${Link}`);
             } else {
                 console.log(`❌ Could not find media link input for item ${i}`);
             }
