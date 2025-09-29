@@ -6,12 +6,14 @@ use App\Models\OfferTemplate;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Crypt;
 use Symfony\Component\Process\Process;
-use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class PostOfferTemplate implements ShouldQueue
 {
-    use Dispatchable, Queueable;
+    use Dispatchable, Queueable, InteractsWithQueue, SerializesModels;
 
     protected OfferTemplate $template;
 
@@ -28,59 +30,94 @@ class PostOfferTemplate implements ShouldQueue
      */
     public function handle(): void
     {
-        // Prepare data from database
-        $data = json_encode([
-            'Title' => $this->template->title,
-            'Description' => $this->template->description,
-            'Town Hall Level' => $this->template->th_level,
-            'King Level' => $this->template->king_level,
-            'Queen Level' => $this->template->queen_level,
-            'Warden Level' => $this->template->warden_level,
-            'Champion Level' => $this->template->champion_level,
-            'Default price (unit)' => $this->template->price,
-            'Minimum purchase quantity' => $this->template->min_purchase_quantity,
-            'Media gallery' => $this->template->medias,
-            'Instant delivery' => $this->template->instant_delivery,
-            'user_email' => $this->template->userAccount->email,
-            'password' => decrypt($this->template->userAccount->password),
-            'cookies' => base_path('cookies/auth_state_' . $this->template->userAccount->id . '.json'),
-        ]);
-
-        $scriptPath = base_path('scripts/automation/post-offers.js');
-
         try {
-            // Pass JSON directly as argument, no escapeshellarg
-            $process = new Process([
-                'node',
-                $scriptPath,
-                $data
-            ]);
+            // Prepare media data
+            $mediaData = [];
+            if ($this->template->medias) {
+                $medias = is_string($this->template->medias)
+                    ? json_decode($this->template->medias, true)
+                    : $this->template->medias;
 
-            // Optional: set working directory if needed
-            $process->setWorkingDirectory(base_path('scripts/automation'));
-
-            // Optional: set timeout
-            $process->setTimeout(60);
-
-            // Run the Node script
-            $process->run();
-
-            // Check for errors
-            if (!$process->isSuccessful()) {
-                logger()->error('Node script failed', [
-                    'error' => $process->getErrorOutput(),
-                    'output' => $process->getOutput(),
-                ]);
-                throw new ProcessFailedException($process);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($medias)) {
+                    foreach ($medias as $media) {
+                        $mediaData[] = [
+                            'title' => $media['title'] ?? 'Media',
+                            'Link'  => $media['link'] ?? '',
+                        ];
+                    }
+                } else {
+                    \Log::error('Invalid media data format', [
+                        'template_id' => $this->template->id,
+                        'medias'      => $this->template->medias,
+                    ]);
+                }
             }
 
-            // Log success
-            logger()->info('Node script executed successfully', [
-                'output' => $process->getOutput(),
+            // Generate cookie filename from email (first part before @)
+            $emailParts  = explode('@', $this->template->userAccount->email);
+            $emailPrefix = $emailParts[0];
+            $cookieFile  = base_path($emailPrefix . '.json');
+
+            $deliveryMethod = is_string($this->template->delivery_method)
+                ? json_decode($this->template->delivery_method, true)
+                : $this->template->delivery_method;
+
+            // Prepare input data for Node.js script
+            $inputData = [
+                'Title'                     => $this->template->title,
+                'Description'               => $this->template->description,
+                'Town Hall Level'           => $this->template->th_level,
+                'King Level'                => $this->template->king_level,
+                'Queen Level'               => $this->template->queen_level,
+                'Warden Level'              => $this->template->warden_level,
+                'Champion Level'            => $this->template->champion_level,
+                'Default price (unit)'      => (string) $this->template->price,
+                'Minimum purchase quantity' => $this->template->min_purchase_quantity,
+                'Instant delivery'          => $this->template->instant_delivery ? 1 : 0,
+                'mediaData'                 => $mediaData,
+                'user_email'                => $this->template->userAccount->email,
+                'password'                  => Crypt::decryptString($this->template->userAccount->password),
+                'cookies'                   => $cookieFile,
+                'user_id'                   => $this->template->userAccount->id,
+                'Delivery hour'             => $deliveryMethod['speed_hour'] ?? "0",
+                'Delivery minute'           => $deliveryMethod['speed_min'] ?? "30",
+            ];
+
+            $process = new Process([
+                'node',
+                base_path('scripts/automation/post-offers.js'),
+                base64_encode(json_encode($inputData)),
             ]);
-        } catch (\Throwable $e) {
-            logger()->error('Exception while running Node script', [
-                'message' => $e->getMessage(),
+
+            $process->setWorkingDirectory(base_path('scripts/automation'));
+            $process->setTimeout(null); // no timeout
+
+            $process->run(function ($type, $buffer) {
+                if ($type === Process::ERR) {
+                    \Log::error('NODE_ERR: ' . $buffer);
+                } else {
+                    \Log::info('NODE_OUT: ' . $buffer);
+                }
+            });
+
+            if ($process->isSuccessful()) {
+                $this->template->update(['last_posted_at' => now()]);
+
+                \Log::info('✅ Node script executed successfully', [
+                    'template_id' => $this->template->id,
+                    'output'      => $process->getOutput(),
+                ]);
+            } else {
+                \Log::error("❌ Failed to process template", [
+                    'template_id' => $this->template->id,
+                    'error'       => $process->getErrorOutput(),
+                    'output'      => $process->getOutput(),
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error("Exception processing template", [
+                'template_id' => $this->template->id,
+                'exception'   => $e->getMessage(),
             ]);
         }
     }
