@@ -31,13 +31,27 @@ class RunOfferAutomation extends Command
                 $mediaData = [];
                 if ($template->medias) {
                     $medias = is_string($template->medias) ? json_decode($template->medias, true) : $template->medias;
-                    foreach ($medias as $media) {
-                        $mediaData[] = [
-                            'title' => $media['title'] ?? 'Media',
-                            'Link' => $media['link'] ?? $media['Link'] ?? '',
-                        ];
+
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($medias)) {
+                        foreach ($medias as $media) {
+                            $mediaData[] = [
+                                'title' => $media['title'] ?? 'Media',
+                                'Link' => $media['link'] ?? '',
+                            ];
+                        }
+                    } else {
+                        $this->error("Invalid media data for template ID: {$template->id}");
+                        \Log::error('Invalid media data format', [
+                            'template_id' => $template->id,
+                            'medias' => $template->medias
+                        ]);
                     }
                 }
+
+                // Generate cookie filename from email (first part before @)
+                $emailParts = explode('@', $template->userAccount->email);
+                $emailPrefix = $emailParts[0];
+                $cookieFile = base_path($emailPrefix . '.json');
 
                 // Prepare input data for Node.js script
                 $inputData = [
@@ -50,25 +64,26 @@ class RunOfferAutomation extends Command
                     'Champion Level' => $template->champion_level,
                     'Default price (unit)' => (string) $template->price,
                     'Minimum purchase quantity' => $template->min_purchase_quantity,
-                    'Media gallery' => $template->medias,
                     'Instant delivery' => $template->instant_delivery ? 1 : 0,
                     'mediaData' => $mediaData,
                     'user_email' => $template->userAccount->email,
                     'password' => Crypt::decryptString($template->userAccount->password),
-                    'cookies' => base_path($template->userAccount->id . '.json'),
+                    'cookies' => $cookieFile,
                     'user_id' => $template->userAccount->id,
                 ];
 
                 $this->info("Processing template: {$template->title}");
+                $this->info("Cookie file: {$cookieFile}");
+                $this->info("Media data count: " . count($mediaData));
 
                 $process = new \Symfony\Component\Process\Process([
                     'node',
                     base_path('scripts/automation/post-offers.js'),
-                    base64_encode(json_encode($inputData)) // Encode to avoid escaping issues
+                    base64_encode(json_encode($inputData))
                 ]);
 
                 $process->setWorkingDirectory(base_path('scripts/automation'));
-                $process->setTimeout(300); // Increased timeout for automation
+                $process->setTimeout(500);
 
                 $process->run(function ($type, $buffer) {
                     if (\Symfony\Component\Process\Process::ERR === $type) {

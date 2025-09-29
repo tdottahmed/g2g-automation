@@ -80,24 +80,47 @@ async function main() {
 
         const page = await context.newPage();
 
-        // Load session
+        // Load session with proper error handling
+        console.log("🔐 Checking authentication state...");
         const hasAuthState = await loadAuthState(context, CONFIG.authFile);
-        console.log("Auth States:", hasAuthState);
 
-        let loggedIn = hasAuthState && (await isLoggedIn(page, CONFIG.baseUrl));
+        let loggedIn = false;
+        if (hasAuthState) {
+            console.log("📁 Auth file exists, checking login status...");
+            loggedIn = await isLoggedIn(page, CONFIG.baseUrl);
+            console.log("🔍 Login status after loading auth:", loggedIn);
+        } else {
+            console.log("❌ No auth file found, need fresh login");
+        }
+
         if (!loggedIn) {
             console.log("❌ Performing fresh login...");
-            await page.goto(`${CONFIG.baseUrl}/login`, {
-                waitUntil: "networkidle",
-            });
-            await page.type('input[name="email"]', CONFIG.credentials.email);
-            await page.type(
-                'input[name="password"]',
+
+            // Clear cookies first
+            await context.clearCookies();
+            console.log("✅ Cleared existing cookies");
+
+            // Run login with OTP flow
+            const loginSuccess = await loginWithOTP(
+                page,
+                CONFIG.baseUrl,
+                CONFIG.credentials.email,
                 CONFIG.credentials.password
             );
-            await page.keyboard.press("Enter");
-            await loginWithOTP(page);
-            await saveAuthState(context, CONFIG.authFile);
+
+            if (loginSuccess) {
+                console.log(
+                    "✅ Login successful! Saving authentication state..."
+                );
+                const saved = await saveAuthState(context, CONFIG.authFile);
+                if (saved) {
+                    console.log("✅ Auth state saved to:", CONFIG.authFile);
+                } else {
+                    console.log("❌ Failed to save auth state");
+                }
+            } else {
+                throw new Error("❌ Login process failed");
+            }
         } else {
             console.log("✅ Using existing session");
         }
@@ -223,6 +246,8 @@ async function main() {
         if (browser) await browser.close();
     }
 }
+
+main();
 
 async function selectDropdownOption(page, fieldEl, value) {
     const btn = fieldEl.locator("div:nth-child(2) .g-btn-select").first();
@@ -436,5 +461,3 @@ async function fillMediaGallery(page, medias = []) {
         return false;
     }
 }
-
-main();
