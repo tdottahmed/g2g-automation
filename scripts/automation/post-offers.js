@@ -21,6 +21,7 @@ let CONFIG = {
     },
     headless: false, // Set to true in production
     slowMo: 120,
+    debug: true,
 };
 
 import formStructure from "./templates/offer.js";
@@ -236,14 +237,28 @@ async function main() {
         const mediaData = inputData.mediaData || [];
         await fillMediaGallery(page, mediaData);
 
+        // Call the delivery functions with page parameter
+        await selectManualDelivery(page);
+        await page.waitForTimeout(1000);
+
+        // Make sure these values exist in your inputData
+        const deliveryHour = inputData["Delivery hour"] || "1";
+        const deliveryMinute = inputData["Delivery minute"] || "30";
+
+        await setDeliveryHour(page, deliveryHour);
+        await page.waitForTimeout(1000);
+        await setDeliveryMinute(page, deliveryMinute);
         console.log("✅ Full flow completed!");
-        process.exit(0); // Success exit
     } catch (error) {
         console.error("❌ Process failed:", error.message);
         process.exit(1); // Error exit
     } finally {
         rl.close();
-        if (browser) await browser.close();
+        if (!CONFIG.debug && browser) {
+            await browser.close();
+        } else {
+            console.log("🛑 Debug mode enabled — browser will remain open.");
+        }
     }
 }
 
@@ -458,6 +473,131 @@ async function fillMediaGallery(page, medias = []) {
         return true;
     } catch (error) {
         console.error("❌ Failed to fill Media gallery:", error.message);
+        return false;
+    }
+}
+
+async function selectManualDelivery(page) {
+    try {
+        console.log("🔧 Selecting Manual delivery...");
+        const manualDeliveryRadio = page.locator(
+            'div[role="radio"][aria-label="Manual delivery"]'
+        );
+
+        if ((await manualDeliveryRadio.count()) > 0) {
+            const isChecked = await manualDeliveryRadio.getAttribute(
+                "aria-checked"
+            );
+            if (isChecked !== "true") {
+                await manualDeliveryRadio.click();
+                console.log("✅ Selected Manual delivery");
+                await page.waitForTimeout(1000);
+            } else {
+                console.log("ℹ️ Manual delivery already selected");
+            }
+        } else {
+            console.log("❌ Manual delivery radio not found");
+            return false;
+        }
+        return true;
+    } catch (error) {
+        console.error("❌ Failed to select Manual delivery:", error.message);
+        return false;
+    }
+}
+
+async function setDeliveryHour(page, hourValue) {
+    try {
+        // Convert hourValue to match the dropdown text
+        const hourText = hourValue === "1" ? "1 hour" : `${hourValue} hours`;
+
+        // Locate the hour dropdown button
+        const hourDropdown = page
+            .locator("div.g-select-text-input .left button")
+            .last();
+        if ((await hourDropdown.count()) === 0) {
+            console.log("❌ Hour dropdown button not found");
+            return false;
+        }
+
+        await hourDropdown.click();
+        console.log("✅ Clicked hour dropdown");
+        await page.waitForTimeout(500);
+
+        // Scope the dropdown relative to the button
+        const dropdownMenu = page.locator(".q-virtual-scroll__content");
+        if ((await dropdownMenu.count()) === 0) {
+            console.log("❌ Hour dropdown menu not found");
+            return false;
+        }
+
+        // Locate the option by text
+        const option = dropdownMenu
+            .locator(`.q-item__section`, { hasText: hourText })
+            .first();
+        if ((await option.count()) === 0) {
+            console.log(`❌ Hour option "${hourText}" not found`);
+            await page.keyboard.press("Escape").catch(() => {});
+            return false;
+        }
+
+        // Scroll the option into view and click
+        await option.scrollIntoViewIfNeeded();
+        await option.click({ force: true });
+        console.log(`✅ Set Delivery Hour: ${hourText}`);
+        await page.waitForTimeout(500);
+
+        return true;
+    } catch (error) {
+        console.error("❌ Failed to set delivery hour:", error.message);
+        await page.keyboard.press("Escape").catch(() => {});
+        return false;
+    }
+}
+
+async function setDeliveryMinute(page, minValue) {
+    try {
+        console.log(`🔧 Setting delivery minute to: ${minValue}`);
+        const minDropdown = page
+            .locator("div.g-select-text-input .right button")
+            .first();
+        if ((await minDropdown.count()) === 0) {
+            console.log("❌ Minute dropdown button not found");
+            return false;
+        }
+
+        await minDropdown.click();
+        console.log("✅ Clicked minute dropdown");
+        await page.waitForTimeout(500);
+
+        // Locate the dropdown menu
+        const dropdownMenu = page.locator(".q-virtual-scroll__content");
+        if ((await dropdownMenu.count()) === 0) {
+            console.log("❌ Minute dropdown menu not found");
+            return false;
+        }
+
+        // Find the option by exact text
+        const optionText = `${minValue} mins`;
+        const option = dropdownMenu
+            .locator(".q-item__section", { hasText: optionText })
+            .first();
+        if ((await option.count()) === 0) {
+            console.log(`❌ Minute option "${optionText}" not found`);
+            await page.keyboard.press("Escape").catch(() => {});
+            return false;
+        }
+
+        // Scroll into view and click
+        await option.scrollIntoViewIfNeeded();
+        await option.click({ force: true });
+        console.log(`✅ Set Delivery Minute: ${optionText}`);
+        await page.waitForTimeout(500);
+
+        return true;
+    } catch (error) {
+        console.error("❌ Failed to set delivery minute:", error.message);
+        await page.keyboard.press("Escape").catch(() => {});
         return false;
     }
 }

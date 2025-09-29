@@ -52,6 +52,9 @@ class RunOfferAutomation extends Command
                 $emailParts = explode('@', $template->userAccount->email);
                 $emailPrefix = $emailParts[0];
                 $cookieFile = base_path($emailPrefix . '.json');
+                $deliveryMethod = is_string($template->delivery_method)
+                    ? json_decode($template->delivery_method, true)
+                    : $template->delivery_method;
 
                 // Prepare input data for Node.js script
                 $inputData = [
@@ -70,6 +73,9 @@ class RunOfferAutomation extends Command
                     'password' => Crypt::decryptString($template->userAccount->password),
                     'cookies' => $cookieFile,
                     'user_id' => $template->userAccount->id,
+                    'Delivery hour' => $deliveryMethod['speed_hour'] ?? "1",
+                    'Delivery minute' => $deliveryMethod['speed_minute'] ?? "30",
+                    'Quantity from' => $deliveryMethod['quantity_from'] ?? "1",
                 ];
 
                 $this->info("Processing template: {$template->title}");
@@ -83,7 +89,7 @@ class RunOfferAutomation extends Command
                 ]);
 
                 $process->setWorkingDirectory(base_path('scripts/automation'));
-                $process->setTimeout(500);
+                $process->setTimeout(null); // no timeout (run as long as needed)
 
                 $process->run(function ($type, $buffer) {
                     if (\Symfony\Component\Process\Process::ERR === $type) {
