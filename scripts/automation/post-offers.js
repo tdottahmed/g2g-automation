@@ -248,7 +248,11 @@ async function main() {
         await setDeliveryHour(page, deliveryHour);
         await page.waitForTimeout(1000);
         await setDeliveryMinute(page, deliveryMinute);
+        await submitForm(page);
+        await page.waitForTimeout(5000); // wait for submission to process
         console.log("✅ Full flow completed!");
+        rl.close();
+        browser.close();
     } catch (error) {
         console.error("❌ Process failed:", error.message);
         process.exit(1); // Error exit
@@ -602,6 +606,32 @@ async function setDeliveryMinute(page, minValue) {
     } catch (error) {
         console.error("❌ Failed to set delivery minute:", error.message);
         await page.keyboard.press("Escape").catch(() => {});
+        return false;
+    }
+}
+
+async function submitForm(page) {
+    try {
+        console.log("🔧 Attempting to click Publish button...");
+
+        // Locate the Publish button by its text
+        const publishBtn = page.locator('button:has-text("Publish")').first();
+
+        if ((await publishBtn.count()) === 0) {
+            console.log("❌ Publish button not found");
+            return false;
+        }
+
+        await publishBtn.scrollIntoViewIfNeeded();
+        await publishBtn.click({ force: true });
+        console.log("✅ Publish button clicked successfully");
+
+        // optional wait for form submission / navigation
+        await page.waitForTimeout(1000);
+
+        return true;
+    } catch (error) {
+        console.error("❌ Failed to click Publish button:", error.message);
         return false;
     }
 }
