@@ -104,7 +104,12 @@ class OfferTemplateController extends Controller
             'medias.*.title'  => 'nullable|string|max:255',
             'medias.*.link'   => 'nullable|url|max:500',
         ]);
-
+        $deliveryData = [
+            'method'        => 'manual', // always manual
+            'quantity_from' => $offerTemplate->delivery_quantity_from ?? 0,
+            'speed_hour'    => $request->delivery_speed_hour ?? 0,
+            'speed_min'     => $request->delivery_speed_min ?? 0,
+        ];
         $data = [
             'user_account_id' => $request->user_account_id,
             'title'           => $request->title,
@@ -118,6 +123,7 @@ class OfferTemplateController extends Controller
             'currency'        => $request->currency,
             'region'          => $request->region,
             'medias'          => $request->filled('medias') ? array_values($request->medias) : null,
+            'delivery_method' => json_encode($deliveryData),
         ];
 
         try {

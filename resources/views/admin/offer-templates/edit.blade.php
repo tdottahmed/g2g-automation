@@ -111,6 +111,7 @@
         );
       @endphp
 
+
       <div class="card mt-3 border-0 shadow-sm">
         <div class="card-header bg-light">
           <h5 class="mb-0">
@@ -126,7 +127,7 @@
           <div class="row mt-2">
             <div class="col-md-4">
               <x-data-entry.input type="number" name="delivery_quantity_from" label="Delivery Quantity From"
-                                  value="{{ $delivery['quantity_from'] ?? '' }}" required />
+                                  value="{{ $delivery['quantity_from'] ?? '' }}" required disabled />
             </div>
             <div class="col-md-4">
               <x-data-entry.input type="number" name="delivery_speed_hour" label="Delivery Speed (Hour)"

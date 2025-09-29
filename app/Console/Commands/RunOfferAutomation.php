@@ -73,9 +73,8 @@ class RunOfferAutomation extends Command
                     'password' => Crypt::decryptString($template->userAccount->password),
                     'cookies' => $cookieFile,
                     'user_id' => $template->userAccount->id,
-                    'Delivery hour' => $deliveryMethod['speed_hour'] ?? "1",
-                    'Delivery minute' => $deliveryMethod['speed_minute'] ?? "30",
-                    'Quantity from' => $deliveryMethod['quantity_from'] ?? "1",
+                    'Delivery hour' => $deliveryMethod['speed_hour'] ?? "0",
+                    'Delivery minute' => $deliveryMethod['speed_min'] ?? "30"
                 ];
 
                 $this->info("Processing template: {$template->title}");
