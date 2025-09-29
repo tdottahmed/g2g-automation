@@ -242,8 +242,8 @@ async function main() {
         await page.waitForTimeout(1000);
 
         // Make sure these values exist in your inputData
-        const deliveryHour = inputData["Delivery hour"] || "1";
-        const deliveryMinute = inputData["Delivery minute"] || "30";
+        const deliveryHour = inputData["Delivery hour"];
+        const deliveryMinute = inputData["Delivery minute"];
 
         await setDeliveryHour(page, deliveryHour);
         await page.waitForTimeout(1000);
@@ -270,10 +270,9 @@ async function selectDropdownOption(page, fieldEl, value) {
     const labelText = (await labelEl.first().innerText()).trim();
     try {
         console.log(`Selecting ${labelText} = ${value}`);
-        await humanDelay(800, 1500); // 👈 Now delay works!
+        await humanDelay(300, 500);
         await btn.click({ force: true });
         console.log(`🖱️ Clicked ${labelText} dropdown button`);
-        await page.waitForTimeout(800);
 
         // Locate wrapper relative to this button
         const dropdownWrapper = btn.locator(
@@ -508,8 +507,12 @@ async function selectManualDelivery(page) {
 
 async function setDeliveryHour(page, hourValue) {
     try {
-        // Convert hourValue to match the dropdown text
-        const hourText = hourValue === "1" ? "1 hour" : `${hourValue} hours`;
+        // Determine singular or plural text
+        const hourText =
+            hourValue == 1 || hourValue == 0
+                ? `${hourValue} hour`
+                : `${hourValue} hours`;
+        console.log(`🔧 Setting delivery hour to: ${hourText}`);
 
         // Locate the hour dropdown button
         const hourDropdown = page
@@ -524,16 +527,16 @@ async function setDeliveryHour(page, hourValue) {
         console.log("✅ Clicked hour dropdown");
         await page.waitForTimeout(500);
 
-        // Scope the dropdown relative to the button
+        // Locate the dropdown menu
         const dropdownMenu = page.locator(".q-virtual-scroll__content");
         if ((await dropdownMenu.count()) === 0) {
             console.log("❌ Hour dropdown menu not found");
             return false;
         }
 
-        // Locate the option by text
+        // Locate the option by exact text
         const option = dropdownMenu
-            .locator(`.q-item__section`, { hasText: hourText })
+            .locator(".q-item__section", { hasText: hourText })
             .first();
         if ((await option.count()) === 0) {
             console.log(`❌ Hour option "${hourText}" not found`);
@@ -541,7 +544,6 @@ async function setDeliveryHour(page, hourValue) {
             return false;
         }
 
-        // Scroll the option into view and click
         await option.scrollIntoViewIfNeeded();
         await option.click({ force: true });
         console.log(`✅ Set Delivery Hour: ${hourText}`);
@@ -557,7 +559,11 @@ async function setDeliveryHour(page, hourValue) {
 
 async function setDeliveryMinute(page, minValue) {
     try {
-        console.log(`🔧 Setting delivery minute to: ${minValue}`);
+        // Determine singular or plural text
+        const minText = minValue == 0 ? "0 min" : `${minValue} mins`;
+        console.log(`🔧 Setting delivery minute to: ${minText}`);
+
+        // Locate the minute dropdown button
         const minDropdown = page
             .locator("div.g-select-text-input .right button")
             .first();
@@ -577,21 +583,19 @@ async function setDeliveryMinute(page, minValue) {
             return false;
         }
 
-        // Find the option by exact text
-        const optionText = `${minValue} mins`;
+        // Locate the option by exact text
         const option = dropdownMenu
-            .locator(".q-item__section", { hasText: optionText })
+            .locator(".q-item__section", { hasText: minText })
             .first();
         if ((await option.count()) === 0) {
-            console.log(`❌ Minute option "${optionText}" not found`);
+            console.log(`❌ Minute option "${minText}" not found`);
             await page.keyboard.press("Escape").catch(() => {});
             return false;
         }
 
-        // Scroll into view and click
         await option.scrollIntoViewIfNeeded();
         await option.click({ force: true });
-        console.log(`✅ Set Delivery Minute: ${optionText}`);
+        console.log(`✅ Set Delivery Minute: ${minText}`);
         await page.waitForTimeout(500);
 
         return true;
