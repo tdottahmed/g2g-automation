@@ -36,7 +36,6 @@ function getSelector(obj, index, defaultValue) {
 
 async function main() {
     let inputData = {};
-
     try {
         // Decode and parse the base64 encoded data from Laravel
         const encodedData = process.argv[2];

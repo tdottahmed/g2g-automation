@@ -22,7 +22,22 @@ class ApplicationSetupController extends Controller
 
     public function update(Request $request)
     {
-        $data = $request->except('_token', 'app_logo', 'app_favicon', 'login_banner');
+        if ($request->has('schedule_start_time')) {
+            ApplicationSetup::updateOrCreate(
+                ['type' => 'schedule_start_time'],
+                ['value' => $request->schedule_start_time]
+            );
+        }
+        if ($request->has('schedule_end_time')) {
+            ApplicationSetup::updateOrCreate(['type' => 'schedule_end_time'], ['value' => $request->schedule_end_time]);
+        }
+        if ($request->has('schedule_interval_minutes')) {
+            ApplicationSetup::updateOrCreate(
+                ['type' => 'schedule_interval_minutes'],
+                ['value' => $request->schedule_interval_minutes]
+            );
+        }
+        $data = $request->except('_token', 'app_logo', 'app_favicon', 'login_banner', 'schedule_start_time', 'schedule_end_time', 'schedule_interval_minutes', 'schedule_days');
         try {
             foreach ($data as $type => $value) {
                 ApplicationSetup::updateOrCreate(['type' => $type], ['value' => $value]);
@@ -45,7 +60,6 @@ class ApplicationSetupController extends Controller
             }
             return redirect()->route('applicationSetup.index')->with('success', 'Organization Updated Successfully');
         } catch (\Exception $e) {
-            dd($e->getMessage());
             return back()->with('error', $e->getMessage())->withInput();
         }
     }
