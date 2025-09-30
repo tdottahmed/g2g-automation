@@ -1,0 +1,500 @@
+{
+  "cookies": [
+    {
+      "name": "_GRECAPTCHA",
+      "value": "09AG7bzvGHwwCYRLfb1bgziKsOH59FU1Zc7zecf0cf5Nwjp-tkFaKRxmteLiY29jPZ1sjKAAZ-Zdejl0e5tRtX6_g",
+      "domain": "recaptcha.net",
+      "path": "/recaptcha",
+      "expires": 1774788626.192446,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "noticebar_cookie",
+      "value": "1",
+      "domain": ".www.g2g.com",
+      "path": "/",
+      "expires": 1790772618,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_fbp",
+      "value": "fb.1.1759236618858.309994167933587193",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1767012689,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_rdt_uuid",
+      "value": "1759236618885.167ed163-a185-4813-b3d3-edc24f3565a5",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1767012618,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "CLID",
+      "value": "8812595993974c64b41e9b3844ab4bce.20250930.20260930",
+      "domain": "www.clarity.ms",
+      "path": "/",
+      "expires": 1790772618.929131,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_ttp",
+      "value": "33Q5n0sgodf0OKPiwnMCOVUhusZ",
+      "domain": ".tiktok.com",
+      "path": "/",
+      "expires": 1792932619.107068,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "g2g_regional",
+      "value": "%7B%22country%22%3A%22BD%22%2C%22currency%22%3A%22USD%22%2C%22language%22%3A%22en%22%7D",
+      "domain": ".www.g2g.com",
+      "path": "/",
+      "expires": 1790772688,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "guest_id_marketing",
+      "value": "v1%3A175923661915137673",
+      "domain": ".twitter.com",
+      "path": "/",
+      "expires": 1793796619.322061,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "guest_id_ads",
+      "value": "v1%3A175923661915137673",
+      "domain": ".twitter.com",
+      "path": "/",
+      "expires": 1793796619.322125,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "personalization_id",
+      "value": "\"v1_GHePXE2a/WlrgU3oxOrKIg==\"",
+      "domain": ".twitter.com",
+      "path": "/",
+      "expires": 1793796619.322157,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "guest_id",
+      "value": "v1%3A175923661915137673",
+      "domain": ".twitter.com",
+      "path": "/",
+      "expires": 1793796619.322179,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_uetsid",
+      "value": "053696a09dfc11f095aebff0146b0ad7",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1759323019,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_uetvid",
+      "value": "0536a5f09dfc11f0a7b3574e1f38840b",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1792932619,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "muc_ads",
+      "value": "b008ba74-2da4-4b44-a827-cdd8e6338e77",
+      "domain": ".t.co",
+      "path": "/",
+      "expires": 1793796619.354821,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "MUID",
+      "value": "249AF1A31FE36D6E282CE7D41EB96CB4",
+      "domain": ".bing.com",
+      "path": "/",
+      "expires": 1792932650.778849,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "MR",
+      "value": "0",
+      "domain": ".bat.bing.com",
+      "path": "/",
+      "expires": 1759841420.439229,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_tt_enable_cookie",
+      "value": "1",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1792932619,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_ttp",
+      "value": "01K6DARZ8WXF90TDVTYX2E02AM_.tt.1",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1792932619,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "CookieConsent",
+      "value": "{stamp:%27-1%27%2Cnecessary:true%2Cpreferences:true%2Cstatistics:true%2Cmarketing:true%2Cmethod:%27implied%27%2Cver:1%2Cutc:1759236619562%2Cregion:%27BD%27}",
+      "domain": "www.g2g.com",
+      "path": "/",
+      "expires": 1761828619,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_ga",
+      "value": "GA1.2.1512690318.1759236618",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1793796619.574034,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_gid",
+      "value": "GA1.2.1199828462.1759236620",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1759323019,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_clck",
+      "value": "1r1wfrp%5E2%5Efzr%5E1%5E2099",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1790772619,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_ga_7N3SZK9ECC",
+      "value": "GS2.2.s1759236619$o1$g1$t1759236619$j60$l0$h0",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1793796619.881309,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "IDE",
+      "value": "AHWqTUm11qrfSrJlvuNDU05bnNhNdyPUqjSa9VCYkiZrA4MfCk1zC_zNwJ4Z7I0r",
+      "domain": ".doubleclick.net",
+      "path": "/",
+      "expires": 1793796622.682971,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_gcl_au",
+      "value": "1.1.1252471497.1759236620.802468499.1759236623.1759236623",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1767012620,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_rdt_em",
+      "value": ":1f70a04c876631c8f85d6cd3d8bacb2223d4d405a1d07f086e4be19cfd133bf0",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1767012626,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "NID",
+      "value": "525=OdGa0WHzBqfRNO3k_eREk9c-u34s2Er-sMHSUVLjTMVwKXRNn5xEzA7SxGwJHUIundSVO0-rFXS_L1KUEV8poiSTnr_kOiANwWJMhsVPI0VAEuxri9Bb6YcgdlJh365zglxLyYMihdFMTIlf2NMT-bQIfM4EhH0p5ZQpx6UFP9gwV54MtoA5-VVMyOTEf26Nvg",
+      "domain": ".google.com",
+      "path": "/",
+      "expires": 1775047827.227094,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_clsk",
+      "value": "1s5se1k%5E1759236627688%5E2%5E0%5Ee.clarity.ms%2Fcollect",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1759323027,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "RT",
+      "value": "\"z=1&dm=www.g2g.com&si=294c2080-8d55-4ab7-8794-acc8d68485c5&ss=mg6k25h4&sl=1&tt=ofm&rl=1&ld=ofn\"",
+      "domain": ".www.g2g.com",
+      "path": "/",
+      "expires": 1759841448,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "MR",
+      "value": "0",
+      "domain": ".c.bing.com",
+      "path": "/",
+      "expires": 1759841450.779055,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "SRM_B",
+      "value": "249AF1A31FE36D6E282CE7D41EB96CB4",
+      "domain": ".c.bing.com",
+      "path": "/",
+      "expires": 1792932650.779126,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "SM",
+      "value": "C",
+      "domain": ".c.clarity.ms",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "MUID",
+      "value": "249AF1A31FE36D6E282CE7D41EB96CB4",
+      "domain": ".clarity.ms",
+      "path": "/",
+      "expires": 1792932649.982943,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "MR",
+      "value": "0",
+      "domain": ".c.clarity.ms",
+      "path": "/",
+      "expires": 1759841449.983041,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "ANONCHK",
+      "value": "0",
+      "domain": ".c.clarity.ms",
+      "path": "/",
+      "expires": 1759237249.983096,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "refresh_token",
+      "value": "1000544320.307ed38251df8ba176de8f20b0e8f178",
+      "domain": ".www.g2g.com",
+      "path": "/",
+      "expires": 1760532686,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "long_lived_token",
+      "value": "bc928d4e7ffda4415ebad82d7440c285",
+      "domain": ".www.g2g.com",
+      "path": "/",
+      "expires": 1761828686,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "active_device_token",
+      "value": "be6e1dfe68a46c6fceee3fabbcf3ed0e",
+      "domain": ".www.g2g.com",
+      "path": "/",
+      "expires": 1764420686,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_dd_s",
+      "value": "rum=0&expire=1759237586052",
+      "domain": "www.g2g.com",
+      "path": "/",
+      "expires": 1759237588,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "ttcsid_D101IURC77UEHH7PTG80",
+      "value": "1759236619550::hKc9YcI7lil-kJvsL0IW.1.1759236689103.0",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1792932689,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "ttcsid",
+      "value": "1759236619550::dsekMNekIa2m4MVHML-y.1.1759236689103.0",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1792932689,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_ga_MESX7PR0C0",
+      "value": "GS2.1.s1759236618$o1$g1$t1759236689$j59$l0$h354305484",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1793796689.11124,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://www.g2g.com",
+      "localStorage": [
+        {
+          "name": "_uetvid_exp",
+          "value": "Sun, 25 Oct 2026 12:50:19 GMT"
+        },
+        {
+          "name": "g2g_repayment_timer",
+          "value": "1759236688697"
+        },
+        {
+          "name": "topicsLastReferenceTime",
+          "value": "1759236689053"
+        },
+        {
+          "name": "accessToken",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NTkyMzY2ODYsImV4cCI6MTc1OTIzNzU4Niwic3ViIjoiMTAwMDU0NDMyMCIsInN1YlR5cGUiOiJ1c2VyIiwic3ViUm9sZSI6WyJ1c2VyIl0sImF1ZCI6Imh0dHBzOi8vd3d3LmcyZy5jb20iLCJpc3MiOiJHMkdTbHMifQ.Kj168mkG4P4_LodhwAYjbgap58_cush2oiqliS2rUhQ"
+        },
+        {
+          "name": "ga4_session",
+          "value": "{\"id\":1759236618686,\"timestamp\":1759236618686}"
+        },
+        {
+          "name": "_gcl_ls",
+          "value": "{\"schema\":\"gcl\",\"version\":1,\"gcl_ctr\":{\"value\":{\"value\":0,\"timeouts\":0,\"creationTimeMs\":1759236619566},\"expires\":1767012619566}}"
+        },
+        {
+          "name": "_uetsid",
+          "value": "053696a09dfc11f095aebff0146b0ad7"
+        },
+        {
+          "name": "_grecaptcha",
+          "value": "09AG7bzvFmqqGDcjbfohTZw26p3oiEFXuI3uchbQakPB8BDOVIsCGb9bELL7sFflh3TTo0TTFIXJRFgxNnj-obSGACugBoqemXqGdmyEei9sJIosGd5hfr3iuQOpcCqTZW"
+        },
+        {
+          "name": "lastExternalReferrerTime",
+          "value": "1759236618839"
+        },
+        {
+          "name": "firebase:previous_websocket_failure",
+          "value": "true"
+        },
+        {
+          "name": "g2g_repayment_flag",
+          "value": ""
+        },
+        {
+          "name": "_uetsid_exp",
+          "value": "Wed, 01 Oct 2025 12:50:19 GMT"
+        },
+        {
+          "name": "_uetvid",
+          "value": "0536a5f09dfc11f0a7b3574e1f38840b"
+        },
+        {
+          "name": "lastExternalReferrer",
+          "value": "empty"
+        }
+      ]
+    },
+    {
+      "origin": "https://recaptcha.net",
+      "localStorage": [
+        {
+          "name": "rc::a",
+          "value": "MW00M2F2MjF3NndmaDU="
+        },
+        {
+          "name": "rc::f",
+          "value": "0aAGmBFiv5NZH_V_wHrWThguO1CQuF6doou3s408nzycPiEZcgmwrI1KUgT3grNqq_vBl9u8k"
+        }
+      ]
+    }
+  ]
+}

@@ -19,9 +19,9 @@ let CONFIG = {
         email: "",
         password: "",
     },
-    headless: true, // Set to true in production
+    headless: false, // Set to true in production
     slowMo: 120,
-    debug: false,
+    debug: true,
 };
 
 import formStructure from "./templates/offer.js";

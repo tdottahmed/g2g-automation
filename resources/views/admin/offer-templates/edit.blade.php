@@ -38,7 +38,7 @@
 
         <div class="card-body" id="media-wrapper">
           @php
-            $medias = old('medias', json_decode($offerTemplate->medias, true) ?? [['title' => '', 'link' => '']]);
+            $medias = old('medias', $offerTemplate->medias ?? [['title' => '', 'link' => '']]);
           @endphp
 
           @foreach ($medias as $index => $media)
@@ -103,7 +103,7 @@
       @php
         $delivery = old(
             'delivery_method',
-            json_decode($offerTemplate->delivery_method, true) ?? [
+            $offerTemplate->delivery_method ?? [
                 'quantity_from' => '',
                 'speed_hour' => '',
                 'speed_min' => '',

@@ -33,19 +33,6 @@ class RunOfferAutomation extends Command
         if (!$this->isWithinSchedulerWindow($schedulerWindows)) {
             $message = 'Current time is outside scheduler windows. No offers will be dispatched.';
             $this->info("⏸️  {$message}");
-
-            OfferAutomationLog::create([
-                'offer_template_id' => null,
-                'status' => 'skipped',
-                'message' => $message,
-                'details' => [
-                    'current_time' => now()->format('H:i'),
-                    'windows' => $schedulerWindows,
-                ],
-                'scheduled_for' => now(),
-                'executed_at' => now(),
-            ]);
-
             return;
         }
 
