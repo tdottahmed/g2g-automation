@@ -8,7 +8,7 @@
 
 
 <!-- apexcharts -->
-<script src="/assets/admin/libs/apexcharts/apexcharts.min.js"></script>
+{{-- <script src="/assets/admin/libs/apexcharts/apexcharts.min.js"></script> --}}
 
 <!-- Vector map-->
 <script src="/assets/admin/libs/jsvectormap/jsvectormap.min.js"></script>

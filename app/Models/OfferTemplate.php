@@ -74,4 +74,9 @@ class OfferTemplate extends Model
             return '00:00';
         }
     }
+
+    public function logs()
+    {
+        return $this->hasMany(OfferAutomationLog::class);
+    }
 }
