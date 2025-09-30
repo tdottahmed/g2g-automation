@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\OfferAutomationLog;
 use App\Models\OfferTemplate;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -15,6 +16,9 @@ use Symfony\Component\Process\Process;
 class PostOfferTemplate implements ShouldQueue
 {
     use Dispatchable, Queueable, InteractsWithQueue, SerializesModels;
+
+    public $tries = 3;
+    public $timeout = 300;
 
     protected OfferTemplate $template;
 
@@ -31,8 +35,22 @@ class PostOfferTemplate implements ShouldQueue
      */
     public function handle(): void
     {
+        $startTime = microtime(true);
+        $executionDetails = [
+            'template_id' => $this->template->id,
+            'template_title' => $this->template->title,
+            'attempt' => $this->attempts(),
+            'started_at' => now()->format('Y-m-d H:i:s'),
+            'steps' => []
+        ];
+
         try {
-            // Prepare media data
+            // Step 1: Prepare media data
+            $executionDetails['steps']['media_preparation'] = [
+                'status' => 'started',
+                'timestamp' => now()->format('Y-m-d H:i:s')
+            ];
+
             $mediaData = [];
             if ($this->template->medias) {
                 $medias = is_string($this->template->medias)
@@ -46,24 +64,32 @@ class PostOfferTemplate implements ShouldQueue
                             'Link'  => $media['link'] ?? '',
                         ];
                     }
+                    $executionDetails['steps']['media_preparation']['status'] = 'completed';
+                    $executionDetails['steps']['media_preparation']['media_count'] = count($mediaData);
                 } else {
-                    Log::error('Invalid media data format', [
-                        'template_id' => $this->template->id,
-                        'medias'      => $this->template->medias,
-                    ]);
+                    $executionDetails['steps']['media_preparation']['status'] = 'failed';
+                    $executionDetails['steps']['media_preparation']['error'] = 'Invalid media data format';
+                    throw new \Exception('Invalid media data format');
                 }
+            } else {
+                $executionDetails['steps']['media_preparation']['status'] = 'completed';
+                $executionDetails['steps']['media_preparation']['media_count'] = 0;
             }
 
-            // Generate cookie filename from email (first part before @)
-            $emailParts  = explode('@', $this->template->userAccount->email);
+            // Step 2: Prepare configuration
+            $executionDetails['steps']['configuration'] = [
+                'status' => 'started',
+                'timestamp' => now()->format('Y-m-d H:i:s')
+            ];
+
+            $emailParts = explode('@', $this->template->userAccount->email);
             $emailPrefix = $emailParts[0];
-            $cookieFile  = base_path($emailPrefix . '.json');
+            $cookieFile = base_path($emailPrefix . '.json');
 
             $deliveryMethod = is_string($this->template->delivery_method)
                 ? json_decode($this->template->delivery_method, true)
                 : $this->template->delivery_method;
 
-            // Prepare input data for Node.js script
             $inputData = [
                 'Title'                     => $this->template->title,
                 'Description'               => $this->template->description,
@@ -84,6 +110,15 @@ class PostOfferTemplate implements ShouldQueue
                 'Delivery minute'           => $deliveryMethod['speed_min'] ?? "30",
             ];
 
+            $executionDetails['steps']['configuration']['status'] = 'completed';
+            $executionDetails['steps']['configuration']['user_email'] = $this->template->userAccount->email;
+
+            // Step 3: Execute Node.js script
+            $executionDetails['steps']['node_execution'] = [
+                'status' => 'started',
+                'timestamp' => now()->format('Y-m-d H:i:s')
+            ];
+
             $process = new Process([
                 'node',
                 base_path('scripts/automation/post-offers.js'),
@@ -91,50 +126,106 @@ class PostOfferTemplate implements ShouldQueue
             ]);
 
             $process->setWorkingDirectory(base_path('scripts/automation'));
-            $process->setTimeout(null); // no timeout
+            $process->setTimeout(240);
 
-            $process->run(function ($type, $buffer) {
+            $output = '';
+            $errorOutput = '';
+
+            $process->run(function ($type, $buffer) use (&$output, &$errorOutput) {
                 if ($type === Process::ERR) {
                     Log::error('NODE_ERR: ' . $buffer);
+                    $errorOutput .= $buffer;
                 } else {
                     Log::info('NODE_OUT: ' . $buffer);
+                    $output .= $buffer;
                 }
             });
 
+            $executionTime = round(microtime(true) - $startTime, 2);
+            $executionDetails['execution_time_seconds'] = $executionTime;
+
             if ($process->isSuccessful()) {
-                // Update last_posted_at timestamp
+                $executionDetails['steps']['node_execution']['status'] = 'completed';
+                $executionDetails['steps']['node_execution']['exit_code'] = $process->getExitCode();
+                $executionDetails['node_output'] = $output;
+
+                // Update template
                 $this->template->update(['last_posted_at' => now()]);
 
-                // Decrement offers_to_generate if set
+                // Handle offers_to_generate
+                $remainingOffers = null;
                 if ($this->template->offers_to_generate && $this->template->offers_to_generate > 0) {
                     $this->template->decrement('offers_to_generate');
+                    $remainingOffers = $this->template->fresh()->offers_to_generate;
 
-                    // Optionally deactivate template if no more offers to generate
-                    if ($this->template->fresh()->offers_to_generate <= 0) {
+                    if ($remainingOffers <= 0) {
                         $this->template->update(['is_active' => false]);
-                        Log::info('Template deactivated - all offers generated', [
-                            'template_id' => $this->template->id,
-                        ]);
+                        $executionDetails['template_deactivated'] = true;
                     }
                 }
 
-                Log::info('✅ Node script executed successfully', [
+                $executionDetails['remaining_offers'] = $remainingOffers ?? 'unlimited';
+                $executionDetails['completed_at'] = now()->format('Y-m-d H:i:s');
+
+                // Single success log
+                OfferAutomationLog::logSuccess(
+                    $this->template,
+                    "Successfully posted offer for '{$this->template->title}'",
+                    $executionDetails
+                );
+
+                Log::info('✅ Offer posted successfully', [
                     'template_id' => $this->template->id,
-                    'output'      => $process->getOutput(),
-                    'remaining_offers' => $this->template->fresh()->offers_to_generate ?? 'unlimited',
+                    'execution_time' => $executionTime,
                 ]);
             } else {
-                Log::error("❌ Failed to process template", [
-                    'template_id' => $this->template->id,
-                    'error'       => $process->getErrorOutput(),
-                    'output'      => $process->getOutput(),
-                ]);
+                $executionDetails['steps']['node_execution']['status'] = 'failed';
+                $executionDetails['steps']['node_execution']['exit_code'] = $process->getExitCode();
+                $executionDetails['node_output'] = $output;
+                $executionDetails['node_error'] = $errorOutput;
+                $executionDetails['failed_at'] = now()->format('Y-m-d H:i:s');
+
+                // Single failure log
+                OfferAutomationLog::logFailed(
+                    $this->template,
+                    "Failed to post offer for '{$this->template->title}'",
+                    $executionDetails
+                );
+
+                throw new \Exception("Node.js process failed with exit code: " . $process->getExitCode());
             }
         } catch (\Exception $e) {
-            Log::error("Exception processing template", [
+            $executionTime = round(microtime(true) - $startTime, 2);
+            $executionDetails['execution_time_seconds'] = $executionTime;
+            $executionDetails['exception'] = $e->getMessage();
+            $executionDetails['trace'] = $e->getTraceAsString();
+            $executionDetails['failed_at'] = now()->format('Y-m-d H:i:s');
+
+            // Single failure log
+            OfferAutomationLog::logFailed(
+                $this->template,
+                "Exception while posting offer for '{$this->template->title}': {$e->getMessage()}",
+                $executionDetails
+            );
+
+            Log::error("Offer posting failed", [
                 'template_id' => $this->template->id,
-                'exception'   => $e->getMessage(),
+                'exception' => $e->getMessage(),
             ]);
+
+            throw $e; // Re-throw for queue retries
         }
+    }
+
+    /**
+     * Handle permanent job failure.
+     */
+    public function failed(\Exception $exception): void
+    {
+        Log::error("Offer posting job failed permanently after {$this->attempts()} attempts", [
+            'template_id' => $this->template->id,
+            'template_title' => $this->template->title,
+            'exception' => $exception->getMessage(),
+        ]);
     }
 }

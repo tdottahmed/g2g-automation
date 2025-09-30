@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Jobs\PostOfferTemplate;
 use App\Models\ApplicationSetup;
+use App\Models\OfferAutomationLog;
 use App\Models\OfferTemplate;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -25,13 +26,26 @@ class RunOfferAutomation extends Command
         $scheduleInterval = (int) (
             ApplicationSetup::where('type', 'schedule_interval_minutes')->first()->value ?? 15
         );
-
         $this->info("⏱️  Interval: {$scheduleInterval} minutes");
         $this->info("🕒 Windows: " . count($schedulerWindows));
 
-        // Check if current time is within any active window (no day check)
+        // Check if current time is within any active window
         if (!$this->isWithinSchedulerWindow($schedulerWindows)) {
-            $this->info('⏸️  Current time is outside scheduler windows. No offers will be dispatched.');
+            $message = 'Current time is outside scheduler windows. No offers will be dispatched.';
+            $this->info("⏸️  {$message}");
+
+            OfferAutomationLog::create([
+                'offer_template_id' => null,
+                'status' => 'skipped',
+                'message' => $message,
+                'details' => [
+                    'current_time' => now()->format('H:i'),
+                    'windows' => $schedulerWindows,
+                ],
+                'scheduled_for' => now(),
+                'executed_at' => now(),
+            ]);
+
             return;
         }
 
@@ -40,34 +54,32 @@ class RunOfferAutomation extends Command
 
         $dispatched = 0;
         $skipped = 0;
+        $errors = 0;
 
         foreach ($templates as $template) {
-            if ($template->offers_to_generate) {
+            try {
+                // Forced post
+                if ($template->offers_to_generate) {
+                    dispatch(new PostOfferTemplate($template));
+                    $dispatched++;
+                    $this->info("🔥 Forced dispatch for '{$template->title}'");
+                    continue;
+                }
+
+                // Normal scheduled post
+                if (!$template->shouldPostNow($scheduleInterval)) {
+                    $this->info("⏩ Skipping template '{$template->title}'");
+                    $skipped++;
+                    continue;
+                }
+
                 dispatch(new PostOfferTemplate($template));
                 $dispatched++;
-
-                $template->update([
-                    'offers_to_generate' => false,
-                    'last_posted_at' => now(),
-                ]);
-
-                $this->info("🔥 Forced dispatch for '{$template->title}' (ID: {$template->id})");
-                continue;
+                $this->info("✅ Dispatched job for '{$template->title}'");
+            } catch (\Exception $e) {
+                $errors++;
+                $this->error("❌ Error processing template '{$template->title}': {$e->getMessage()}");
             }
-
-            // Normal scheduled post - check interval
-            if (!$template->shouldPostNow($scheduleInterval)) {
-                $this->info("⏩ Skipping template '{$template->title}' (ID: {$template->id}) - interval not reached");
-                $skipped++;
-                continue;
-            }
-
-            dispatch(new PostOfferTemplate($template));
-            $dispatched++;
-
-            $template->update(['last_posted_at' => now()]);
-
-            $this->info("✅ Dispatched job for '{$template->title}' (ID: {$template->id})");
         }
 
         // Summary
@@ -77,11 +89,13 @@ class RunOfferAutomation extends Command
         $this->info("   • Templates processed: {$templates->count()}");
         $this->info("   • Jobs dispatched: {$dispatched}");
         $this->info("   • Templates skipped: {$skipped}");
+        $this->info("   • Errors: {$errors}");
         $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
         Log::info('Offer automation completed', [
             'dispatched' => $dispatched,
             'skipped' => $skipped,
+            'errors' => $errors,
             'total_templates' => $templates->count(),
             'windows' => $schedulerWindows,
             'interval' => $scheduleInterval,
@@ -91,10 +105,12 @@ class RunOfferAutomation extends Command
 
     private function isWithinSchedulerWindow(array $windows): bool
     {
-        $currentTime = now()->format('H:i'); // Current time in 24h format
+        $currentTime = now()->format('H:i');
+
         foreach ($windows as $window) {
             $start24 = $this->convertTo24Hour($window['start']);
             $end24 = $this->convertTo24Hour($window['end']);
+
             if ($this->isTimeInWindow($currentTime, $start24, $end24)) {
                 return true;
             }
@@ -108,6 +124,7 @@ class RunOfferAutomation extends Command
         if ($endTime < $startTime) {
             return $currentTime >= $startTime || $currentTime <= $endTime;
         }
+
         return $currentTime >= $startTime && $currentTime <= $endTime;
     }
 
@@ -117,7 +134,6 @@ class RunOfferAutomation extends Command
             return '00:00';
         }
 
-        // If already in 24h format, return as is
         if (preg_match('/^\d{1,2}:\d{2}$/', $time12h)) {
             return $time12h;
         }
