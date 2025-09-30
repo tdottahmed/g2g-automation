@@ -3,109 +3,131 @@
 namespace App\Console\Commands;
 
 use App\Jobs\PostOfferTemplate;
+use App\Models\ApplicationSetup;
 use App\Models\OfferTemplate;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 
 class RunOfferAutomation extends Command
 {
     protected $signature = 'offer:automation';
-    protected $description = 'Run offer posting automation';
+    protected $description = 'Run offer posting automation using global scheduler settings';
 
     public function handle(): void
     {
-        $rateLimit = cache()->get('offer_automation_rate_limit', 3);
+        $this->info('🚀 Starting offer automation...');
 
-        // Scheduler gating based on system settings
-        $scheduler = getSetting('scheduler')->json ?? null;
-        dd($scheduler);
-        if (!$this->isNowWithinScheduler($scheduler)) {
-            $this->info('Scheduler window is closed. No offers will be dispatched.');
+        // Get scheduler settings
+        $schedulerWindows = json_decode(
+            ApplicationSetup::where('type', 'scheduler_windows')->first()->value ?? '[]',
+            true
+        );
+        $scheduleInterval = (int) (
+            ApplicationSetup::where('type', 'schedule_interval_minutes')->first()->value ?? 15
+        );
+
+        $this->info("⏱️  Interval: {$scheduleInterval} minutes");
+        $this->info("🕒 Windows: " . count($schedulerWindows));
+
+        // Check if current time is within any active window (no day check)
+        if (!$this->isWithinSchedulerWindow($schedulerWindows)) {
+            $this->info('⏸️  Current time is outside scheduler windows. No offers will be dispatched.');
             return;
         }
 
-        $templates = OfferTemplate::with('userAccount')
-            ->where('is_active', 1)
-            ->orderBy('last_posted_at')
-            ->get();
+        $templates = OfferTemplate::where('is_active', 1)->get();
+        $this->info("📋 Found {$templates->count()} active template(s)");
 
         $dispatched = 0;
-        foreach ($templates as $index => $template) {
-            if ($dispatched >= $rateLimit) {
-                $this->info("Rate limit reached ({$rateLimit}). Stopping.");
-                break;
-            }
-            if (!$template->userAccount) {
-                $this->error("No user account found for template ID: {$template->id}");
+        $skipped = 0;
+
+        foreach ($templates as $template) {
+            if ($template->offers_to_generate) {
+                dispatch(new PostOfferTemplate($template));
+                $dispatched++;
+
+                $template->update([
+                    'offers_to_generate' => false,
+                    'last_posted_at' => now(),
+                ]);
+
+                $this->info("🔥 Forced dispatch for '{$template->title}' (ID: {$template->id})");
                 continue;
             }
-            // need here to run the job
+
+            // Normal scheduled post - check interval
+            if (!$template->shouldPostNow($scheduleInterval)) {
+                $this->info("⏩ Skipping template '{$template->title}' (ID: {$template->id}) - interval not reached");
+                $skipped++;
+                continue;
+            }
+
             dispatch(new PostOfferTemplate($template));
             $dispatched++;
-            $this->info("Dispatched job for template ID: {$template->title}");
+
+            $template->update(['last_posted_at' => now()]);
+
+            $this->info("✅ Dispatched job for '{$template->title}' (ID: {$template->id})");
         }
+
+        // Summary
+        $this->newLine();
+        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info("📊 Summary:");
+        $this->info("   • Templates processed: {$templates->count()}");
+        $this->info("   • Jobs dispatched: {$dispatched}");
+        $this->info("   • Templates skipped: {$skipped}");
+        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+        Log::info('Offer automation completed', [
+            'dispatched' => $dispatched,
+            'skipped' => $skipped,
+            'total_templates' => $templates->count(),
+            'windows' => $schedulerWindows,
+            'interval' => $scheduleInterval,
+            'current_time' => now()->format('Y-m-d H:i:s'),
+        ]);
     }
 
-    /**
-     * Determine if "now" is within the configured scheduler window.
-     * Expected JSON examples:
-     *   {"start":"09:00","end":"17:00","timezone":"UTC"}
-     *   {"start":"22:00","end":"02:00","timezone":"Europe/Berlin"} // overnight
-     * Optionally supports days:
-     *   {"start":"09:00","end":"17:00","timezone":"UTC","days":["mon","tue","wed"]}
-     */
-    private function isNowWithinScheduler($scheduler): bool
+    private function isWithinSchedulerWindow(array $windows): bool
     {
-        if (empty($scheduler)) {
-            // No scheduler configured -> allow all time
-            return true;
-        }
-
-        // Normalize to array
-        if (is_string($scheduler)) {
-            $decoded = json_decode($scheduler, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                // Invalid JSON -> fail open to avoid blocking
+        $currentTime = now()->format('H:i'); // Current time in 24h format
+        foreach ($windows as $window) {
+            $start24 = $this->convertTo24Hour($window['start']);
+            $end24 = $this->convertTo24Hour($window['end']);
+            if ($this->isTimeInWindow($currentTime, $start24, $end24)) {
                 return true;
             }
-            $scheduler = $decoded;
-        } elseif (is_object($scheduler)) {
-            $scheduler = (array) $scheduler;
         }
 
-        $start = $scheduler['start'] ?? null;
-        $end = $scheduler['end'] ?? null;
-        $tz = $scheduler['timezone'] ?? $scheduler['tz'] ?? config('app.timezone', 'UTC');
-        $days = $scheduler['days'] ?? null;
+        return false;
+    }
 
-        if (!$start || !$end) {
-            // Missing times -> allow all time
-            return true;
+    private function isTimeInWindow(string $currentTime, string $startTime, string $endTime): bool
+    {
+        if ($endTime < $startTime) {
+            return $currentTime >= $startTime || $currentTime <= $endTime;
+        }
+        return $currentTime >= $startTime && $currentTime <= $endTime;
+    }
+
+    private function convertTo24Hour(string $time12h): string
+    {
+        if (empty($time12h)) {
+            return '00:00';
         }
 
-        // Day filtering (optional)
-        if (is_array($days) && count($days) > 0) {
-            $todayKey = strtolower(now($tz)->format('D')); // mon,tue,wed,thu,fri,sat,sun
-            $normalizedDays = array_map(fn ($d) => strtolower(substr($d, 0, 3)), $days);
-            if (!in_array($todayKey, $normalizedDays, true)) {
-                return false;
-            }
+        // If already in 24h format, return as is
+        if (preg_match('/^\d{1,2}:\d{2}$/', $time12h)) {
+            return $time12h;
         }
 
-        // Build today's window in the given timezone
-        $now = now($tz);
-        $startAt = $now->copy()->setTimeFromTimeString($start);
-        $endAt = $now->copy()->setTimeFromTimeString($end);
-
-        // Handle overnight window (end earlier than start -> next day)
-        if ($endAt->lessThanOrEqualTo($startAt)) {
-            $endAt->addDay();
-            // If now is before start but after midnight, treat "now" as possibly on the next day window
-            if ($now->lessThan($startAt)) {
-                $now = $now->copy()->addDay();
-            }
+        try {
+            $time = \DateTime::createFromFormat('h:i A', $time12h);
+            return $time ? $time->format('H:i') : '00:00';
+        } catch (\Exception $e) {
+            $this->error("Failed to parse time: {$time12h}");
+            return '00:00';
         }
-
-        return $now->betweenIncluded($startAt, $endAt);
     }
 }

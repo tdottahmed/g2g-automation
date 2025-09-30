@@ -36,6 +36,8 @@
         <x-layouts.admin.partials.sidebar-menu-item route="levels.index" icon="ri-building-3-fill" label="Levels" />
         <x-layouts.admin.partials.sidebar-menu-item route="offer-templates.index" icon="ri-price-tag-3-line"
                                                     label="Offer Templates" />
+        <x-layouts.admin.partials.sidebar-menu-item route="offer-schedulers.index" icon="ri-calendar-line"
+                                                    label="Offer Schedulers" />
 
         <x-layouts.admin.partials.sidebar-menu-item route="roles.index" icon="ri-user-2-line" label="Users Management"
                                                     :dropdown-routes="[

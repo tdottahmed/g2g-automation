@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ApplicationSetup;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ApplicationSetupController extends Controller
 {
@@ -22,45 +23,66 @@ class ApplicationSetupController extends Controller
 
     public function update(Request $request)
     {
-        if ($request->has('schedule_start_time')) {
-            ApplicationSetup::updateOrCreate(
-                ['type' => 'schedule_start_time'],
-                ['value' => $request->schedule_start_time]
-            );
-        }
-        if ($request->has('schedule_end_time')) {
-            ApplicationSetup::updateOrCreate(['type' => 'schedule_end_time'], ['value' => $request->schedule_end_time]);
-        }
-        if ($request->has('schedule_interval_minutes')) {
-            ApplicationSetup::updateOrCreate(
-                ['type' => 'schedule_interval_minutes'],
-                ['value' => $request->schedule_interval_minutes]
-            );
-        }
-        $data = $request->except('_token', 'app_logo', 'app_favicon', 'login_banner', 'schedule_start_time', 'schedule_end_time', 'schedule_interval_minutes', 'schedule_days');
+        DB::beginTransaction();
+
         try {
-            foreach ($data as $type => $value) {
-                ApplicationSetup::updateOrCreate(['type' => $type], ['value' => $value]);
+            if ($request->has('scheduler_windows')) {
+                ApplicationSetup::updateOrCreate(
+                    ['type' => 'scheduler_windows'],
+                    ['value' => json_encode($request->scheduler_windows)]
+                );
             }
-            if ($request->has('app_logo') || $request->has('app_favicon') || $request->has('login_banner')) {
-                if ($request->has('app_logo')) {
-                    $filePath = filepondUpload($request->app_logo, 'organization');
+
+            if ($request->has('schedule_days')) {
+                ApplicationSetup::updateOrCreate(
+                    ['type' => 'schedule_days'],
+                    ['value' => implode(',', $request->schedule_days)]
+                );
+            }
+
+            if ($request->has('schedule_interval_minutes')) {
+                ApplicationSetup::updateOrCreate(
+                    ['type' => 'schedule_interval_minutes'],
+                    ['value' => $request->schedule_interval_minutes]
+                );
+            }
+
+            // Handle organization info
+            $data = $request->only(['app_name', 'app_email', 'app_phone', 'app_address']);
+
+            foreach ($data as $type => $value) {
+                ApplicationSetup::updateOrCreate(
+                    ['type' => $type],
+                    ['value' => $value]
+                );
+            }
+
+            // Handle file uploads
+            $fileTypes = ['app_logo', 'app_favicon', 'login_banner'];
+
+            foreach ($fileTypes as $fileType) {
+                if ($request->has($fileType)) {
+                    $filePath = filepondUpload($request->$fileType, 'organization');
                     if ($filePath) {
-                        ApplicationSetup::updateOrCreate(['type' => 'app_logo'], ['value' => $filePath]);
+                        ApplicationSetup::updateOrCreate(
+                            ['type' => $fileType],
+                            ['value' => $filePath]
+                        );
                     }
                 }
-                if ($request->has('app_favicon')) {
-                    $imagePath = filepondUpload($request->app_favicon, 'organization');
-                    ApplicationSetup::updateOrCreate(['type' => 'app_favicon'], ['value' => $imagePath]);
-                }
-                if ($request->has('login_banner')) {
-                    $imagePath = filepondUpload($request->login_banner, 'organization');
-                    ApplicationSetup::updateOrCreate(['type' => 'login_banner'], ['value' => $imagePath]);
-                }
             }
-            return redirect()->route('applicationSetup.index')->with('success', 'Organization Updated Successfully');
+
+            DB::commit();
+
+            return redirect()
+                ->route('applicationSetup.index')
+                ->with('success', 'Settings updated successfully');
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage())->withInput();
+            DB::rollBack();
+
+            return back()
+                ->with('error', 'Failed to update settings: ' . $e->getMessage())
+                ->withInput();
         }
     }
 }

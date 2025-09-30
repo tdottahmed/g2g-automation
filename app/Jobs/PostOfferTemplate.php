@@ -9,6 +9,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
 
 class PostOfferTemplate implements ShouldQueue
@@ -46,7 +47,7 @@ class PostOfferTemplate implements ShouldQueue
                         ];
                     }
                 } else {
-                    \Log::error('Invalid media data format', [
+                    Log::error('Invalid media data format', [
                         'template_id' => $this->template->id,
                         'medias'      => $this->template->medias,
                     ]);
@@ -94,28 +95,43 @@ class PostOfferTemplate implements ShouldQueue
 
             $process->run(function ($type, $buffer) {
                 if ($type === Process::ERR) {
-                    \Log::error('NODE_ERR: ' . $buffer);
+                    Log::error('NODE_ERR: ' . $buffer);
                 } else {
-                    \Log::info('NODE_OUT: ' . $buffer);
+                    Log::info('NODE_OUT: ' . $buffer);
                 }
             });
 
             if ($process->isSuccessful()) {
+                // Update last_posted_at timestamp
                 $this->template->update(['last_posted_at' => now()]);
 
-                \Log::info('✅ Node script executed successfully', [
+                // Decrement offers_to_generate if set
+                if ($this->template->offers_to_generate && $this->template->offers_to_generate > 0) {
+                    $this->template->decrement('offers_to_generate');
+
+                    // Optionally deactivate template if no more offers to generate
+                    if ($this->template->fresh()->offers_to_generate <= 0) {
+                        $this->template->update(['is_active' => false]);
+                        Log::info('Template deactivated - all offers generated', [
+                            'template_id' => $this->template->id,
+                        ]);
+                    }
+                }
+
+                Log::info('✅ Node script executed successfully', [
                     'template_id' => $this->template->id,
                     'output'      => $process->getOutput(),
+                    'remaining_offers' => $this->template->fresh()->offers_to_generate ?? 'unlimited',
                 ]);
             } else {
-                \Log::error("❌ Failed to process template", [
+                Log::error("❌ Failed to process template", [
                     'template_id' => $this->template->id,
                     'error'       => $process->getErrorOutput(),
                     'output'      => $process->getOutput(),
                 ]);
             }
         } catch (\Exception $e) {
-            \Log::error("Exception processing template", [
+            Log::error("Exception processing template", [
                 'template_id' => $this->template->id,
                 'exception'   => $e->getMessage(),
             ]);

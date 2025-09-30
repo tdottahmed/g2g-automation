@@ -1,52 +1,70 @@
 @props([
     'name',
     'label' => null,
-    'placeholder' => '',
+    'placeholder' => null,
     'value' => null,
-    'type' => 'date', // date | time | date-time
-    'timeFormat' => '12', // 12 or 24 hour format
+    'type' => 'date',
+    'timeFormat' => '12', // Changed default to 12 for AM/PM
+    'required' => false,
 ])
 
-<div>
-  <label for="{{ $name }}" class="form-label">{{ __($label ?? ucfirst($name)) }}</label>
+<div class="form-group">
+  @if ($label)
+    <label for="{{ $name }}" class="form-label">{{ __($label) }}</label>
+  @endif
+
   <input type="text" id="{{ $name }}" name="{{ $name }}" value="{{ $value ?? old($name) }}"
-         placeholder="{{ $label ?? ucfirst($name) }}" class="form-control flatpickr-input" autocomplete="off" />
+         placeholder="{{ $placeholder ?: ($label ? __($label) : '') }}"
+         class="form-control flatpickr-input {{ $type === 'time' ? 'time-picker' : '' }}"
+         {{ $required ? 'required' : '' }} autocomplete="off" data-type="{{ $type }}"
+         data-time-format="{{ $timeFormat }}" />
 
   @error($name)
-    <span class="text-danger">{{ __($message) }}</span>
+    <div class="text-danger small mt-1">{{ __($message) }}</div>
   @enderror
 </div>
 
-@push('scripts')
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      let options = {
-        altInput: true,
-      };
+@once
+  @push('scripts')
+    <script>
+      $(document).ready(function() {
+        // Initialize Flatpickr for non-dynamic elements
+        $('.flatpickr-input').not('#schedulerWindowsWrapper .flatpickr-input').each(function() {
+          const $element = $(this);
+          const type = $element.data('type');
+          const timeFormat = $element.data('time-format');
 
-      switch ("{{ $type }}") {
-        case 'date-time':
-          options.enableTime = true;
-          options.dateFormat = "Y-m-d H:i";
-          options.altFormat = "F j, Y h:i K"; // e.g. September 29, 2025 4:30 PM
-          options.time_24hr = "{{ $timeFormat }}" === "24";
-          break;
+          let options = {
+            altInput: true,
+            altFormat: "F j, Y",
+            dateFormat: "Y-m-d",
+            static: true
+          };
 
-        case 'time':
-          options.enableTime = true;
-          options.noCalendar = true;
-          options.dateFormat = "H:i";
-          options.time_24hr = "{{ $timeFormat }}" === "24";
-          break;
+          switch (type) {
+            case 'date-time':
+              options.enableTime = true;
+              options.dateFormat = "Y-m-d H:i";
+              options.altFormat = "F j, Y h:i K";
+              options.time_24hr = timeFormat === "24";
+              break;
+            case 'time':
+              options.enableTime = true;
+              options.noCalendar = true;
+              options.dateFormat = timeFormat === "24" ? "H:i" : "h:i K";
+              options.altFormat = timeFormat === "24" ? "H:i" : "h:i K";
+              options.time_24hr = timeFormat === "24";
+              options.minuteIncrement = 5;
+              break;
+            default:
+              options.dateFormat = "Y-m-d";
+              options.altFormat = "F j, Y";
+              break;
+          }
 
-        default: // 'date'
-          options.dateFormat = "Y-m-d";
-          options.altFormat = "F j, Y";
-          break;
-      }
-
-      flatpickr('#{{ $name }}', options);
-    });
-  </script>
-@endpush
+          $element.flatpickr(options);
+        });
+      });
+    </script>
+  @endpush
+@endonce
