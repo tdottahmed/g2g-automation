@@ -4,8 +4,7 @@ export async function navigateToSellOffers(page) {
     try {
         console.log("🌐 Navigating to sell offers page...");
         await page.goto("https://www.g2g.com/offers/sell", {
-            waitUntil: "domcontentloaded",
-            timeout: 60000,
+            waitUntil: "networkidle",
         });
         return true;
     } catch (error) {
@@ -144,10 +143,10 @@ export async function selectGameBrand(
     try {
         console.log(`🎮 Selecting game brand: ${gameName}`);
 
-        await page.waitForTimeout(6000);
+        await page.waitForTimeout(4000);
 
         await page.waitForSelector('button:has-text("Select brand")', {
-            timeout: 10000,
+            timeout: 5000,
         });
         const selectButton = page.locator('button:has-text("Select brand")');
         await selectButton.click();
@@ -203,7 +202,7 @@ export async function clickContinueButton(page) {
         console.log("➡️ Clicking Continue button...");
 
         await page.waitForSelector('a:has-text("Continue")', {
-            timeout: 10000,
+            timeout: 5000,
         });
         const continueButton = page.locator('a:has-text("Continue")');
         await continueButton.click();

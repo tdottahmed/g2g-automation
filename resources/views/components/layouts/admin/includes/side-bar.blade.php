@@ -38,13 +38,13 @@
                                                     label="Offer Templates" />
         <x-layouts.admin.partials.sidebar-menu-item route="offer-logs.index" icon="ri-newspaper-line"
                                                     label="Offer Automation Logs" />
-
+        {{-- 
         <x-layouts.admin.partials.sidebar-menu-item route="roles.index" icon="ri-user-2-line" label="Users Management"
                                                     :dropdown-routes="[
                                                         'roles.index' => 'Roles',
                                                         'permissions.index' => 'Permissions',
                                                         'users.index' => 'Users',
-                                                    ]" />
+                                                    ]" /> --}}
         <x-layouts.admin.partials.sidebar-menu-item route="applicationSetup.index" icon="ri-settings-3-line"
                                                     label="Application Setup" />
       </ul>
