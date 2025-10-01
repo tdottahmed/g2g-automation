@@ -42,17 +42,17 @@
       </div>
     </div>
 
-    <x-data-display.table>
-      <x-data-display.thead>
+    <table class="table-responsive table">
+      <thead>
         <th>{{ __('Template') }}</th>
         <th>{{ __('Status') }}</th>
         <th>{{ __('Message') }}</th>
         <th>{{ __('Duration') }}</th>
         <th>{{ __('Executed At') }}</th>
         <th>{{ __('Actions') }}</th>
-      </x-data-display.thead>
+      </thead>
 
-      <x-data-display.tbody>
+      <tbody>
         @forelse ($logs as $log)
           <tr>
             <td>
@@ -115,8 +115,8 @@
             </td>
           </tr>
         @endforelse
-      </x-data-display.tbody>
-    </x-data-display.table>
+      </tbody>
+    </table>
 
     @if ($logs->hasPages())
       <div class="mt-3">
