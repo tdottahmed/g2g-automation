@@ -90,6 +90,8 @@ class PostOfferTemplate implements ShouldQueue
                 ? json_decode($this->template->delivery_method, true)
                 : $this->template->delivery_method;
 
+            $password = $this->template->userAccount->password;
+
             $inputData = [
                 'Title'                     => $this->template->title,
                 'Description'               => $this->template->description,
@@ -103,7 +105,7 @@ class PostOfferTemplate implements ShouldQueue
                 'Instant delivery'          => $this->template->instant_delivery ? 1 : 0,
                 'mediaData'                 => $mediaData,
                 'user_email'                => $this->template->userAccount->email,
-                'password'                  => Crypt::decryptString($this->template->userAccount->password),
+                'password'                  => $password,
                 'cookies'                   => $cookieFile,
                 'user_id'                   => $this->template->userAccount->id,
                 'Delivery hour'             => $deliveryMethod['speed_hour'] ?? "0",
