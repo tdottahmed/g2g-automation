@@ -18,7 +18,7 @@ export const CONFIG = {
         email: "recoveryth0000@gmail.com",
         password: "@#aocy123%&",
     },
-    headless: false,
+    headless: true,
     slowMo: 120,
 };
 
