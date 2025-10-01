@@ -9,6 +9,12 @@
           <button type="button" class="btn btn-outline-secondary" id="refreshLogs">
             <i class="ri-refresh-line"></i> {{ __('Refresh') }}
           </button>
+          <form action="{{ route('offer-logs.clear') }}" method="POST" class="d-inline-block">
+            @csrf
+            <button type="button" class="btn btn-outline-danger" id="clearLogs">
+              <i class="ri-delete-bin-line"></i> {{ __('Clear Logs') }}
+            </button>
+          </form>
         </div>
       </div>
     </x-slot>
@@ -96,9 +102,11 @@
                 <small class="text-muted">{{ $log->executed_at->format('g:i A') }}</small>
               </div>
             </td>
-            <a href="{{ route('offer-logs.show', $log->id) }}" class="btn btn-primary btn-sm">
-              <i class="ri-eye-line"></i> {{ __('View Details') }}
-            </a>
+            <td>
+              <a href="{{ route('offer-logs.show', $log->id) }}" class="btn btn-primary btn-sm">
+                <i class="ri-eye-line"></i> {{ __('View Details') }}
+              </a>
+            </td>
           </tr>
         @empty
           <tr>
@@ -151,6 +159,33 @@
         // Apply filters on change
         $('#statusFilter, #templateFilter, #fromDateFilter, #toDateFilter').on('change', function() {
           applyFilters();
+        });
+      });
+
+      // Clear logs
+      $('#clearLogs').on('click', function() {
+        const button = $(this);
+
+        Swal.fire({
+          title: 'Are you sure?',
+          text: "You won't be able to revert this!",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Disable buttons
+            button.prop('disabled', true);
+            $('#refreshLogs').prop('disabled', true);
+
+            // Add loading state
+            button.html('<i class="ri-loader-4-line ri-spin"></i> Deleting...');
+
+            // Submit the parent form
+            button.closest('form').submit();
+          }
         });
       });
     </script>

@@ -41,4 +41,13 @@ class OfferAutomationLogController extends Controller
     {
         return view('admin.offer-logs.show', ['log' => $offerLog]);
     }
+
+    public function clear(Request $request)
+    {
+        OfferAutomationLog::truncate();
+
+        return redirect()
+            ->route('offer-logs.index')
+            ->with('success', 'All logs have been cleared successfully.');
+    }
 }
