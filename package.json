@@ -17,6 +17,7 @@
         "vite": "^5.0"
     },
     "dependencies": {
+        "dotenv": "^17.2.3",
         "playwright": "^1.55.0"
     }
 }
