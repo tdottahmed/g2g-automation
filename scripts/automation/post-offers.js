@@ -21,7 +21,7 @@ let CONFIG = {
     },
     headless: true, // Set to true in production
     slowMo: 120,
-    debug: true,
+    debug: false,
 };
 
 import formStructure from "./templates/offer.js";
