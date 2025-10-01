@@ -22,7 +22,7 @@
       </div>
     </x-slot>
 
-    <x-data-entry.form action="{{ route('applicationSetup.update') }}">
+    <x-data-entry.form action="{{ route('applicationSetup.update') }}" novalidate>
       <ul class="nav nav-tabs nav-fill" id="setupTabs" role="tablist">
         <li class="nav-item" role="presentation">
           <button class="nav-link active" id="scheduler-tab" data-bs-toggle="tab" data-bs-target="#scheduler"
