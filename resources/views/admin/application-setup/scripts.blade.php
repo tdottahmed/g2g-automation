@@ -96,14 +96,14 @@
               <div class="form-group">
                 <label class="form-label">{{ __('Start Time') }}</label>
                 <input type="text" name="scheduler_windows[${windowIndex}][start]" 
-                       class="form-control time-picker" placeholder="Select start time" required>
+                       class="form-control time-picker" placeholder="Select start time">
               </div>
             </div>
             <div class="col-md-5">
               <div class="form-group">
                 <label class="form-label">{{ __('End Time') }}</label>
                 <input type="text" name="scheduler_windows[${windowIndex}][end]" 
-                       class="form-control time-picker" placeholder="Select end time" required>
+                       class="form-control time-picker" placeholder="Select end time">
               </div>
             </div>
             <div class="col-md-2">

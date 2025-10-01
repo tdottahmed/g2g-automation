@@ -43,7 +43,6 @@
 
         @include('admin.application-setup.organization')
       </div>
-      </div>
     </x-data-entry.form>
   </x-data-display.card>
 
