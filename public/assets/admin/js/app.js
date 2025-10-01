@@ -2115,8 +2115,10 @@
                     f.classList.add("d-none");
             }),
             document.body.addEventListener("click", function (e) {
-                "search-options" !== e.target.getAttribute("id") &&
-                    (v.classList.remove("show"), f.classList.add("d-none"));
+                if (I && v && f) {
+                    "search-options" !== e.target.getAttribute("id") &&
+                        (v.classList.remove("show"), f.classList.add("d-none"));
+                }
             })),
         (S = document.getElementById("search-close-options")),
         (w = document.getElementById("search-dropdown-reponsive")),
