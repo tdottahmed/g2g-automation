@@ -146,7 +146,7 @@ export async function selectGameBrand(
         await page.waitForTimeout(4000);
 
         await page.waitForSelector('button:has-text("Select brand")', {
-            timeout: 5000,
+            timeout: 10000,
         });
         const selectButton = page.locator('button:has-text("Select brand")');
         await selectButton.click();
