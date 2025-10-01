@@ -96,13 +96,9 @@
                 <small class="text-muted">{{ $log->executed_at->format('g:i A') }}</small>
               </div>
             </td>
-            <x-data-display.table-actions>
-              <li>
-                <a href="{{ route('offer-logs.show', $log->id) }}" class="dropdown-item">
-                  <i class="ri-eye-line"></i> {{ __('View Details') }}
-                </a>
-              </li>
-            </x-data-display.table-actions>
+            <a href="{{ route('offer-logs.show', $log->id) }}" class="btn btn-primary btn-sm">
+              <i class="ri-eye-line"></i> {{ __('View Details') }}
+            </a>
           </tr>
         @empty
           <tr>
@@ -120,7 +116,7 @@
 
     @if ($logs->hasPages())
       <div class="mt-3">
-        {{ $logs->links() }}
+        {{ $logs->links('pagination::bootstrap-5') }}
       </div>
     @endif
   </x-data-display.card>
