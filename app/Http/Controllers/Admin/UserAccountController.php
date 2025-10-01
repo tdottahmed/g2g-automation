@@ -83,7 +83,7 @@ class UserAccountController extends Controller
             ];
 
             if ($request->filled('password')) {
-                $data['password'] = Crypt::encryptString($request->password);
+                $data['password'] = $request->password;
             }
 
             $userAccount->update($data);

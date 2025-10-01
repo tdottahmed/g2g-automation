@@ -38,7 +38,10 @@
 
         <div class="card-body" id="media-wrapper">
           @php
-            $medias = old('medias', $offerTemplate->medias ?? [['title' => '', 'link' => '']]);
+            $medias = $offerTemplate->medias ?? [];
+            if (is_string($medias)) {
+                $medias = json_decode($medias, true) ?: [];
+            }
           @endphp
 
           @foreach ($medias as $index => $media)

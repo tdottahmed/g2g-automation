@@ -90,6 +90,7 @@ class PostOfferTemplate implements ShouldQueue
                 ? json_decode($this->template->delivery_method, true)
                 : $this->template->delivery_method;
 
+
             $password = $this->template->userAccount->password;
 
             $inputData = [
