@@ -38,6 +38,8 @@
                                                     label="Offer Templates" />
         <x-layouts.admin.partials.sidebar-menu-item route="offer-logs.index" icon="ri-newspaper-line"
                                                     label="Offer Automation Logs" />
+        <x-layouts.admin.partials.sidebar-menu-item route="automation.dashboard" icon="ri-robot-line"
+                                                    label="Automation Dashboard" />
         {{-- 
         <x-layouts.admin.partials.sidebar-menu-item route="roles.index" icon="ri-user-2-line" label="Users Management"
                                                     :dropdown-routes="[

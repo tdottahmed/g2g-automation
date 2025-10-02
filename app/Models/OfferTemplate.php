@@ -26,14 +26,6 @@ class OfferTemplate extends Model
         return $this->belongsTo(UserAccount::class);
     }
 
-    /**
-     * Get the scheduler for this template (template-specific)
-     */
-    public function scheduler()
-    {
-        return $this->hasOne(OfferScheduler::class);
-    }
-
 
     public function shouldPostNow(int $intervalMinutes): bool
     {

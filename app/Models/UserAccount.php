@@ -16,4 +16,9 @@ class UserAccount extends Model
     {
         return $this->hasMany(OfferTemplate::class);
     }
+
+    public function templates()
+    {
+        return $this->hasMany(OfferTemplate::class);
+    }
 }

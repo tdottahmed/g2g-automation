@@ -1,5 +1,4 @@
 <?php
-// app/Models/OfferAutomationLog.php
 
 namespace App\Models;
 
@@ -50,5 +49,10 @@ class OfferAutomationLog extends Model
             'details' => $details,
             'executed_at' => now(),
         ]);
+    }
+    // Relationship with automation session
+    public function automationSession()
+    {
+        return $this->belongsTo(AutomationSession::class);
     }
 }
