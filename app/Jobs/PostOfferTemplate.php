@@ -38,6 +38,9 @@ class PostOfferTemplate implements ShouldQueue
 
         // Group templates by user account to process in batches
         $templatesByUser = $this->templates->groupBy('user_account_id');
+        Log::info('Processing templates by user account', [
+            'templates_by_user' => $templatesByUser->count()
+        ]);
 
 
         $totalProcessed = 0;
