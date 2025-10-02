@@ -23,10 +23,9 @@
       <x-data-display.tbody>
         @forelse ($offers as $offer)
           <tr>
-            <td>{{ $offer->title }}
+            <td>{{ str($offer->title)->limit(50) }}
               <span
                     class="badge bg-{{ $offer->is_active ? 'success' : 'warning' }}">{{ $offer->is_active ? __('Active') : __('Inactive') }}</span>
-            </td>
             </td>
             <td>{{ $offer->userAccount->owner_name ?? '-' }}</td>
             <td>{{ $offer->price }}</td>

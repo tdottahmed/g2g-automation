@@ -4,7 +4,7 @@ export async function navigateToSellOffers(page) {
     try {
         console.log("🌐 Navigating to sell offers page...");
         await page.goto("https://www.g2g.com/offers/sell", {
-            waitUntil: "networkidle",
+            waitUntil: "domcontentloaded",
         });
         return true;
     } catch (error) {
@@ -19,7 +19,7 @@ export async function clickAccountsCategory(page) {
 
         // Wait for nav buttons area to appear
         await page.waitForSelector(".g-nav-btn, .g-card-no-deco", {
-            timeout: 10000,
+            timeout: 5000,
         });
 
         // Inspect all .g-nav-btn nodes and match visible text

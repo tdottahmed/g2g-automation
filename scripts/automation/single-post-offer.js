@@ -35,36 +35,31 @@ function getSelector(obj, index, defaultValue) {
 }
 
 async function main() {
-    let templatesData = [];
+    let inputData = {};
     try {
+        // Decode and parse the base64 encoded data from Laravel
         const encodedData = process.argv[2];
         if (!encodedData) {
             throw new Error("No data provided from Laravel");
         }
 
         const decodedData = Buffer.from(encodedData, "base64").toString("utf8");
-        templatesData = JSON.parse(decodedData);
+        inputData = JSON.parse(decodedData);
 
         console.log(
-            "📥 Received templatesData from Laravel:",
-            `Found ${templatesData.length} templates to process`
+            "📥 Received inputData from Laravel:",
+            JSON.stringify(inputData, null, 2)
         );
 
-        if (templatesData.length === 0) {
-            throw new Error("No templates to process");
-        }
-
-        // Use first template for auth configuration
-        const firstTemplate = templatesData[0];
-        CONFIG.credentials.email = firstTemplate.user_email;
-        CONFIG.credentials.password = firstTemplate.password;
-        CONFIG.authFile = firstTemplate.cookies;
+        // Update CONFIG with dynamic data from Laravel
+        CONFIG.credentials.email = inputData.user_email;
+        CONFIG.credentials.password = inputData.password;
+        CONFIG.authFile = inputData.cookies;
 
         console.log("🔧 Using config:", {
             email: CONFIG.credentials.email,
             authFile: CONFIG.authFile,
             headless: CONFIG.headless,
-            templates_count: templatesData.length,
         });
     } catch (e) {
         console.error("❌ Failed to parse input from Laravel:", e.message);
@@ -72,9 +67,6 @@ async function main() {
     }
 
     let browser = null;
-    let context = null;
-    let page = null;
-
     try {
         browser = await chromium.launch({
             headless: CONFIG.headless,
@@ -82,11 +74,11 @@ async function main() {
             args: ["--start-maximized"],
         });
 
-        context = await browser.newContext({
+        const context = await browser.newContext({
             viewport: { width: 1366, height: 768 },
         });
 
-        page = await context.newPage();
+        const page = await context.newPage();
 
         // Load session with proper error handling
         console.log("🔐 Checking authentication state...");
@@ -133,59 +125,133 @@ async function main() {
             console.log("✅ Using existing session");
         }
 
-        // Process each template
-        for (let i = 0; i < templatesData.length; i++) {
-            const templateData = templatesData[i];
-            console.log(
-                `\n🔄 Processing template ${i + 1}/${templatesData.length}: ${
-                    templateData.Title
-                }`
-            );
+        // Navigate Accounts **before Continue**
+        const navSuccess = await navigateToAccountsSection(page);
+        if (!navSuccess)
+            throw new Error("Failed to navigate to Accounts section");
 
-            if (i === 0) {
-                // For first template, navigate to accounts and continue
-                const navSuccess = await navigateToAccountsSection(page);
-                if (!navSuccess)
-                    throw new Error("Failed to navigate to Accounts section");
+        // Click Continue button → now we are on Offer creation page
+        const continueClicked = await clickContinueButton(page);
+        if (!continueClicked)
+            throw new Error("Failed to click Continue button");
 
-                const continueClicked = await clickContinueButton(page);
-                if (!continueClicked)
-                    throw new Error("Failed to click Continue button");
-            } else {
-                // For subsequent templates, we should already be on the form page after clicking "Add New Offer"
-                console.log(
-                    "⏳ Waiting for form to be ready for next offer..."
-                );
-                await page.waitForTimeout(5000);
-                const continueClicked = await clickContinueButton(page);
-                if (!continueClicked)
-                    throw new Error("Failed to click Continue button");
+        await page.waitForLoadState("domcontentloaded");
+        await page.waitForTimeout(5000); // lazy-render buffer
+
+        const { selector: cardSelector, items } = formStructure;
+
+        for (let [cardIndex, cardObj] of items.entries()) {
+            if (!cardObj) continue; // Skip null items
+
+            const cardSel = getSelector(cardObj, cardIndex, cardSelector);
+            const cardEl = page.locator(cardSel).first();
+
+            if ((await cardEl.count()) === 0) {
+                console.log(`❌ Could not find card in the dom: ${cardSel}`);
+                continue;
             }
 
-            // Fill and submit the form
-            await fillOfferForm(page, templateData);
+            const { items: sectionItems, selector: defaultSectionSelector } =
+                cardObj.sections;
 
-            // Submit and click "Add New Offer" if not the last template
-            if (i < templatesData.length - 1) {
-                const success = await submitFormAndAddNew(page);
-                if (!success) {
+            for (let [sectionIndex, sectionObj] of sectionItems.entries()) {
+                if (!sectionObj) continue; // Skip null items
+
+                const sectionSel = getSelector(
+                    sectionObj,
+                    sectionIndex,
+                    defaultSectionSelector
+                );
+
+                const sectionEl = cardEl.locator(sectionSel).first();
+
+                if ((await sectionEl.count()) === 0) {
                     console.log(
-                        "⚠️  Could not proceed to next offer, stopping..."
+                        `❌ Could not find section in the dom: ${sectionSel}`
                     );
-                    break;
+                    continue;
                 }
-            } else {
-                // Last template - just submit
-                console.log("🚀 Submitting final form...");
-                await submitForm(page);
-                await page.waitForTimeout(5000);
-                console.log("✅ Final offer submitted!");
+
+                console.log(
+                    `Processing section: ${
+                        sectionObj.name
+                    }, selector: ${sectionSel}, classes: ${await sectionEl.getAttribute(
+                        "class"
+                    )}`
+                );
+
+                const {
+                    items: fieldItems,
+                    selector: defaultFieldSelector,
+                    type: defaultFieldType,
+                } = sectionObj.fields;
+
+                for (let [fieldIndex, fieldObj] of fieldItems.entries()) {
+                    if (!fieldObj) continue; // Skip null items
+
+                    const label = fieldObj.label;
+                    const fieldSel = getSelector(
+                        fieldObj,
+                        fieldIndex,
+                        defaultFieldSelector
+                    );
+                    const fieldEl = sectionEl.locator(fieldSel).nth(fieldIndex);
+
+                    if ((await fieldEl.count()) === 0) {
+                        console.log(
+                            `❌ Could not find field in the dom: ${fieldSel}`
+                        );
+                        continue;
+                    }
+
+                    const fieldType = fieldObj.type || defaultFieldType;
+                    if (!fieldType) {
+                        console.log(`❌ Field type not specified: ${fieldSel}`);
+                        continue;
+                    }
+
+                    const value = inputData[label];
+
+                    switch (fieldType) {
+                        case "dropdown":
+                            await selectDropdownOption(page, fieldEl, value);
+                            await page.waitForTimeout(500);
+                            break;
+                        case "text":
+                            await fillInput(page, fieldEl, value, label);
+                            await page.waitForTimeout(500);
+                            break;
+                        default:
+                            console.log(
+                                `❌ Unsupported field type: ${fieldType}`
+                            );
+                            break;
+                    }
+                }
             }
         }
 
-        console.log(
-            `✅ All ${templatesData.length} templates processed successfully!`
-        );
+        await fillPricingSection(page, inputData["Default price (unit)"]);
+
+        const mediaData = inputData.mediaData || [];
+        await fillMediaGallery(page, mediaData);
+
+        // Call the delivery functions with page parameter
+        await selectManualDelivery(page);
+        await page.waitForTimeout(1000);
+
+        // Make sure these values exist in your inputData
+        const deliveryHour = inputData["Delivery hour"];
+        const deliveryMinute = inputData["Delivery minute"];
+
+        await setDeliveryHour(page, deliveryHour);
+        await page.waitForTimeout(1000);
+        await setDeliveryMinute(page, deliveryMinute);
+        await submitForm(page);
+        await page.waitForTimeout(5000); // wait for submission to process
+        console.log("✅ Full flow completed!");
+        rl.close();
+        // browser.close();
     } catch (error) {
         console.error("❌ Process failed:", error.message);
         process.exit(1); // Error exit
@@ -200,218 +266,6 @@ async function main() {
 }
 
 main();
-
-async function fillOfferForm(page, inputData) {
-    console.log(`📝 Starting to fill form for template: ${inputData.Title}`);
-
-    await page.waitForLoadState("domcontentloaded");
-    await page.waitForTimeout(5000); // lazy-render buffer
-
-    const { selector: cardSelector, items } = formStructure;
-
-    for (let [cardIndex, cardObj] of items.entries()) {
-        if (!cardObj) continue; // Skip null items
-
-        const cardSel = getSelector(cardObj, cardIndex, cardSelector);
-        const cardEl = page.locator(cardSel).first();
-
-        if ((await cardEl.count()) === 0) {
-            console.log(`❌ Could not find card in the dom: ${cardSel}`);
-            continue;
-        }
-
-        const { items: sectionItems, selector: defaultSectionSelector } =
-            cardObj.sections;
-
-        for (let [sectionIndex, sectionObj] of sectionItems.entries()) {
-            if (!sectionObj) continue; // Skip null items
-
-            const sectionSel = getSelector(
-                sectionObj,
-                sectionIndex,
-                defaultSectionSelector
-            );
-
-            const sectionEl = cardEl.locator(sectionSel).first();
-
-            if ((await sectionEl.count()) === 0) {
-                console.log(
-                    `❌ Could not find section in the dom: ${sectionSel}`
-                );
-                continue;
-            }
-
-            console.log(
-                `Processing section: ${
-                    sectionObj.name
-                }, selector: ${sectionSel}, classes: ${await sectionEl.getAttribute(
-                    "class"
-                )}`
-            );
-
-            const {
-                items: fieldItems,
-                selector: defaultFieldSelector,
-                type: defaultFieldType,
-            } = sectionObj.fields;
-
-            for (let [fieldIndex, fieldObj] of fieldItems.entries()) {
-                if (!fieldObj) continue; // Skip null items
-
-                const label = fieldObj.label;
-                const fieldSel = getSelector(
-                    fieldObj,
-                    fieldIndex,
-                    defaultFieldSelector
-                );
-                const fieldEl = sectionEl.locator(fieldSel).nth(fieldIndex);
-
-                if ((await fieldEl.count()) === 0) {
-                    console.log(
-                        `❌ Could not find field in the dom: ${fieldSel}`
-                    );
-                    continue;
-                }
-
-                const fieldType = fieldObj.type || defaultFieldType;
-                if (!fieldType) {
-                    console.log(`❌ Field type not specified: ${fieldSel}`);
-                    continue;
-                }
-
-                const value = inputData[label];
-
-                switch (fieldType) {
-                    case "dropdown":
-                        await selectDropdownOption(page, fieldEl, value);
-                        await page.waitForTimeout(500);
-                        break;
-                    case "text":
-                        await fillInput(page, fieldEl, value, label);
-                        await page.waitForTimeout(500);
-                        break;
-                    default:
-                        console.log(`❌ Unsupported field type: ${fieldType}`);
-                        break;
-                }
-            }
-        }
-    }
-
-    await fillPricingSection(page, inputData["Default price (unit)"]);
-
-    const mediaData = inputData.mediaData || [];
-    await fillMediaGallery(page, mediaData);
-
-    // Call the delivery functions with page parameter
-    await selectManualDelivery(page);
-    await page.waitForTimeout(1000);
-
-    // Make sure these values exist in your inputData
-    const deliveryHour = inputData["Delivery hour"];
-    const deliveryMinute = inputData["Delivery minute"];
-
-    await setDeliveryHour(page, deliveryHour);
-    await page.waitForTimeout(1000);
-    await setDeliveryMinute(page, deliveryMinute);
-
-    console.log(`✅ Form filled successfully for template: ${inputData.Title}`);
-}
-
-async function submitFormAndAddNew(page) {
-    console.log("🚀 Submitting form...");
-    await submitForm(page);
-    await page.waitForTimeout(5000); // wait for submission to process
-
-    // Wait for the success popup and click "Add new offer"
-    console.log("🔍 Looking for success popup and 'Add new offer' button...");
-
-    try {
-        // First, wait for the success popup to appear
-        const successPopup = page.locator(
-            '.q-card:has-text("Your offer has been published.")'
-        );
-
-        // Wait for the popup to be visible
-        await successPopup.waitFor({ state: "visible", timeout: 10000 });
-        console.log("✅ Success popup appeared");
-
-        // Now look for the "Add new offer" button within the popup
-        // Based on the HTML structure you provided
-        const addNewOfferButton = successPopup
-            .locator('button:has-text("Add new offer")')
-            .first();
-
-        if ((await addNewOfferButton.count()) > 0) {
-            console.log("✅ Found 'Add new offer' button in the success popup");
-
-            // Click the button
-            await addNewOfferButton.click();
-            console.log("✅ Clicked 'Add new offer' button");
-
-            // Wait for the form to load again
-            await page.waitForTimeout(3000);
-
-            // Verify we're back on the form page by checking for common form elements
-            const formTitle = page
-                .locator("h1, h2, h3")
-                .filter({ hasText: /offer|create|sell/i })
-                .first();
-            if ((await formTitle.count()) > 0) {
-                console.log("✅ Successfully returned to offer creation form");
-                return true;
-            } else {
-                console.log("⚠️  May not have returned to form page correctly");
-                return true; // Still return true as the button was clicked
-            }
-        } else {
-            console.log(
-                "❌ Could not find 'Add new offer' button in the success popup"
-            );
-
-            // Alternative: Try to find any button with similar text
-            const alternativeButtons = [
-                'button:has-text("Add New Offer")',
-                'button:has-text("Create Another Offer")',
-                'button:has-text("Add Another Offer")',
-                '.q-btn:has-text("Add new offer")',
-            ];
-
-            for (const selector of alternativeButtons) {
-                const altButton = page.locator(selector).first();
-                if ((await altButton.count()) > 0) {
-                    console.log(
-                        `✅ Found alternative button with selector: ${selector}`
-                    );
-                    await altButton.click();
-                    await page.waitForTimeout(3000);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-    } catch (error) {
-        console.log("❌ Error handling success popup:", error.message);
-
-        // Fallback: Try to navigate back to offer creation manually
-        try {
-            console.log("🔄 Attempting fallback navigation...");
-            await page.goto(`${CONFIG.baseUrl}/sell/index`, {
-                waitUntil: "domcontentloaded",
-            });
-            await page.waitForTimeout(3000);
-            console.log("✅ Navigated back to sell page via fallback");
-            return true;
-        } catch (navError) {
-            console.log(
-                "❌ Fallback navigation also failed:",
-                navError.message
-            );
-            return false;
-        }
-    }
-}
 
 async function selectDropdownOption(page, fieldEl, value) {
     const btn = fieldEl.locator("div:nth-child(2) .g-btn-select").first();
