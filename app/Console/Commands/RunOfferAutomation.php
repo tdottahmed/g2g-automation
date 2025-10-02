@@ -29,12 +29,7 @@ class RunOfferAutomation extends Command
         $this->info("⏱️  Interval: {$scheduleInterval} minutes");
         $this->info("🕒 Windows: " . count($schedulerWindows));
 
-        // Check if current time is within any active window
-        // if (!$this->isWithinSchedulerWindow($schedulerWindows)) {
-        //     $message = 'Current time is outside scheduler windows. No offers will be dispatched.';
-        //     $this->info("⏸️  {$message}");
-        //     return;
-        // }
+       
 
         $templates = OfferTemplate::where('is_active', 1)->get();
         $this->info("📋 Found {$templates->count()} active template(s)");

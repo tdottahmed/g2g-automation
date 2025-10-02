@@ -152,7 +152,6 @@ async function main() {
                 if (!continueClicked)
                     throw new Error("Failed to click Continue button");
             } else {
-                // For subsequent templates, we should already be on the form page after clicking "Add New Offer"
                 console.log(
                     "⏳ Waiting for form to be ready for next offer..."
                 );
@@ -321,96 +320,28 @@ async function fillOfferForm(page, inputData) {
 async function submitFormAndAddNew(page) {
     console.log("🚀 Submitting form...");
     await submitForm(page);
-    await page.waitForTimeout(5000); // wait for submission to process
+    await page.waitForTimeout(5000);
 
-    // Wait for the success popup and click "Add new offer"
     console.log("🔍 Looking for success popup and 'Add new offer' button...");
 
-    try {
-        // First, wait for the success popup to appear
-        const successPopup = page.locator(
-            '.q-card:has-text("Your offer has been published.")'
-        );
+    const successPopup = page.locator(
+        'div.text-center:has-text("Your offer has been published.")'
+    );
 
-        // Wait for the popup to be visible
-        await successPopup.waitFor({ state: "visible", timeout: 10000 });
-        console.log("✅ Success popup appeared");
+    await successPopup.waitFor({ state: "visible", timeout: 15000 });
+    console.log("✅ Success popup appeared");
 
-        // Now look for the "Add new offer" button within the popup
-        // Based on the HTML structure you provided
-        const addNewOfferButton = successPopup
-            .locator('button:has-text("Add new offer")')
-            .first();
+    const addNewOfferButton = successPopup
+        .locator('button:has-text("Add new offer")')
+        .first();
 
-        if ((await addNewOfferButton.count()) > 0) {
-            console.log("✅ Found 'Add new offer' button in the success popup");
+    await addNewOfferButton.waitFor({ state: "visible", timeout: 10000 });
+    console.log("✅ Found 'Add new offer' button");
 
-            // Click the button
-            await addNewOfferButton.click();
-            console.log("✅ Clicked 'Add new offer' button");
+    await addNewOfferButton.click();
+    console.log("✅ Clicked 'Add new offer' button");
 
-            // Wait for the form to load again
-            await page.waitForTimeout(3000);
-
-            // Verify we're back on the form page by checking for common form elements
-            const formTitle = page
-                .locator("h1, h2, h3")
-                .filter({ hasText: /offer|create|sell/i })
-                .first();
-            if ((await formTitle.count()) > 0) {
-                console.log("✅ Successfully returned to offer creation form");
-                return true;
-            } else {
-                console.log("⚠️  May not have returned to form page correctly");
-                return true; // Still return true as the button was clicked
-            }
-        } else {
-            console.log(
-                "❌ Could not find 'Add new offer' button in the success popup"
-            );
-
-            // Alternative: Try to find any button with similar text
-            const alternativeButtons = [
-                'button:has-text("Add New Offer")',
-                'button:has-text("Create Another Offer")',
-                'button:has-text("Add Another Offer")',
-                '.q-btn:has-text("Add new offer")',
-            ];
-
-            for (const selector of alternativeButtons) {
-                const altButton = page.locator(selector).first();
-                if ((await altButton.count()) > 0) {
-                    console.log(
-                        `✅ Found alternative button with selector: ${selector}`
-                    );
-                    await altButton.click();
-                    await page.waitForTimeout(3000);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-    } catch (error) {
-        console.log("❌ Error handling success popup:", error.message);
-
-        // Fallback: Try to navigate back to offer creation manually
-        try {
-            console.log("🔄 Attempting fallback navigation...");
-            await page.goto(`${CONFIG.baseUrl}/sell/index`, {
-                waitUntil: "domcontentloaded",
-            });
-            await page.waitForTimeout(3000);
-            console.log("✅ Navigated back to sell page via fallback");
-            return true;
-        } catch (navError) {
-            console.log(
-                "❌ Fallback navigation also failed:",
-                navError.message
-            );
-            return false;
-        }
-    }
+    await page.waitForTimeout(4000);
 }
 
 async function selectDropdownOption(page, fieldEl, value) {
@@ -484,9 +415,7 @@ async function fillInput(page, fieldEl, value, label = "Input") {
 
         await humanDelay(800, 1500); // optional delay
 
-        // Clear any existing value
         await input.fill("");
-        // Focus the input
         await input.click();
 
         // Write to clipboard

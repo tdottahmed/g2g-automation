@@ -3,6 +3,7 @@
 
 namespace App\Services;
 
+use App\Jobs\PostOfferTemplate;
 use App\Jobs\ProcessOfferTemplate;
 use App\Models\UserAccount;
 use App\Models\OfferTemplate;
@@ -19,37 +20,26 @@ class AutomationService
         return DB::transaction(function () use ($userAccountId, $templateIds) {
             // Get active templates for this user
             $templates = OfferTemplate::where('user_account_id', $userAccountId)
-                ->where('is_active', true)->get();
+                ->where('is_active', true);
 
+            if ($templateIds) {
+                $templates = $templates->whereIn('id', $templateIds);
+            }
+
+            $templates = $templates->get();
 
             if ($templates->isEmpty()) {
                 throw new \Exception('No active templates found for this account.');
             }
 
-            // Create automation session
-            $session = AutomationSession::create([
+            // Dispatch single job for all templates of this user
+            ProcessOfferTemplate::dispatch($userAccountId, $templates->pluck('id')->toArray());
+
+            return [
                 'user_account_id' => $userAccountId,
-                'session_id' => Str::uuid(),
-                'status' => 'running',
-                'total_templates' => $templates->count(),
-                'started_at' => now(),
-            ]);
-
-            // Create progress records
-            foreach ($templates as $template) {
-                AutomationProgress::create([
-                    'automation_session_id' => $session->id,
-                    'offer_template_id' => $template->id,
-                    'status' => 'queued',
-                ]);
-            }
-
-            // Dispatch jobs for each template
-            foreach ($templates as $template) {
-                ProcessOfferTemplate::dispatch($template->id, $session->id);
-            }
-
-            return $session;
+                'templates_count' => $templates->count(),
+                'status' => 'dispatched'
+            ];
         });
     }
 
