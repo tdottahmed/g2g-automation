@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 class RunOfferAutomation extends Command
 {
-    protected $signature = 'offer:automation';
+    protected $signature = 'offer:automation-run';
     protected $description = 'Run offer posting automation using global scheduler settings';
 
     public function handle(): void
@@ -26,15 +26,8 @@ class RunOfferAutomation extends Command
         $scheduleInterval = (int) (
             ApplicationSetup::where('type', 'schedule_interval_minutes')->first()->value ?? 15
         );
-        $this->info("⏱️  Interval: {$scheduleInterval} minutes");
         $this->info("🕒 Windows: " . count($schedulerWindows));
 
-        // Check if current time is within any active window
-        // if (!$this->isWithinSchedulerWindow($schedulerWindows)) {
-        //     $message = 'Current time is outside scheduler windows. No offers will be dispatched.';
-        //     $this->info("⏸️  {$message}");
-        //     return;
-        // }
 
         $templates = OfferTemplate::where('is_active', 1)->get();
         $this->info("📋 Found {$templates->count()} active template(s)");
@@ -129,79 +122,5 @@ class RunOfferAutomation extends Command
             'interval' => $scheduleInterval,
             'current_time' => now()->format('Y-m-d H:i:s'),
         ]);
-    }
-
-    private function isWithinSchedulerWindow(array $windows): bool
-    {
-        if (empty($windows)) {
-            $this->info("⚠️  No scheduler windows defined - allowing execution");
-            return true;
-        }
-
-        $currentTime = now()->format('H:i');
-        $this->info("🕐 Current time: {$currentTime}");
-
-        foreach ($windows as $index => $window) {
-            if (!isset($window['start']) || !isset($window['end'])) {
-                $this->info("⚠️  Invalid window configuration at index {$index}");
-                continue;
-            }
-
-            $start24 = $this->convertTo24Hour($window['start']);
-            $end24 = $this->convertTo24Hour($window['end']);
-
-            $this->info("   Window {$index}: {$window['start']} - {$window['end']} (24h: {$start24} - {$end24})");
-
-            if ($this->isTimeInWindow($currentTime, $start24, $end24)) {
-                $this->info("✅ Current time is within window {$index}");
-                return true;
-            }
-        }
-
-        $this->info("❌ Current time is outside all scheduler windows");
-        return false;
-    }
-
-    private function isTimeInWindow(string $currentTime, string $startTime, string $endTime): bool
-    {
-        if ($endTime < $startTime) {
-            // Window crosses midnight (e.g., 22:00 to 06:00)
-            return $currentTime >= $startTime || $currentTime <= $endTime;
-        }
-
-        // Normal window within same day
-        return $currentTime >= $startTime && $currentTime <= $endTime;
-    }
-
-    private function convertTo24Hour(string $time12h): string
-    {
-        if (empty($time12h)) {
-            $this->error("Empty time string provided for conversion");
-            return '00:00';
-        }
-
-        // If already in 24-hour format, return as is
-        if (preg_match('/^\d{1,2}:\d{2}$/', $time12h)) {
-            return $time12h;
-        }
-
-        try {
-            $time = \DateTime::createFromFormat('h:i A', $time12h);
-            if ($time) {
-                return $time->format('H:i');
-            }
-
-            // Try other common formats
-            $time = \DateTime::createFromFormat('H:i', $time12h);
-            if ($time) {
-                return $time->format('H:i');
-            }
-
-            $this->error("Failed to parse time: {$time12h}");
-            return '00:00';
-        } catch (\Exception $e) {
-            $this->error("Exception parsing time: {$time12h} - {$e->getMessage()}");
-            return '00:00';
-        }
     }
 }

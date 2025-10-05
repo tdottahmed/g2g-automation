@@ -194,6 +194,7 @@ async function fillOfferForm(page, inputData) {
     console.log(`📝 Starting to fill form for template: ${inputData.Title}`);
 
     await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(2000);
 
     const { selector: cardSelector, items } = formStructure;
 
@@ -373,7 +374,7 @@ async function selectDropdownOption(page, fieldEl, value) {
         if ((await filterInput.count()) === 0) return false;
 
         await filterInput.first().fill(value);
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(700);
 
         // Dropdown menu
         const dropdownMenu = dropdownWrapper.locator(
@@ -397,7 +398,7 @@ async function selectDropdownOption(page, fieldEl, value) {
         }
 
         await firstOption.click({ force: true });
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(600);
         console.log(`✅ Selected ${labelText}: ${value}`);
         return true;
     } catch (error) {

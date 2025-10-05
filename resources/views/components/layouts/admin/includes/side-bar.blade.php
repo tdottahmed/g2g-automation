@@ -30,7 +30,8 @@
       <ul class="navbar-nav" id="navbar-nav">
         <li class="menu-title"><span data-key="t-menu">Menu</span></li>
         <x-layouts.admin.partials.sidebar-menu-item route="dashboard" icon="ri-dashboard-line" label="Dashboard" />
-
+        <x-layouts.admin.partials.sidebar-menu-item route="automation.dashboard" icon="ri-dashboard-line"
+                                                    label="Automation Dashboard" />
         <x-layouts.admin.partials.sidebar-menu-item route="user-accounts.index" icon="ri-user-3-line"
                                                     label="User Accounts" />
         <x-layouts.admin.partials.sidebar-menu-item route="levels.index" icon="ri-building-3-fill" label="Levels" />
@@ -47,6 +48,7 @@
                                                     ]" /> --}}
         <x-layouts.admin.partials.sidebar-menu-item route="applicationSetup.index" icon="ri-settings-3-line"
                                                     label="Application Setup" />
+
       </ul>
     </div>
   </div>
