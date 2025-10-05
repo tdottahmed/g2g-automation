@@ -22,12 +22,6 @@ const config = {
     apps: [
         {
             ...defaultOptions,
-            name: useName("scheduler"),
-            script: "php artisan schedule:work",
-            max_memory_restart: "256M",
-        },
-        {
-            ...defaultOptions,
             name: useName("queue-worker"),
             script: "php artisan queue:work",
             args: "--sleep=3 --tries=3 --max-time=3600",
