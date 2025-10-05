@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\OfferAutomationLog;
 use App\Models\OfferTemplate;
+use App\Models\UserAccount;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
@@ -17,16 +18,18 @@ class PostOfferTemplate implements ShouldQueue
     use Dispatchable, Queueable, InteractsWithQueue, SerializesModels;
 
     public $tries = 3;
-    public $timeout = 600; // Increased timeout for multiple offers
+    public $timeout = 600;
 
-    protected $templates;
+    protected $templateIds;
+    protected $userAccountId;
 
     /**
      * Create a new job instance.
      */
-    public function __construct($templates)
+    public function __construct(array $templateIds, $userAccountId = null)
     {
-        $this->templates = collect($templates);
+        $this->templateIds = $templateIds;
+        $this->userAccountId = $userAccountId;
     }
 
     /**
@@ -36,34 +39,62 @@ class PostOfferTemplate implements ShouldQueue
     {
         $startTime = microtime(true);
 
-        // Group templates by user account to process in batches
-        $templatesByUser = $this->templates->groupBy('user_account_id');
-        Log::info('Processing templates by user account', [
-            'templates_by_user' => $templatesByUser->count()
-        ]);
+        try {
+            Log::info('PostOfferTemplate job started', [
+                'template_ids_count' => count($this->templateIds),
+                'user_account_id' => $this->userAccountId
+            ]);
 
+            // Load templates in chunks to avoid memory issues
+            $chunkSize = 5; // Process 5 templates at a time for better stability
+            $totalProcessed = 0;
+            $totalErrors = 0;
 
-        $totalProcessed = 0;
-        $totalErrors = 0;
+            collect($this->templateIds)->chunk($chunkSize)->each(function ($chunkedIds) use (&$totalProcessed, &$totalErrors, $startTime) {
+                $templates = OfferTemplate::with('userAccount')
+                    ->whereIn('id', $chunkedIds->toArray())
+                    ->get();
 
-        foreach ($templatesByUser as $userAccountId => $userTemplates) {
-            try {
-                $processed = $this->processUserTemplates($userTemplates, $userAccountId, $startTime);
-                $totalProcessed += $processed;
-            } catch (\Exception $e) {
-                $totalErrors++;
-                Log::error("Failed to process templates for user account {$userAccountId}", [
-                    'error' => $e->getMessage(),
-                    'templates_count' => $userTemplates->count()
-                ]);
-            }
+                if ($templates->isEmpty()) {
+                    Log::warning('No templates found for chunk', ['chunk_ids' => $chunkedIds->toArray()]);
+                    return;
+                }
+
+                // Group by user account (in case we have multiple users in one job)
+                $templatesByUser = $templates->groupBy('user_account_id');
+
+                foreach ($templatesByUser as $userAccountId => $userTemplates) {
+                    try {
+                        $processed = $this->processUserTemplates($userTemplates, $userAccountId, $startTime);
+                        $totalProcessed += $processed;
+                    } catch (\Exception $e) {
+                        $totalErrors++;
+                        Log::error("Failed to process templates for user account {$userAccountId}", [
+                            'error' => $e->getMessage(),
+                            'templates_count' => $userTemplates->count()
+                        ]);
+                    }
+                }
+
+                // Free memory after processing each chunk
+                unset($templates, $templatesByUser);
+                gc_collect_cycles();
+            });
+
+            Log::info('Multiple offers processing completed', [
+                'total_processed' => $totalProcessed,
+                'total_errors' => $totalErrors,
+                'total_templates' => count($this->templateIds)
+            ]);
+        } catch (\Exception $e) {
+            Log::error('PostOfferTemplate job failed', [
+                'template_ids' => $this->templateIds,
+                'user_account_id' => $this->userAccountId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
         }
-
-        Log::info('Multiple offers processing completed', [
-            'total_processed' => $totalProcessed,
-            'total_errors' => $totalErrors,
-            'total_user_accounts' => $templatesByUser->count()
-        ]);
     }
 
     private function processUserTemplates($templates, $userAccountId, $startTime)
@@ -93,8 +124,6 @@ class PostOfferTemplate implements ShouldQueue
             $emailParts = explode('@', $userAccount->email);
             $emailPrefix = $emailParts[0];
             $cookieFile = base_path($emailPrefix . '.json');
-
-            $password = $userAccount->password;
 
             // Prepare all templates data
             $templatesData = [];
@@ -140,7 +169,7 @@ class PostOfferTemplate implements ShouldQueue
             ]);
 
             $process->setWorkingDirectory(base_path('scripts/automation'));
-            $process->setTimeout(480); // Increased timeout for multiple offers
+            $process->setTimeout(480);
 
             $output = '';
             $errorOutput = '';
@@ -349,8 +378,12 @@ class PostOfferTemplate implements ShouldQueue
      */
     public function tags(): array
     {
-        $templateIds = $this->templates->pluck('id')->toArray();
-        return ['offer-posting', 'multiple', 'templates:' . implode(',', $templateIds)];
+        return [
+            'offer-posting',
+            'multiple',
+            'user:' . ($this->userAccountId ?? 'unknown'),
+            'templates:' . count($this->templateIds)
+        ];
     }
 
     /**
@@ -358,19 +391,18 @@ class PostOfferTemplate implements ShouldQueue
      */
     public function failed(\Exception $exception): void
     {
-        $templateIds = $this->templates->pluck('id')->toArray();
-        $templateTitles = $this->templates->pluck('title')->toArray();
-
         Log::error("Multiple offers posting job failed permanently after {$this->attempts()} attempts", [
-            'template_ids' => $templateIds,
-            'template_titles' => $templateTitles,
-            'templates_count' => $this->templates->count(),
+            'template_ids' => $this->templateIds,
+            'user_account_id' => $this->userAccountId,
+            'templates_count' => count($this->templateIds),
             'exception' => $exception->getMessage(),
             'trace' => $exception->getTraceAsString()
         ]);
 
-        // Log failure for each template
-        foreach ($this->templates as $template) {
+        // Load templates to log failures
+        $templates = OfferTemplate::whereIn('id', $this->templateIds)->get();
+
+        foreach ($templates as $template) {
             OfferAutomationLog::logFailed(
                 $template,
                 "Job failed permanently after {$this->attempts()} attempts: {$exception->getMessage()}",

@@ -104,14 +104,8 @@
 
       {{-- Delivery Method --}}
       @php
-        $delivery = old(
-            'delivery_method',
-            $offerTemplate->delivery_method ?? [
-                'quantity_from' => '',
-                'speed_hour' => '',
-                'speed_min' => '',
-            ],
-        );
+        $deliveryJson = old('delivery_method', $offerTemplate->delivery_method ?? '{}');
+        $delivery = is_string($deliveryJson) ? json_decode($deliveryJson, true) : $deliveryJson;
       @endphp
 
 
@@ -130,7 +124,7 @@
           <div class="row mt-2">
             <div class="col-md-4">
               <x-data-entry.input type="number" name="delivery_quantity_from" label="Delivery Quantity From"
-                                  value="{{ $delivery['quantity_from'] ?? '' }}" required disabled />
+                                  value="{{ $delivery['quantity_from'] ?? '1' }}" />
             </div>
             <div class="col-md-4">
               <x-data-entry.input type="number" name="delivery_speed_hour" label="Delivery Speed (Hour)"

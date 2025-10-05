@@ -21,71 +21,115 @@ class OfferAutomation extends Command
         $userAccountId = $this->option('user_account_id');
         $allUsers = $this->option('all');
 
-        // Process all users if --all flag is not set
-        if ($allUsers != true) {
-            $this->processUser($userAccountId);
+        $this->info('🚀 Starting offer automation...');
+
+        // Validate input
+        if (!$userAccountId && !$allUsers) {
+            $this->error('❌ You must provide either --user_account_id or --all option.');
+            Command::FAILURE;
         }
-        $this->processAll();
+
+        try {
+            if ($userAccountId) {
+                $this->processUser($userAccountId);
+            } elseif ($allUsers) {
+                $this->processAll();
+            }
+        } catch (\Exception $e) {
+            $this->error("❌ Unexpected error: " . $e->getMessage());
+            Log::error('Offer automation failed', [
+                'user_account_id' => $userAccountId,
+                'all_users' => $allUsers,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            Command::FAILURE;
+        }
+
+        Command::SUCCESS;
     }
 
-    /**
-     * 🔹 Process offers for a specific user
-     */
     protected function processUser($userAccountId)
     {
         $user = UserAccount::find($userAccountId);
 
         if (!$user) {
-            return $this->error("❌ User not found: {$userAccountId}");
+            $this->error("❌ User not found: {$userAccountId}");
+            Command::FAILURE;
         }
 
         $this->info("👤 Processing user: {$user->email}");
 
-        $templates = OfferTemplate::where('user_account_id', $userAccountId)
+        // Get only template IDs instead of full models
+        $templateIds = OfferTemplate::where('user_account_id', $userAccountId)
             ->where('is_active', true)
-            ->get();
+            ->pluck('id')
+            ->toArray();
 
-        if ($templates->isEmpty()) {
-            return $this->warn("ℹ️ No active templates for this user.");
+        if (empty($templateIds)) {
+            $this->warn("ℹ️ No active templates for this user.");
+            return Command::SUCCESS;
         }
 
-        dispatch(new PostOfferTemplate($templates->all()));
+        $this->info("📋 Found " . count($templateIds) . " active template(s)");
 
-        $this->info("✅ Dispatched {$templates->count()} templates for {$user->email}");
+        // Pass IDs instead of full models
+        dispatch(new PostOfferTemplate($templateIds, $userAccountId));
+
+        $this->info("✅ Dispatched " . count($templateIds) . " templates for {$user->email}");
 
         Log::info('User automation completed', [
             'user_account_id' => $userAccountId,
-            'templates_count' => $templates->count(),
+            'user_email' => $user->email,
+            'template_ids_count' => count($templateIds),
         ]);
+
+        return Command::SUCCESS;
     }
 
-    /**
-     * 🔹 Process all templates for all users
-     */
     protected function processAll()
     {
         $this->info("🌍 Processing all active templates for all users...");
 
-        $templates = OfferTemplate::where('is_active', true)->get();
+        // Get template IDs grouped by user
+        $templateGroups = OfferTemplate::where('is_active', true)
+            ->get(['id', 'user_account_id'])
+            ->groupBy('user_account_id')
+            ->map(function ($group) {
+                return $group->pluck('id')->toArray();
+            });
 
-        if ($templates->isEmpty()) {
-            return $this->warn("❌ No active templates found.");
+        if ($templateGroups->isEmpty()) {
+            $this->warn("❌ No active templates found.");
+            return Command::SUCCESS;
         }
 
-        $grouped = $templates->groupBy('user_account_id');
+        $this->info("📋 Found templates across {$templateGroups->count()} users");
 
-        foreach ($grouped as $userId => $userTemplates) {
-            $user = $userTemplates->first()->userAccount;
+        $dispatchedJobs = 0;
+        $dispatchedTemplates = 0;
+
+        foreach ($templateGroups as $userId => $templateIds) {
+            $user = UserAccount::find($userId);
             $this->info("👤 User: " . ($user->email ?? 'Unknown'));
-            dispatch(new PostOfferTemplate($userTemplates->all()));
-            $this->info("   📦 Dispatched {$userTemplates->count()} templates");
+
+            // Pass IDs instead of full models
+            dispatch(new PostOfferTemplate($templateIds, $userId));
+            $dispatchedJobs++;
+            $dispatchedTemplates += count($templateIds);
+
+            $this->info("   📦 Dispatched " . count($templateIds) . " templates");
         }
 
         $this->info("✅ All active templates dispatched for all users.");
+        $this->info("📊 Summary: {$dispatchedTemplates} templates across {$dispatchedJobs} users");
 
         Log::info('All-users automation completed', [
-            'total_templates' => $templates->count(),
-            'total_users' => $grouped->count(),
+            'total_templates' => $dispatchedTemplates,
+            'total_users' => $templateGroups->count(),
+            'dispatched_jobs' => $dispatchedJobs,
         ]);
+
+        return Command::SUCCESS;
     }
 }

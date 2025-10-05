@@ -4,180 +4,113 @@
       <div class="d-flex justify-content-between align-items-center">
         <div>
           <h5 class="card-title mb-1">
-            <i class="ri-robot-line text-primary me-2"></i>Offer Automation Dashboard
+            <i class="ri-send-plane-line text-primary me-2"></i>Offer Posting
           </h5>
-          <p class="text-muted mb-0">Manage and execute automated offer posting</p>
+          <p class="text-muted mb-0">Start posting offers for your accounts</p>
         </div>
         <div class="d-flex gap-2">
           <button type="button" class="btn btn-outline-primary btn-refresh">
             <i class="ri-refresh-line me-1"></i> Refresh
           </button>
-          <button type="button" class="btn btn-primary">
-            <i class="ri-add-line me-1"></i> New Template
+          <button type="button" class="btn btn-success btn-post-all">
+            <i class="ri-play-large-line me-1"></i> Start All Posting
           </button>
         </div>
       </div>
     </x-slot>
 
-    <!-- Stats Overview -->
+    <!-- Quick Stats -->
     <div class="row mb-4">
-      <div class="col-xl-3 col-md-6">
-        <div class="card card-animate bg-primary border-0 bg-opacity-10">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-grow-1">
-                <h5 class="text-muted fw-normal mb-3">Total Users</h5>
-                <h2 class="text-primary mb-0">{{ $userAccounts->count() }}</h2>
-              </div>
-              <div class="flex-shrink-0">
-                <i class="ri-user-line display-4 text-primary opacity-25"></i>
-              </div>
-            </div>
-          </div>
+      <div class="col-md-3 col-6">
+        <div class="bg-light rounded border p-3 text-center">
+          <h3 class="text-primary mb-1">{{ $userAccounts->count() }}</h3>
+          <small class="text-muted">Total Users</small>
         </div>
       </div>
-      <div class="col-xl-3 col-md-6">
-        <div class="card card-animate bg-success border-0 bg-opacity-10">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-grow-1">
-                <h5 class="text-muted fw-normal mb-3">Active Templates</h5>
-                <h2 class="text-success mb-0">{{ $userAccounts->sum('active_templates_count') }}</h2>
-              </div>
-              <div class="flex-shrink-0">
-                <i class="ri-file-text-line display-4 text-success opacity-25"></i>
-              </div>
-            </div>
-          </div>
+      <div class="col-md-3 col-6">
+        <div class="bg-light rounded border p-3 text-center">
+          <h3 class="text-success mb-1">{{ $userAccounts->sum('active_templates_count') }}</h3>
+          <small class="text-muted">Active Templates</small>
         </div>
       </div>
-      <div class="col-xl-3 col-md-6">
-        <div class="card card-animate bg-info border-0 bg-opacity-10">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-grow-1">
-                <h5 class="text-muted fw-normal mb-3">Ready to Post</h5>
-                <h2 class="text-info mb-0">{{ $userAccounts->where('active_templates_count', '>', 0)->count() }}</h2>
-              </div>
-              <div class="flex-shrink-0">
-                <i class="ri-play-circle-line display-4 text-info opacity-25"></i>
-              </div>
-            </div>
-          </div>
+      <div class="col-md-3 col-6">
+        <div class="bg-light rounded border p-3 text-center">
+          <h3 class="text-info mb-1">{{ $userAccounts->where('active_templates_count', '>', 0)->count() }}</h3>
+          <small class="text-muted">Ready Accounts</small>
         </div>
       </div>
-      <div class="col-xl-3 col-md-6">
-        <div class="card card-animate bg-warning border-0 bg-opacity-10">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-grow-1">
-                <h5 class="text-muted fw-normal mb-3">Total Templates</h5>
-                <h2 class="text-warning mb-0">{{ $userAccounts->sum('total_templates') }}</h2>
-              </div>
-              <div class="flex-shrink-0">
-                <i class="ri-stack-line display-4 text-warning opacity-25"></i>
-              </div>
-            </div>
-          </div>
+      <div class="col-md-3 col-6">
+        <div class="bg-light rounded border p-3 text-center">
+          <h3 class="text-warning mb-1">{{ $userAccounts->sum('total_templates') }}</h3>
+          <small class="text-muted">Total Templates</small>
         </div>
       </div>
     </div>
 
-    <!-- User Accounts Grid -->
+    <!-- Output Panel (Fixed at top) -->
+    <div class="alert alert-info output-panel mb-4" style="display: none;">
+      <div class="d-flex justify-content-between align-items-start">
+        <div class="flex-grow-1">
+          <h6 class="alert-heading mb-2">
+            <i class="ri-information-line me-1"></i>Posting Status
+          </h6>
+          <pre class="output-text small mb-0"
+               style="white-space: pre-wrap; background: transparent; border: none; padding: 0; margin: 0;"></pre>
+        </div>
+        <button type="button" class="btn-close ms-3" onclick="hideOutput()"></button>
+      </div>
+    </div>
+
+    <!-- User Accounts List -->
     <div class="row">
       @foreach ($userAccounts as $user)
-        <div class="col-xl-4 col-lg-6">
-          <div class="card user-card card-hover border-0 shadow-sm">
-            <div class="card-body position-relative">
-              <!-- Status Indicator -->
-              <div class="position-absolute end-0 top-0 m-3">
-                <span class="badge bg-{{ $user->active_templates_count > 0 ? 'success' : 'secondary' }} rounded-pill">
-                  <i class="ri-circle-fill me-1" style="font-size: 6px;"></i>
-                  {{ $user->active_templates_count > 0 ? 'Ready' : 'No Templates' }}
-                </span>
-              </div>
-
-              <!-- User Header -->
-              <div class="d-flex align-items-center mb-4">
-                <div class="flex-shrink-0">
-                  <div class="avatar-lg position-relative">
-                    <img src="https://ui-avatars.com/api/?name={{ urlencode($user->email) }}&background=7269ef&color=fff&bold=true&size=128"
-                         alt="user-image" class="rounded-circle img-thumbnail">
-                    <span class="position-absolute bg-success border-3 rounded-circle bottom-0 end-0 border border-white"
-                          style="width: 12px; height: 12px;"></span>
+        <div class="col-xl-6 col-lg-12">
+          <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex align-items-center">
+                  <div class="flex-shrink-0">
+                    <img src="https://ui-avatars.com/api/?name={{ urlencode($user->email) }}&background=7269ef&color=fff&size=64"
+                         alt="user-image" class="rounded-circle">
                   </div>
-                </div>
-                <div class="flex-grow-1 ms-3">
-                  <h5 class="card-title text-dark mb-1">{{ $user->email }}</h5>
-                  <p class="text-muted mb-0">
-                    <i class="ri-user-id-line me-1"></i>ID: {{ $user->id }}
-                  </p>
-                </div>
-              </div>
-
-              <!-- Template Stats -->
-              <div class="row mb-4 text-center">
-                <div class="col-6">
-                  <div class="border-end border-2">
-                    <div class="text-center">
-                      <h3 class="fw-bold text-primary mb-1">{{ $user->total_templates }}</h3>
-                      <small class="text-muted text-uppercase">Total</small>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="fw-semibold mb-1">{{ $user->email }}</h6>
+                    <div class="d-flex text-muted small gap-3">
+                      <span><i class="ri-file-text-line me-1"></i>{{ $user->total_templates }} total</span>
+                      <span><i class="ri-checkbox-circle-line me-1"></i>{{ $user->active_templates_count }}
+                        active</span>
                     </div>
                   </div>
                 </div>
-                <div class="col-6">
-                  <div class="text-center">
-                    <h3 class="fw-bold text-success mb-1">{{ $user->active_templates_count }}</h3>
-                    <small class="text-muted text-uppercase">Active</small>
-                  </div>
-                </div>
-              </div>
 
-              <!-- Automation Controls -->
-              <div class="automation-controls" data-user-id="{{ $user->id }}">
-                <div class="row g-2">
-                  <div class="col-12">
-                    <label class="form-label small text-uppercase fw-semibold text-muted">Execution Mode</label>
-                    <select class="mode-selector form-select">
-                      <option value="direct">🚀 Direct Mode</option>
-                      <option value="relation">🔗 Relation Mode</option>
-                    </select>
-                  </div>
-                  <div class="col-12">
-                    <div class="form-check form-switch">
-                      <input class="form-check-input force-post" type="checkbox" id="forceSwitch{{ $user->id }}">
-                      <label class="form-check-label small" for="forceSwitch{{ $user->id }}">
-                        <i class="ri-flashlight-line me-1"></i>Force Post Inactive
-                      </label>
-                    </div>
-                  </div>
-                  <div class="col-12 mt-2">
-                    <button type="button" class="btn btn-primary w-100 run-automation"
-                            {{ $user->active_templates_count == 0 ? 'disabled' : '' }}>
-                      <i class="ri-play-circle-line me-2"></i>
-                      Run Automation
-                      <div class="spinner-border spinner-border-sm d-none ms-2" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Templates Preview -->
-              <div class="mt-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <h6 class="text-muted mb-0">
-                    <i class="ri-file-list-line me-1"></i>Templates
-                  </h6>
-                  <button type="button" class="btn btn-sm btn-outline-light text-muted btn-load-templates"
-                          data-user-id="{{ $user->id }}">
-                    <i class="ri-arrow-down-s-line"></i>
+                <div class="text-end">
+                  <span class="badge bg-{{ $user->active_templates_count > 0 ? 'success' : 'secondary' }} mb-2">
+                    {{ $user->active_templates_count > 0 ? 'Ready' : 'No Templates' }}
+                  </span>
+                  <br>
+                  <button type="button" class="btn btn-primary btn-sm btn-start-posting mt-1"
+                          data-user-id="{{ $user->id }}"
+                          {{ $user->active_templates_count == 0 ? 'disabled' : '' }}>
+                    <i class="ri-play-circle-line me-1"></i>
+                    Start Posting
                   </button>
                 </div>
-                <div id="templates-list-{{ $user->id }}" class="templates-list">
-                  <div class="text-muted py-2 text-center">
-                    <small>Click load button to view templates</small>
+              </div>
+
+              <!-- Templates Preview (Collapsible) -->
+              <div class="mt-3">
+                <button class="btn btn-outline-light btn-sm w-100 text-muted btn-toggle-templates" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#templates-{{ $user->id }}"
+                        aria-expanded="false">
+                  <i class="ri-arrow-down-s-line me-1"></i>
+                  View Templates
+                </button>
+
+                <div class="collapse mt-2" id="templates-{{ $user->id }}">
+                  <div class="templates-container" id="templates-list-{{ $user->id }}">
+                    <div class="text-muted small py-2 text-center">
+                      Loading templates...
+                    </div>
                   </div>
                 </div>
               </div>
@@ -191,232 +124,205 @@
     @if ($userAccounts->isEmpty())
       <div class="py-5 text-center">
         <div class="mb-4">
-          <i class="ri-robot-line display-1 text-muted opacity-25"></i>
+          <i class="ri-user-search-line display-1 text-muted opacity-25"></i>
         </div>
-        <h4 class="text-muted">No User Accounts Found</h4>
-        <p class="text-muted mb-4">Get started by adding your first user account</p>
+        <h4 class="text-muted">No User Accounts</h4>
+        <p class="text-muted mb-4">Add user accounts to start posting offers</p>
         <button type="button" class="btn btn-primary">
           <i class="ri-user-add-line me-2"></i>Add User Account
         </button>
       </div>
     @endif
-  </x-data-display.card>
 
-  <!-- Output Modal -->
-  <div class="modal fade" id="outputModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content border-0 shadow">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title">
-            <i class="ri-terminal-line me-2"></i>Automation Output
-          </h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body p-0">
-          <pre id="outputText" class="bg-dark text-success mb-0 p-4"
-               style="min-height: 300px; max-height: 500px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.875rem;"></pre>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-            <i class="ri-close-line me-1"></i>Close
-          </button>
-          <button type="button" class="btn btn-primary btn-copy-output">
-            <i class="ri-file-copy-line me-1"></i>Copy Output
-          </button>
-        </div>
-      </div>
+    <!-- Progress Bar (for all posting) -->
+    <div class="progress mb-3" id="allPostingProgress" style="display: none; height: 6px;">
+      <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
     </div>
-  </div>
+  </x-data-display.card>
 
   @push('styles')
     <style>
-      .user-card {
-        transition: all 0.3s ease;
-        border: 1px solid #e9ecef;
+      .output-panel {
+        border-left: 4px solid #0dcaf0;
       }
 
-      .user-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-      }
-
-      .card-animate {
-        transition: all 0.3s ease;
-      }
-
-      .card-animate:hover {
-        transform: translateY(-3px);
-      }
-
-      .avatar-lg {
-        width: 80px;
-        height: 80px;
-      }
-
-      .templates-list {
+      .templates-container {
         max-height: 200px;
         overflow-y: auto;
+        background: #f8f9fa;
+        border-radius: 0.375rem;
+        padding: 0.75rem;
       }
 
-      .templates-list::-webkit-scrollbar {
+      .templates-container::-webkit-scrollbar {
         width: 4px;
       }
 
-      .templates-list::-webkit-scrollbar-track {
-        background: #f8f9fa;
+      .templates-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
       }
 
-      .templates-list::-webkit-scrollbar-thumb {
-        background: #dee2e6;
+      .templates-container::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
         border-radius: 10px;
       }
 
-      .bg-opacity-10 {
-        background-opacity: 0.1 !important;
+      .btn-start-posting {
+        min-width: 120px;
       }
 
-      .btn-load-templates {
-        transition: all 0.2s ease;
-      }
-
-      .btn-load-templates:hover {
-        background-color: #7269ef !important;
-        color: white !important;
-      }
-
-      .form-switch .form-check-input:checked {
-        background-color: #7269ef;
-        border-color: #7269ef;
-      }
-
-      #outputText {
-        background: #1a1a1a;
-        color: #00ff00;
-        border-radius: 0;
-      }
-
-      .border-2 {
-        border-width: 2px !important;
+      .btn-post-all {
+        min-width: 140px;
       }
     </style>
   @endpush
 
   @push('scripts')
     <script>
+      function hideOutput() {
+        $('.output-panel').fadeOut();
+      }
+
+      function showOutput(message, type = 'info') {
+        const $panel = $('.output-panel');
+        const $text = $('.output-text');
+
+        // Update panel style based on type
+        $panel.removeClass('alert-info alert-success alert-danger')
+          .addClass(`alert-${type}`);
+
+        $text.text(message);
+        $panel.slideDown();
+
+        // Auto-hide success messages after 10 seconds
+        if (type === 'success') {
+          setTimeout(hideOutput, 10000);
+        }
+      }
+
       $(document).ready(function() {
-        // Load templates when clicking load button
-        $('.btn-load-templates').on('click', function(e) {
-          e.stopPropagation();
-          const userId = $(this).data('user-id');
-          loadUserTemplates(userId);
+        // Load templates when toggle button is clicked
+        $('.btn-toggle-templates').on('click', function() {
+          const $button = $(this);
+          const target = $button.data('bs-target');
+          const userId = target.split('-')[1];
+
+          // Only load if not already loaded
+          const $container = $(`#templates-list-${userId}`);
+          if ($container.children().length === 1 && $container.text().includes('Loading')) {
+            loadUserTemplates(userId);
+          }
         });
 
-        // Run automation
-        $('.run-automation').click(function() {
-          const $card = $(this).closest('.card');
-          const userId = $card.find('.automation-controls').data('user-id');
-          const mode = $card.find('.mode-selector').val();
-          const force = $card.find('.force-post').is(':checked');
+        // Start posting for individual user
+        $('.btn-start-posting').click(function() {
+          const $button = $(this);
+          const userId = $button.data('user-id');
 
-          runAutomation(userId, mode, force, $(this));
+          $button.prop('disabled', true).html(`
+          <div class="spinner-border spinner-border-sm me-1" role="status"></div>
+          Posting...
+        `);
+
+          showOutput(`🚀 Starting posting for user ${userId}...`, 'info');
+
+          $.ajax({
+            url: `/automation/run/user/${userId}`,
+            method: 'POST',
+            data: {
+              _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+              showOutput(response.output, 'success');
+              $button.html('<i class="ri-play-circle-line me-1"></i>Start Posting').prop('disabled', false);
+
+              // Refresh templates for this user
+              loadUserTemplates(userId);
+            },
+            error: function(xhr) {
+              showOutput('❌ Error: ' + (xhr.responseJSON?.message || 'Posting failed'), 'danger');
+              $button.html('<i class="ri-play-circle-line me-1"></i>Start Posting').prop('disabled', false);
+            }
+          });
+        });
+
+        // Start all posting
+        $('.btn-post-all').click(function() {
+          const $button = $(this);
+          const $progress = $('#allPostingProgress');
+
+          $button.prop('disabled', true).html(`
+          <div class="spinner-border spinner-border-sm me-1" role="status"></div>
+          Starting All...
+        `);
+          $progress.show();
+
+          showOutput('🚀 Starting posting for all users...', 'info');
+
+          $.ajax({
+            url: '{{ route('automation.run.all-users') }}',
+            method: 'POST',
+            data: {
+              _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+              showOutput(response.output, 'success');
+              $button.html('<i class="ri-play-large-line me-1"></i>Start All Posting').prop('disabled',
+                false);
+              $progress.hide();
+
+              // Refresh the page to update counts
+              setTimeout(() => {
+                location.reload();
+              }, 3000);
+            },
+            error: function(xhr) {
+              showOutput('❌ Error: ' + (xhr.responseJSON?.message || 'All posting failed'), 'danger');
+              $button.html('<i class="ri-play-large-line me-1"></i>Start All Posting').prop('disabled',
+                false);
+              $progress.hide();
+            }
+          });
         });
 
         // Refresh button
         $('.btn-refresh').click(function() {
           const $btn = $(this);
           $btn.prop('disabled', true).html('<i class="ri-refresh-line me-1"></i> Refreshing...');
-
-          setTimeout(() => {
-            location.reload();
-          }, 1000);
-        });
-
-        // Copy output
-        $('.btn-copy-output').click(function() {
-          const outputText = $('#outputText').text();
-          navigator.clipboard.writeText(outputText).then(() => {
-            const $btn = $(this);
-            const originalHtml = $btn.html();
-            $btn.html('<i class="ri-check-line me-1"></i>Copied!');
-            setTimeout(() => {
-              $btn.html(originalHtml);
-            }, 2000);
-          });
+          setTimeout(() => location.reload(), 1000);
         });
 
         function loadUserTemplates(userId) {
-          const $templatesList = $(`#templates-list-${userId}`);
-          $templatesList.html(`
-          <div class="text-center py-3">
-            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-            <small class="text-muted">Loading templates...</small>
-          </div>
-        `);
+          const $container = $(`#templates-list-${userId}`);
 
           $.get(`/automation/user/${userId}/templates`, function(templates) {
             let html = '';
+
             if (templates.length > 0) {
               templates.forEach(template => {
                 const lastPosted = template.last_posted_at ?
                   new Date(template.last_posted_at).toLocaleDateString() : 'Never';
 
                 html += `
-                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                  <div class="flex-grow-1">
-                    <h6 class="mb-1 text-dark">${template.title}</h6>
-                    <small class="text-muted">
-                      <i class="ri-time-line me-1"></i>Last: ${lastPosted}
-                    </small>
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                  <div>
+                    <strong class="small">${template.title}</strong>
+                    <br>
+                    <small class="text-muted">Last: ${lastPosted}</small>
                   </div>
-                  <span class="badge bg-${template.is_active ? 'success' : 'secondary'} rounded-pill">
-                    <i class="ri-${template.is_active ? 'check' : 'close'}-circle-line me-1"></i>
+                  <span class="badge bg-${template.is_active ? 'success' : 'secondary'}">
                     ${template.is_active ? 'Active' : 'Inactive'}
                   </span>
-                </div>`;
+                </div>
+              `;
               });
             } else {
-              html = '<div class="text-center text-muted py-3"><small>No templates found</small></div>';
+              html = '<div class="text-center text-muted small">No templates found</div>';
             }
-            $templatesList.html(html);
+
+            $container.html(html);
           }).fail(function() {
-            $templatesList.html(
-              '<div class="text-center text-danger py-3"><small>Failed to load templates</small></div>');
-          });
-        }
-
-        function runAutomation(userId, mode, force, $button) {
-          const $modal = $('#outputModal');
-          const $output = $('#outputText');
-          const $spinner = $button.find('.spinner-border');
-
-          // Show loading state
-          $button.prop('disabled', true);
-          $spinner.removeClass('d-none');
-
-          $output.text('🚀 Starting automation process...\n\n');
-          $modal.modal('show');
-
-          $.ajax({
-            url: `/automation/run/user/${userId}`,
-            method: 'POST',
-            data: {
-              mode: mode,
-              force: force,
-              _token: '{{ csrf_token() }}'
-            },
-            success: function(response) {
-              $output.text(response.output);
-              $button.prop('disabled', false);
-              $spinner.addClass('d-none');
-
-              // Reload templates after successful automation
-              loadUserTemplates(userId);
-            },
-            error: function(xhr) {
-              $output.text('❌ Error: ' + (xhr.responseJSON?.message || 'Request failed'));
-              $button.prop('disabled', false);
-              $spinner.addClass('d-none');
-            }
+            $container.html('<div class="text-center text-danger small">Failed to load templates</div>');
           });
         }
 

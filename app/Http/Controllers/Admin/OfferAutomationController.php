@@ -24,33 +24,30 @@ class OfferAutomationController extends Controller
 
     public function runForUser(Request $request, $userAccountId)
     {
-        $request->validate([
-            'mode' => 'required|in:relation,direct'
-        ]);
         $userAccount = UserAccount::findOrFail($userAccountId);
 
         try {
             $exitCode = Artisan::call('offer:automation', [
                 '--user_account_id' => $userAccountId,
-                '--all' => $request->mode == 'direct' ? true : false,
             ]);
+
             $output = Artisan::output();
 
             if ($exitCode === 0) {
                 return response()->json([
                     'success' => true,
-                    'message' => "Automation started for {$userAccount->email}",
+                    'message' => "Posting started for {$userAccount->email}",
                     'output' => $output,
                 ]);
             }
 
             return response()->json([
                 'success' => false,
-                'message' => "Automation failed for {$userAccount->email}",
+                'message' => "Posting failed for {$userAccount->email}",
                 'output' => $output,
             ], 500);
         } catch (\Exception $e) {
-            \Log::error('Offer automation error', [
+            logger()->error('Offer automation error', [
                 'user_account_id' => $userAccountId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -58,40 +55,44 @@ class OfferAutomationController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => "Automation error: {$e->getMessage()}",
+                'message' => "Posting error: {$e->getMessage()}",
             ], 500);
         }
     }
 
-
-    public function runForTemplate(Request $request, $templateId)
+    public function runForAllUsers(Request $request)
     {
-        $request->validate([
-            'force' => 'boolean'
-        ]);
-
-        $template = OfferTemplate::with('userAccount')->findOrFail($templateId);
-
-        $exitCode = Artisan::call('offer:post', [
-            '--template_id' => $templateId,
-            '--force' => $request->force ?? false
-        ]);
-
-        $output = Artisan::output();
-
-        if ($exitCode === 0) {
-            return response()->json([
-                'success' => true,
-                'message' => "Template '{$template->title}' queued for posting",
-                'output' => $output
+        try {
+            $exitCode = Artisan::call('offer:automation', [
+                '--all' => true,
             ]);
-        }
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to queue template',
-            'output' => $output
-        ], 500);
+            $output = Artisan::output();
+
+            if ($exitCode === 0) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Posting started for all users",
+                    'output' => $output,
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => "Posting failed for all users",
+                'output' => $output,
+            ], 500);
+        } catch (\Exception $e) {
+            logger()->error('Offer automation error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => "All users posting error: {$e->getMessage()}",
+            ], 500);
+        }
     }
 
     public function getUserTemplates($userAccountId)

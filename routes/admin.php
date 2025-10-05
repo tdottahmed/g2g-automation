@@ -39,5 +39,6 @@ Route::group(['middleware' => ['role:super-admin|admin|staff|user']], function (
         Route::post('/run/user/{userAccount}', [OfferAutomationController::class, 'runForUser'])->name('automation.run.user');
         Route::post('/run/template/{template}', [OfferAutomationController::class, 'runForTemplate'])->name('automation.run.template');
         Route::get('/user/{userAccount}/templates', [OfferAutomationController::class, 'getUserTemplates'])->name('automation.user.templates');
+        Route::post('/run/all-users', [OfferAutomationController::class, 'runForAllUsers'])->name('automation.run.all-users');
     });
 });
