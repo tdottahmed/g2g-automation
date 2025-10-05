@@ -19,7 +19,7 @@ let CONFIG = {
         email: "",
         password: "",
     },
-    headless: false, // Set to true in production
+    headless: true, // Set to true in production
     slowMo: 120,
     debug: false,
 };

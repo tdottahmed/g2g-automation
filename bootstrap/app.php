@@ -21,5 +21,5 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->withSchedule(function (Schedule $schedule) {
-        $schedule->command('offer:automation')->everyMinute()->withoutOverlapping()->runInBackground();
+        // $schedule->command('offer:automation')->everyMinute()->withoutOverlapping()->runInBackground();
     })->create();
