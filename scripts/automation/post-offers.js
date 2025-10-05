@@ -21,7 +21,7 @@ let CONFIG = {
     },
     headless: false, // Set to true in production
     slowMo: 120,
-    debug: true,
+    debug: false,
 };
 
 import formStructure from "./templates/offer.js";
@@ -146,16 +146,23 @@ async function main() {
                 const navSuccess = await navigateToAccountsSection(page);
                 if (!navSuccess)
                     throw new Error("Failed to navigate to Accounts section");
+                const continueSuccess = await clickContinueButton(page);
+                if (!continueSuccess) {
+                    console.log(
+                        "⚠️ Could not click 'Continue' button. Stopping..."
+                    );
+                    break;
+                }
             }
-            await clickContinueButton(page);
-            await page.waitForTimeout(10000);
+
+            // Now fill the form
             await fillOfferForm(page, templateData);
 
             if (i < templatesData.length - 1) {
                 const success = await submitFormAndAddNew(page);
                 if (!success) {
                     console.log(
-                        "⚠️  Could not proceed to next offer, stopping..."
+                        "⚠️ Could not proceed to next offer, stopping..."
                     );
                     break;
                 }
@@ -166,7 +173,6 @@ async function main() {
                 console.log("✅ Final offer submitted!");
             }
         }
-
         console.log(
             `✅ All ${templatesData.length} templates processed successfully!`
         );
@@ -188,7 +194,6 @@ async function fillOfferForm(page, inputData) {
     console.log(`📝 Starting to fill form for template: ${inputData.Title}`);
 
     await page.waitForLoadState("domcontentloaded");
-    await page.waitForTimeout(5000); // lazy-render buffer
 
     const { selector: cardSelector, items } = formStructure;
 
@@ -304,19 +309,42 @@ async function submitFormAndAddNew(page) {
     console.log("🚀 Submitting form...");
     await submitForm(page);
 
-    // Wait for the success dialog specifically
+    // Wait for the success dialog
     const successDialog = page.locator(
         '.q-dialog__inner .q-card:has-text("Your offer has been published")'
     );
-    await successDialog.waitFor({ state: "visible" });
+
+    try {
+        await successDialog.waitFor({ state: "visible", timeout: 30000 });
+        console.log("✅ Success dialog appeared");
+    } catch (error) {
+        console.log("⚠️ Success dialog not found, but continuing...");
+    }
 
     console.log("🔍 Looking for 'Add new offer' button...");
 
-    // Click the button directly using text selector
-    await page.click('button:has-text("Add new offer")');
+    // Click "Add new offer" button
+    const addNewOfferBtn = page.locator('button:has-text("Add new offer")');
 
-    console.log("✅ Clicked 'Add new offer' button");
-    await page.waitForTimeout(4000);
+    try {
+        await addNewOfferBtn.waitFor({ state: "visible", timeout: 1500 });
+        await addNewOfferBtn.click();
+        console.log("✅ Clicked 'Add new offer' button");
+
+        await page.waitForSelector('a:has-text("Continue")', {
+            timeout: 20000,
+        });
+        const continueButton = page.locator('a:has-text("Continue")');
+        await continueButton.click();
+
+        console.log("✅ Continue button clicked successfully");
+        return true;
+    } catch (error) {
+        console.log("❌ 'Add new offer' button not found or not clickable");
+        return false;
+    }
+
+    return true;
 }
 
 async function selectDropdownOption(page, fieldEl, value) {
