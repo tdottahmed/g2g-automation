@@ -19,9 +19,9 @@ let CONFIG = {
         email: "",
         password: "",
     },
-    headless: true, // Set to true in production
+    headless: false, // Set to true in production
     slowMo: 120,
-    debug: false,
+    debug: true,
 };
 
 import formStructure from "./templates/offer.js";
@@ -416,21 +416,12 @@ async function fillInput(page, fieldEl, value, label = "Input") {
             console.log(`❌ Could not find ${label} input`);
             return false;
         }
+        await humanDelay(800, 1500);
 
-        await humanDelay(800, 1500); // optional delay
+        await input.click({ clickCount: 3 });
+        await input.fill(value);
 
-        await input.fill("");
-        await input.click();
-
-        // Write to clipboard
-        await page.evaluate(async (text) => {
-            await navigator.clipboard.writeText(text);
-        }, value);
-
-        // Paste using keyboard shortcut
-        await page.keyboard.press("Control+V"); // On macOS use "Meta+V"
-
-        console.log(`📋 Pasted into ${label} input: ${value}`);
+        console.log(`✅ Filled ${label} input: ${value}`);
         await page.waitForTimeout(500);
 
         return true;
