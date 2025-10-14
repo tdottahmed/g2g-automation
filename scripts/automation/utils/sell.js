@@ -17,12 +17,20 @@ export async function clickAccountsCategory(page) {
     try {
         console.log("🖱️ Clicking on Accounts category...");
 
-        // Wait for nav buttons area to appear
+        // Expand viewport for headless mode
+        await page.setViewportSize({ width: 1600, height: 900 });
+
+        // Wait for navigation buttons to appear
         await page.waitForSelector(".g-nav-btn, .g-card-no-deco", {
-            timeout: 5000,
+            timeout: 10000,
+            state: "attached",
         });
 
-        // Inspect all .g-nav-btn nodes and match visible text
+        // Scroll to top to ensure visibility
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.waitForTimeout(500);
+
+        // Check all .g-nav-btn nodes
         const navButtons = page.locator(".g-nav-btn");
         const navCount = await navButtons.count();
         let accountsButton = null;
@@ -32,16 +40,14 @@ export async function clickAccountsCategory(page) {
             let text = "";
             try {
                 text = (await btn.innerText()).trim().replace(/\s+/g, " ");
-            } catch (e) {
-                // ignore and continue
-            }
-            if (text && text.toLowerCase().includes("accounts")) {
+            } catch {}
+            if (text.toLowerCase().includes("accounts")) {
                 accountsButton = btn;
                 break;
             }
         }
 
-        // Fallback: other common selectors if the .g-nav-btn loop didn't find it
+        // Fallback selectors
         if (!accountsButton) {
             const fallbacks = [
                 page.locator('button:has-text("Accounts")'),
@@ -61,26 +67,27 @@ export async function clickAccountsCategory(page) {
             return false;
         }
 
-        // Prefer a clearly clickable child (cursor-pointer, role=button, <button>, <a>)
-        let clickable = accountsButton.locator(
-            '.cursor-pointer, [role="button"], button, a'
-        );
-        if ((await clickable.count()) === 0) clickable = accountsButton;
+        // Scroll and ensure visibility
+        await accountsButton.scrollIntoViewIfNeeded();
+        await page.waitForTimeout(500);
+        await accountsButton.waitFor({ state: "visible", timeout: 5000 });
 
-        await clickable.scrollIntoViewIfNeeded();
-        await humanDelay(150, 350);
+        // Try click with retries (for flaky DOM)
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                await accountsButton.click({ force: true });
+                console.log("✅ Successfully clicked Accounts");
+                return true;
+            } catch (e) {
+                console.log(
+                    `⚠️ Click attempt ${attempt + 1} failed, retrying...`
+                );
+                await page.waitForTimeout(1000);
+            }
+        }
 
-        // Make sure it's visible (best-effort) and interact
-        await clickable
-            .waitFor({ state: "visible", timeout: 5000 })
-            .catch(() => {});
-        await clickable.hover().catch(() => {});
-        await humanDelay(120, 250);
-
-        await clickable.click({ force: true });
-        console.log("✅ Successfully clicked Accounts");
-
-        return true;
+        console.log("❌ Failed to click after retries");
+        return false;
     } catch (error) {
         console.error("❌ Failed to click Accounts category:", error.message);
         return false;
