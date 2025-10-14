@@ -219,6 +219,7 @@ export async function clickContinueButton(page) {
  * Navigate to Accounts section **before** clicking Continue
  */
 export async function navigateToAccountsSection(page) {
+    await page.waitForTimeout(3000);
     const navSuccess = await navigateToSellOffers(page);
     if (!navSuccess) return false;
 
