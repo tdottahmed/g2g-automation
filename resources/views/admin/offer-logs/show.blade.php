@@ -1,297 +1,191 @@
 <x-layouts.admin.master>
-  <div class="row">
-    <div class="col-12">
-      <x-data-display.card>
-        <x-slot name="header">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h5 class="card-title mb-1">
-                <i class="ri-information-line me-2"></i>{{ __('Offer Log Details') }}
-              </h5>
-              <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0">
-                  <li class="breadcrumb-item">
-                    <a href="{{ route('offer-logs.index') }}">{{ __('Offer Logs') }}</a>
-                  </li>
-                  <li class="breadcrumb-item active">#{{ $log->id }}</li>
-                </ol>
-              </nav>
-            </div>
-            <div class="d-flex gap-2">
-              <a href="{{ route('offer-logs.index') }}" class="btn btn-outline-secondary">
-                <i class="ri-arrow-left-line me-1"></i> {{ __('Back to Logs') }}
-              </a>
-            </div>
-          </div>
-        </x-slot>
+  <x-data-display.card>
+    <x-slot name="header">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="card-title">
+          <i class="ri-information-line me-2"></i>{{ __('Automation Log Details') }}
+        </h5>
+        <div class="d-flex gap-2">
+          <a href="{{ route('offer-logs.index') }}" class="btn btn-outline-secondary">
+            <i class="ri-arrow-left-line"></i> {{ __('Back to Logs') }}
+          </a>
+        </div>
+      </div>
+    </x-slot>
+    @php
+      $details = is_array($log->details) ? $log->details : json_decode($log->details, true);
+    @endphp
 
-        <div class="row">
-          {{-- Basic Information --}}
-          <div class="col-md-6">
-            <x-data-display.card class="h-100">
-              <x-slot name="header">
-                <h6 class="card-title mb-0">
-                  <i class="ri-file-text-line me-2"></i>{{ __('Basic Information') }}
-                </h6>
-              </x-slot>
-
-              <div class="table-responsive">
-                <table class="table-borderless mb-0 table">
-                  <tbody>
-                    <tr>
-                      <td class="fw-semibold" style="width: 140px;">{{ __('Log ID') }}:</td>
-                      <td>#{{ $log->id }}</td>
-                    </tr>
-                    <tr>
-                      <td class="fw-semibold">{{ __('Status') }}:</td>
-                      <td>
-                        <span
-                              class="badge bg-{{ $log->status === 'success' ? 'success' : 'danger' }}-subtle text-{{ $log->status === 'success' ? 'success' : 'danger' }} rounded-pill">
-                          <i class="ri-{{ $log->status === 'success' ? 'check' : 'close' }}-line me-1"></i>
-                          {{ ucfirst($log->status) }}
-                        </span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="fw-semibold">{{ __('Template') }}:</td>
-                      <td>
-                        @if ($log->template)
-                          <a href="{{ route('offer-templates.edit', $log->template->id) }}" class="text-primary">
-                            {{ $log->template->title }}
-                          </a>
-                          <br>
-                          <small class="text-muted">ID: {{ $log->template->id }}</small>
-                        @else
-                          <span class="text-muted">{{ __('Template Deleted') }}</span>
-                        @endif
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="fw-semibold">{{ __('Executed At') }}:</td>
-                      <td>
-                        {{ $log->executed_at->format('F j, Y g:i A') }}<br>
-                        <small class="text-muted">{{ $log->executed_at->diffForHumans() }}</small>
-                      </td>
-                    </tr>
-                    @if (isset($log->details['execution_time_seconds']))
-                      <tr>
-                        <td class="fw-semibold">{{ __('Duration') }}:</td>
-                        <td>
-                          <span class="fw-semibold text-primary">
-                            {{ number_format($log->details['execution_time_seconds'], 2) }} seconds
-                          </span>
-                        </td>
-                      </tr>
-                    @endif
-                  </tbody>
-                </table>
+    {{-- Basic Information --}}
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <div class="card bg-light border-0">
+          <div class="card-body">
+            <h6 class="card-title mb-3">{{ __('Execution Summary') }}</h6>
+            <div class="row">
+              <div class="col-6 mb-2">
+                <small class="text-muted d-block">{{ __('Status') }}</small>
+                <span class="badge bg-{{ $log->status === 'success' ? 'success' : 'danger' }}">
+                  {{ ucfirst($log->status) }}
+                </span>
               </div>
-            </x-data-display.card>
-          </div>
-
-          {{-- Execution Summary --}}
-          <div class="col-md-6">
-            <x-data-display.card class="h-100">
-              <x-slot name="header">
-                <h6 class="card-title mb-0">
-                  <i class="ri-play-circle-line me-2"></i>{{ __('Execution Summary') }}
-                </h6>
-              </x-slot>
-
-              <div class="table-responsive">
-                <table class="table-borderless mb-0 table">
-                  <tbody>
-                    <tr>
-                      <td class="fw-semibold" style="width: 140px;">{{ __('Attempt') }}:</td>
-                      <td>#{{ $log->details['attempt'] ?? 1 }}</td>
-                    </tr>
-                    <tr>
-                      <td class="fw-semibold">{{ __('Started At') }}:</td>
-                      <td>{{ $log->details['started_at'] ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                      <td class="fw-semibold">{{ __('Completed At') }}:</td>
-                      <td>{{ $log->details['completed_at'] ?? ($log->details['failed_at'] ?? 'N/A') }}</td>
-                    </tr>
-                    @if (isset($log->details['remaining_offers']))
-                      <tr>
-                        <td class="fw-semibold">{{ __('Remaining Offers') }}:</td>
-                        <td>
-                          @if ($log->details['remaining_offers'] === 'unlimited')
-                            <span class="badge bg-info-subtle text-info">Unlimited</span>
-                          @else
-                            <span
-                                  class="badge bg-primary-subtle text-primary">{{ $log->details['remaining_offers'] }}</span>
-                          @endif
-                        </td>
-                      </tr>
-                    @endif
-                    @if (isset($log->details['template_deactivated']) && $log->details['template_deactivated'])
-                      <tr>
-                        <td class="fw-semibold">{{ __('Template Status') }}:</td>
-                        <td>
-                          <span class="badge bg-warning-subtle text-warning">
-                            <i class="ri-alert-line me-1"></i> Auto-Deactivated
-                          </span>
-                        </td>
-                      </tr>
-                    @endif
-                  </tbody>
-                </table>
+              <div class="col-6 mb-2">
+                <small class="text-muted d-block">{{ __('User Account') }}</small>
+                @php
+                  $userAccount = findUserAccountById($details['user_account_id']);
+                @endphp
+                <strong>#{{ $userAccount ? $userAccount->owner_name : 'N/A' }}</strong>
+                ({{ $userAccount ? $userAccount->email : 'N/A' }})
               </div>
-            </x-data-display.card>
+              <div class="col-6 mb-2">
+                <small class="text-muted d-block">{{ __('Templates') }}</small>
+                <strong>{{ $details['templates_count'] ?? 0 }} total</strong>
+              </div>
+              <div class="col-6 mb-2">
+                <small class="text-muted d-block">{{ __('Attempt') }}</small>
+                <strong>{{ $details['attempt'] ?? 1 }}</strong>
+              </div>
+              <div class="col-6 mb-2">
+                <small class="text-muted d-block">{{ __('Duration') }}</small>
+                <strong>{{ number_format($details['execution_time_seconds'] ?? 0, 2) }}s</strong>
+              </div>
+              <div class="col-6 mb-2">
+                <small class="text-muted d-block">{{ __('Started At') }}</small>
+                <strong>{{ $details['started_at'] ?? $log->executed_at->format('M j, Y g:i A') }}</strong>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        {{-- Execution Steps --}}
-        @if (isset($log->details['steps']))
-          <div class="row mt-4">
-            <div class="col-12">
-              <x-data-display.card>
-                <x-slot name="header">
-                  <h6 class="card-title mb-0">
-                    <i class="ri-list-check-2 me-2"></i>{{ __('Execution Steps') }}
-                  </h6>
-                </x-slot>
-
-                <div class="timeline">
-                  @foreach ($log->details['steps'] as $stepName => $step)
-                    <div class="timeline-item">
-                      <div class="timeline-line"></div>
-                      <div class="timeline-icon">
-                        @if ($step['status'] === 'completed')
-                          <i class="ri-checkbox-circle-line text-success"></i>
-                        @elseif($step['status'] === 'failed')
-                          <i class="ri-close-circle-line text-danger"></i>
-                        @else
-                          <i class="ri-loader-4-line text-warning"></i>
-                        @endif
-                      </div>
-                      <div class="timeline-content">
-                        <div class="d-flex justify-content-between align-items-center">
-                          <h6 class="text-capitalize mb-1">{{ str_replace('_', ' ', $stepName) }}</h6>
-                          <span
-                                class="badge bg-{{ $step['status'] === 'completed' ? 'success' : ($step['status'] === 'failed' ? 'danger' : 'warning') }}-subtle text-{{ $step['status'] === 'completed' ? 'success' : ($step['status'] === 'failed' ? 'danger' : 'warning') }}">
-                            {{ ucfirst($step['status']) }}
-                          </span>
-                        </div>
-                        <p class="text-muted mb-1">
-                          <small>{{ $step['timestamp'] ?? 'N/A' }}</small>
-                        </p>
-                        @if (isset($step['media_count']))
-                          <p class="mb-0">
-                            <small class="text-info">
-                              <i class="ri-image-line me-1"></i>
-                              {{ $step['media_count'] }} media files processed
-                            </small>
-                          </p>
-                        @endif
-                        @if (isset($step['error']))
-                          <p class="text-danger mb-0">
-                            <small><i class="ri-error-warning-line me-1"></i> {{ $step['error'] }}</small>
-                          </p>
-                        @endif
-                      </div>
-                    </div>
-                  @endforeach
-                </div>
-              </x-data-display.card>
-            </div>
+      <div class="col-md-6">
+        <div class="card bg-light border-0">
+          <div class="card-body">
+            <h6 class="card-title mb-3">{{ __('Process Message') }}</h6>
+            <p class="mb-0">{{ $log->message }}</p>
           </div>
-        @endif
-
-        {{-- Node.js Output --}}
-        @if (isset($log->details['node_output']))
-          <div class="row mt-4">
-            <div class="col-12">
-              <x-data-display.card>
-                <x-slot name="header">
-                  <h6 class="card-title mb-0">
-                    <i class="ri-terminal-line me-2"></i>{{ __('Node.js Output') }}
-                  </h6>
-                </x-slot>
-
-                <div class="bg-dark text-light rounded p-3">
-                  <pre class="text-light mb-0" style="font-size: 0.875rem; max-height: 400px; overflow-y: auto;"><code>{{ $log->details['node_output'] }}</code></pre>
-                </div>
-              </x-data-display.card>
-            </div>
-          </div>
-        @endif
-
-        {{-- Error Details --}}
-        @if ($log->status === 'failed' && (isset($log->details['exception']) || isset($log->details['node_error'])))
-          <div class="row mt-4">
-            <div class="col-12">
-              <x-data-display.card class="border-danger">
-                <x-slot name="header">
-                  <h6 class="card-title text-danger mb-0">
-                    <i class="ri-error-warning-line me-2"></i>{{ __('Error Details') }}
-                  </h6>
-                </x-slot>
-
-                <div class="alert alert-danger mb-0">
-                  @if (isset($log->details['exception']))
-                    <h6 class="alert-heading">{{ __('Exception') }}</h6>
-                    <p class="mb-2">{{ $log->details['exception'] }}</p>
-                  @endif
-
-                  @if (isset($log->details['node_error']))
-                    <h6 class="alert-heading mt-3">{{ __('Node.js Error') }}</h6>
-                    <pre class="mb-0" style="font-size: 0.875rem; white-space: pre-wrap;">{{ $log->details['node_error'] }}</pre>
-                  @endif
-                </div>
-              </x-data-display.card>
-            </div>
-          </div>
-        @endif
-
-      </x-data-display.card>
+        </div>
+      </div>
     </div>
-  </div>
 
-  @push('styles')
-    <style>
-      .timeline {
-        position: relative;
-        padding-left: 30px;
-      }
+    {{-- Execution Steps --}}
+    @if (isset($details['steps']))
+      <div class="row mb-4">
+        <div class="col-12">
+          <h6 class="mb-3">{{ __('Execution Steps') }}</h6>
+          <div class="list-group">
+            @foreach ($details['steps'] as $stepName => $step)
+              <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <span class="text-capitalize fw-semibold">{{ str_replace('_', ' ', $stepName) }}</span>
+                    @if (isset($step['timestamp']))
+                      <small class="text-muted ms-2">({{ $step['timestamp'] }})</small>
+                    @endif
+                  </div>
+                  <span class="badge bg-{{ $step['status'] === 'completed' ? 'success' : 'danger' }}">
+                    {{ ucfirst($step['status']) }}
+                  </span>
+                </div>
+                @if ($stepName === 'configuration' && isset($step['templates_prepared']))
+                  <small class="text-muted">Templates prepared: {{ $step['templates_prepared'] }}</small>
+                @endif
+                @if ($stepName === 'node_execution' && isset($step['exit_code']))
+                  <small class="text-muted">Exit code: {{ $step['exit_code'] }}</small>
+                @endif
+              </div>
+            @endforeach
+          </div>
+        </div>
+      </div>
+    @endif
 
-      .timeline-item {
-        position: relative;
-        padding-bottom: 20px;
-      }
+    {{-- Templates --}}
+    @if (isset($details['templates']) && count($details['templates']) > 0)
+      <div class="row mb-4">
+        <div class="col-12">
+          <h6 class="mb-3">{{ __('Templates Processed') }} ({{ count($details['templates']) }})</h6>
+          <div class="table-responsive">
+            <table class="table-bordered table-striped table">
+              <thead>
+                <tr>
+                  <th width="80">{{ __('ID') }}</th>
+                  <th>{{ __('Title') }}</th>
+                  <th width="120">{{ __('Status') }}</th>
+                  <th width="100">{{ __('Completed At') }}</th>
+                  <th width="200">{{ __('Error') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @foreach ($details['templates'] as $template)
+                  <tr>
+                    <td>{{ $template['id'] }}</td>
+                    <td>
+                      <div style="max-width: 500px; word-wrap: break-word;">
+                        {{ $template['title'] }}
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge bg-{{ $template['status'] === 'success' ? 'success' : 'danger' }}">
+                        {{ ucfirst($template['status']) }}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="text-nowrap">
+                        <div class="fw-medium">
+                          {{ \Carbon\Carbon::parse($template['completed_at'] ?? now())->format('M j, Y') }}
+                        </div>
+                      </div>
 
-      .timeline-line {
-        position: absolute;
-        left: -30px;
-        top: 0;
-        bottom: 0;
-        width: 2px;
-        background-color: #e9ecef;
-      }
+                    </td>
+                    <td>
+                      @if ($template['status'] === 'failed' && isset($template['error']))
+                        <span class="text-danger small">{{ $template['error'] }}</span>
+                      @else
+                        <span class="text-muted">-</span>
+                      @endif
+                    </td>
+                  </tr>
+                @endforeach
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    @endif
 
-      .timeline-item:last-child .timeline-line {
-        display: none;
-      }
+    {{-- Process Output --}}
+    @if (
+        (isset($details['node_output']) && !empty($details['node_output'])) ||
+            (isset($details['node_error']) && !empty($details['node_error'])))
+      <div class="row mb-4">
+        <div class="col-12">
+          <h6 class="mb-3">{{ __('Process Output') }}</h6>
+          <div class="row">
+            @if (isset($details['node_output']) && !empty($details['node_output']))
+              <div class="col-md-12">
+                <label class="form-label">{{ __('Output') }}</label>
+                <pre class="bg-light rounded p-3" style="max-height: 200px; overflow-y: auto;"><code>{{ $details['node_output'] }}</code></pre>
+              </div>
+            @endif
+            @if (isset($details['node_error']) && !empty($details['node_error']))
+              <div class="col-md-12">
+                <label class="form-label text-danger">{{ __('Error Output') }}</label>
+                <pre class="bg-danger rounded p-3 text-white" style="max-height: 200px; overflow-y: auto;"><code>{{ $details['node_error'] }}</code></pre>
+              </div>
+            @endif
+          </div>
+        </div>
+      </div>
+    @endif
 
-      .timeline-icon {
-        position: absolute;
-        left: -40px;
-        top: 0;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1;
-      }
+    {{-- Raw JSON Data --}}
+    <div class="row">
+      <div class="col-12">
+        <h6 class="mb-3">{{ __('Raw Data') }}</h6>
+        <pre class="bg-light rounded p-3" style="max-height: 400px; overflow-y: auto;"><code>@json($details, JSON_PRETTY_PRINT)</code></pre>
+      </div>
+    </div>
 
-      .timeline-content {
-        background: white;
-      }
-    </style>
-  @endpush
+  </x-data-display.card>
 </x-layouts.admin.master>

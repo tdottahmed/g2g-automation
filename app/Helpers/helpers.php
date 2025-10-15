@@ -2,6 +2,8 @@
 
 use App\Models\ApplicationSetup;
 use App\Models\Level;
+use App\Models\User;
+use App\Models\UserAccount;
 use Illuminate\Support\Facades\Storage;
 
 if (!function_exists('uploadFile')) {
@@ -99,5 +101,12 @@ if (!function_exists('getLevelsByType')) {
             ->orderBy('id', 'desc')
             ->pluck('value', 'value')
             ->toArray();
+    }
+}
+
+if (!function_exists('findUserAccountById')) {
+    function findUserAccountById(int $userId): ?UserAccount
+    {
+        return UserAccount::find($userId);
     }
 }

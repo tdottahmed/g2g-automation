@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/Admin/DashboardController.php
 
 namespace App\Http\Controllers\Admin;
 
@@ -7,52 +6,67 @@ use App\Http\Controllers\Controller;
 use App\Models\ApplicationSetup;
 use App\Models\OfferAutomationLog;
 use App\Models\OfferTemplate;
+use App\Models\UserAccount;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // Ensure all variables have default values
         $metrics = $this->getKeyMetrics();
         $chartData = $this->getChartData();
-        $schedulerData = $this->getSchedulerStatus();
         $recentLogs = $this->getRecentLogs();
-        $topTemplates = $this->getTopTemplates();
         $systemHealth = $this->getSystemHealth();
+        $userAccountStats = $this->getUserAccountStats();
 
         return view('admin.dashboard.index', array_merge(
             $metrics,
             [
                 'chartData' => $chartData,
                 'recentLogs' => $recentLogs,
-                'topTemplates' => $topTemplates,
+                'userAccountStats' => $userAccountStats,
             ],
-            $schedulerData,
             $systemHealth
         ));
     }
 
     private function getKeyMetrics()
     {
-        // Total offers posted (successful ones)
-        $totalOffersPosted = OfferAutomationLog::where('status', 'success')->count();
+        // Total successful posts (counting actual successful template posts)
+        $totalOffersPosted = OfferAutomationLog::where('status', 'success')
+            ->get()
+            ->sum(function ($log) {
+                $details = is_array($log->details) ? $log->details : json_decode($log->details, true);
+                $templates = $details['templates'] ?? [];
+                return collect($templates)->where('status', 'completed')->count();
+            });
 
         // Template statistics
         $totalTemplates = OfferTemplate::count();
         $activeTemplates = OfferTemplate::where('is_active', true)->count();
 
-        // Success rate for last 7 days
+        // Success rate based on actual template success, not just log status
         $recentLogs = OfferAutomationLog::where('executed_at', '>=', now()->subDays(7))->get();
-        $successCount = $recentLogs->where('status', 'success')->count();
-        $totalCount = $recentLogs->count();
-        $successRate = $totalCount > 0 ? round(($successCount / $totalCount) * 100, 1) : 0;
+
+        $totalTemplatesProcessed = 0;
+        $successfulTemplates = 0;
+
+        foreach ($recentLogs as $log) {
+            $details = is_array($log->details) ? $log->details : json_decode($log->details, true);
+            $templates = $details['templates'] ?? [];
+            $totalTemplatesProcessed += count($templates);
+            $successfulTemplates += collect($templates)->where('status', 'completed')->count();
+        }
+
+        $successRate = $totalTemplatesProcessed > 0 ?
+            round(($successfulTemplates / $totalTemplatesProcessed) * 100, 1) : 0;
 
         // Average execution time
         $avgExecutionTime = $this->getAverageExecutionTime();
 
-        // Calculate trend (compare with previous period)
+        // Calculate trend based on successful posts
         $offerTrend = $this->calculateOfferTrend();
 
         return [
@@ -68,15 +82,23 @@ class DashboardController extends Controller
     private function calculateOfferTrend()
     {
         try {
-            // Current period (last 7 days)
-            $currentPeriod = OfferAutomationLog::where('status', 'success')
-                ->where('executed_at', '>=', now()->subDays(7))
-                ->count();
+            // Current period (last 7 days) - count successful template posts
+            $currentPeriod = OfferAutomationLog::where('executed_at', '>=', now()->subDays(7))
+                ->get()
+                ->sum(function ($log) {
+                    $details = is_array($log->details) ? $log->details : json_decode($log->details, true);
+                    $templates = $details['templates'] ?? [];
+                    return collect($templates)->where('status', 'success')->count();
+                });
 
             // Previous period (7 days before that)
-            $previousPeriod = OfferAutomationLog::where('status', 'success')
-                ->whereBetween('executed_at', [now()->subDays(14), now()->subDays(7)])
-                ->count();
+            $previousPeriod = OfferAutomationLog::whereBetween('executed_at', [now()->subDays(14), now()->subDays(7)])
+                ->get()
+                ->sum(function ($log) {
+                    $details = is_array($log->details) ? $log->details : json_decode($log->details, true);
+                    $templates = $details['templates'] ?? [];
+                    return collect($templates)->where('status', 'success')->count();
+                });
 
             if ($previousPeriod > 0) {
                 $trend = (($currentPeriod - $previousPeriod) / $previousPeriod) * 100;
@@ -96,12 +118,14 @@ class DashboardController extends Controller
                 ->where('executed_at', '>=', now()->subDays(7))
                 ->get()
                 ->filter(function ($log) {
-                    return isset($log->details['execution_time_seconds']);
+                    $details = is_array($log->details) ? $log->details : json_decode($log->details, true);
+                    return isset($details['execution_time_seconds']);
                 });
 
             if ($logs->count() > 0) {
                 return round($logs->avg(function ($log) {
-                    return $log->details['execution_time_seconds'];
+                    $details = is_array($log->details) ? $log->details : json_decode($log->details, true);
+                    return $details['execution_time_seconds'];
                 }), 2);
             }
 
@@ -121,13 +145,17 @@ class DashboardController extends Controller
             $date = now()->subDays($i);
             $dates->push($date->format('M j'));
 
-            $successCount = OfferAutomationLog::where('status', 'success')
-                ->whereDate('executed_at', $date)
-                ->count();
+            $logs = OfferAutomationLog::whereDate('executed_at', $date)->get();
 
-            $failedCount = OfferAutomationLog::where('status', 'failed')
-                ->whereDate('executed_at', $date)
-                ->count();
+            $successCount = 0;
+            $failedCount = 0;
+
+            foreach ($logs as $log) {
+                $details = is_array($log->details) ? $log->details : json_decode($log->details, true);
+                $templates = $details['templates'] ?? [];
+                $successCount += collect($templates)->where('status', 'completed')->count();
+                $failedCount += collect($templates)->where('status', 'failed')->count();
+            }
 
             $successful->push($successCount);
             $failed->push($failedCount);
@@ -140,91 +168,42 @@ class DashboardController extends Controller
         ];
     }
 
-    private function getSchedulerStatus()
-    {
-        try {
-            $windows = json_decode(
-                ApplicationSetup::where('type', 'scheduler_windows')->first()->value ?? '[]',
-                true
-            );
-
-            $currentTime = now();
-            $currentTimeStr = $currentTime->format('H:i');
-            $isActive = false;
-            $todayWindows = [];
-
-            foreach ($windows as $window) {
-                $start = $this->convertTo24Hour($window['start'] ?? '00:00');
-                $end = $this->convertTo24Hour($window['end'] ?? '00:00');
-
-                $windowActive = $this->isTimeInWindow($currentTimeStr, $start, $end);
-                $isActive = $isActive || $windowActive;
-
-                $todayWindows[] = [
-                    'start' => $window['start'] ?? '00:00',
-                    'end' => $window['end'] ?? '00:00',
-                    'is_active' => $windowActive,
-                    'is_upcoming' => $start > $currentTimeStr,
-                ];
-            }
-
-            // Find next window
-            $nextWindow = collect($todayWindows)
-                ->where('is_upcoming', true)
-                ->sortBy('start')
-                ->first();
-
-            if ($nextWindow) {
-                $nextWindowStart = $nextWindow['start'];
-            } else {
-                $firstWindow = collect($todayWindows)->sortBy('start')->first();
-                $nextWindowStart = $firstWindow ? $firstWindow['start'] . ' (tomorrow)' : 'Not configured';
-            }
-
-            return [
-                'isSchedulerActive' => $isActive,
-                'todayWindows' => $todayWindows,
-                'nextWindowStart' => $nextWindowStart,
-                'nextRunIn' => '5 minutes',
-            ];
-        } catch (\Exception $e) {
-            return [
-                'isSchedulerActive' => false,
-                'todayWindows' => [],
-                'nextWindowStart' => 'Not configured',
-                'nextRunIn' => 'N/A',
-            ];
-        }
-    }
 
     private function getRecentLogs()
     {
         return OfferAutomationLog::with('template')
             ->latest()
-            ->take(5)
-            ->get();
+            ->take(4)
+            ->get()
+            ->map(function ($log) {
+                $details = is_array($log->details) ? $log->details : json_decode($log->details, true);
+                $templates = $details['templates'] ?? [];
+                $successCount = collect($templates)->where('status', 'completed')->count();
+                $totalCount = count($templates);
+
+                $log->success_count = $successCount;
+                $log->total_templates = $totalCount;
+                return $log;
+            });
     }
 
-    private function getTopTemplates()
+    private function getUserAccountStats()
     {
         try {
-            $templates = OfferTemplate::withCount(['logs as success_count' => function ($query) {
-                $query->where('status', 'success');
-            }])
-                ->withCount('logs')
-                ->having('success_count', '>', 0)
-                ->orderBy('success_count', 'desc')
-                ->take(5)
-                ->get();
+            $totalAccounts = UserAccount::count();
+            $activeToday = OfferAutomationLog::whereDate('executed_at', today())
+                ->get()
+                ->pluck('details.user_account_id')
+                ->filter()
+                ->unique()
+                ->count();
 
-            return $templates->map(function ($template) {
-                $template->success_rate = $template->logs_count > 0
-                    ? round(($template->success_count / $template->logs_count) * 100, 1)
-                    : 0;
-                return $template;
-            });
+            return [
+                'total' => $totalAccounts,
+                'active_today' => $activeToday,
+            ];
         } catch (\Exception $e) {
-            return collect();
+            return ['total' => 0, 'active_today' => 0];
         }
     }
 
@@ -248,21 +227,31 @@ class DashboardController extends Controller
                 'status' => $usagePercent < 70 ? 'success' : ($usagePercent < 90 ? 'warning' : 'danger')
             ];
 
-            // Log health
-            $todayLogs = OfferAutomationLog::whereDate('created_at', today())->count();
+            // Log health - count today's template posts, not just logs
+            $todayLogs = OfferAutomationLog::whereDate('created_at', today())->get();
+            $todayPosts = 0;
+            foreach ($todayLogs as $log) {
+                $details = is_array($log->details) ? $log->details : json_decode($log->details, true);
+                $todayPosts += count($details['templates'] ?? []);
+            }
+
             $logHealth = [
-                'count' => $todayLogs,
-                'status' => $todayLogs < 100 ? 'success' : ($todayLogs < 500 ? 'warning' : 'danger')
+                'count' => $todayPosts,
+                'status' => $todayPosts < 100 ? 'success' : ($todayPosts < 500 ? 'warning' : 'danger')
             ];
 
-            // Error health
-            $recentErrors = OfferAutomationLog::where('status', 'failed')
-                ->where('created_at', '>=', now()->subHours(24))
-                ->count();
+            // Error health - count failed template posts, not just failed logs
+            $recentErrors = OfferAutomationLog::where('created_at', '>=', now()->subHours(24))
+                ->get()
+                ->sum(function ($log) {
+                    $details = is_array($log->details) ? $log->details : json_decode($log->details, true);
+                    $templates = $details['templates'] ?? [];
+                    return collect($templates)->where('status', 'failed')->count();
+                });
 
             $errorHealth = [
                 'count' => $recentErrors,
-                'status' => $recentErrors == 0 ? 'success' : ($recentErrors < 5 ? 'warning' : 'danger')
+                'status' => $recentErrors == 0 ? 'success' : ($recentErrors < 10 ? 'warning' : 'danger')
             ];
 
             return compact('queueHealth', 'storageHealth', 'logHealth', 'errorHealth');

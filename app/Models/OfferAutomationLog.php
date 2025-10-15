@@ -51,4 +51,9 @@ class OfferAutomationLog extends Model
             'executed_at' => now(),
         ]);
     }
+
+    public function userAccount(): BelongsTo
+    {
+        return $this->belongsTo(UserAccount::class, 'user_account_id');
+    }
 }
