@@ -21,6 +21,9 @@ class ApplicationSetupController extends Controller
         return view('admin.application-setup.index', compact('applicationSetup'));
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function update(Request $request)
     {
         DB::beginTransaction();
