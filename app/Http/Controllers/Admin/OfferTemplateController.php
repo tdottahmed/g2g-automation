@@ -158,6 +158,20 @@ class OfferTemplateController extends Controller
 
         $offer->save();
 
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'is_active' => $offer->is_active]);
+        }
+
         return redirect()->back()->with('success', 'Offer status updated successfully!');
+    }
+
+    public function queuePost(OfferTemplate $offerTemplate)
+    {
+        $offerTemplate->increment('offers_to_generate');
+
+        return response()->json([
+            'success'            => true,
+            'offers_to_generate' => $offerTemplate->fresh()->offers_to_generate,
+        ]);
     }
 }

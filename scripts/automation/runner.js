@@ -19,13 +19,13 @@ import { mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { chromium } from "playwright";
 import { heartbeat, fetchPending, reportSuccess, reportFailed } from "./api-client.js";
-import { isLoggedIn, loadAuthState, loginWithOTP, saveAuthState } from "./utils/auth.js";
+import { ensureLoggedIn } from "./utils/auth.js";
 import { navigateToAccountsSection, clickContinueButton } from "./utils/sell.js";
 import { fillOfferForm, submitFormAndAddNew, submitForm } from "./utils/form-filler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const HEADLESS      = process.env.HEADLESS !== "false";
+const HEADLESS      = process.env.HEADLESS === "true";
 const SLOW_MO       = parseInt(process.env.SLOW_MO ?? "120", 10);
 const BASE_URL      = process.env.G2G_BASE_URL ?? "https://www.g2g.com";
 const COOKIES_DIR   = path.resolve(process.env.COOKIES_DIR ?? path.join(__dirname, "cookies"));
@@ -121,28 +121,32 @@ async function processUserGroup(userGroup) {
             headless: HEADLESS,
             slowMo: SLOW_MO,
             args: ["--start-maximized"],
+        }).catch((err) => {
+            if (err.message.includes("Executable doesn't exist")) {
+                console.error("\n❌ Playwright browser not installed.");
+                console.error("   Run this once to fix it:\n");
+                console.error("     npx playwright install chromium\n");
+                process.exit(1);
+            }
+            throw err;
         });
         context = await browser.newContext({ viewport: { width: 1366, height: 768 } });
         page    = await context.newPage();
 
         // ── Auth ──
-        const hasAuthState = await loadAuthState(context, cookieFile);
-        let loggedIn = hasAuthState && (await isLoggedIn(page, BASE_URL));
+        const loggedIn = await ensureLoggedIn(page, context, {
+            baseUrl:    BASE_URL,
+            email,
+            password,
+            cookieFile,
+        });
 
         if (!loggedIn) {
-            console.log("🔐 Fresh login required...");
-            await context.clearCookies();
-            const ok = await loginWithOTP(page, BASE_URL, email, password);
-            if (!ok) {
-                console.error(`❌ Login failed for ${email}. Skipping all templates.`);
-                for (const t of templates) {
-                    await reportFailed(t.template_id, "Login failed", { email }).catch(() => {});
-                }
-                return;
+            console.error(`❌ Authentication failed for ${email}. Skipping all templates.`);
+            for (const t of templates) {
+                await reportFailed(t.template_id, "Authentication failed", { email }).catch(() => {});
             }
-            await saveAuthState(context, cookieFile);
-        } else {
-            console.log("✅ Using existing session");
+            return;
         }
 
         // ── Navigate to offer creation ──

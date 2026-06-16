@@ -1,336 +1,318 @@
 <x-layouts.admin.master>
-  <x-data-display.card>
+
+  {{-- ── Runner info banner ──────────────────────────────────────────────────── --}}
+  <div class="alert alert-primary border-0 d-flex align-items-center gap-3 mb-4 shadow-sm">
+    <i class="ri-terminal-box-line fs-3 flex-shrink-0"></i>
+    <div class="flex-grow-1">
+      <div class="fw-semibold mb-1">Posting is handled by the local runner — no PHP commands needed.</div>
+      <div class="small text-body-secondary">
+        From <code>scripts/automation/</code>, copy <code>.env.example → .env</code>, fill in your API URL + key, then run:
+        <code class="ms-1 bg-primary bg-opacity-10 px-2 py-1 rounded">node runner.js --watch</code>
+        <span class="mx-1">or</span>
+        <code class="bg-primary bg-opacity-10 px-2 py-1 rounded">npm run watch</code>
+        for continuous polling every {{ $intervalMinutes }} min.
+      </div>
+    </div>
+    <a href="{{ route('offer-logs.index') }}" class="btn btn-sm btn-outline-primary flex-shrink-0">
+      <i class="ri-history-line me-1"></i>All Logs
+    </a>
+  </div>
+
+  {{-- ── Stats row ────────────────────────────────────────────────────────────── --}}
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center py-4">
+          <div class="fs-2 fw-bold text-primary mb-1">{{ $activeTemplates }}</div>
+          <div class="text-muted small">Active Templates</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center py-4">
+          <div class="fs-2 fw-bold text-warning mb-1">{{ $pendingCount }}</div>
+          <div class="text-muted small">Pending Now</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center py-4">
+          <div class="fs-2 fw-bold text-success mb-1">{{ $postedToday }}</div>
+          <div class="text-muted small">Posted Today</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center py-4">
+          <div class="fs-2 fw-bold text-danger mb-1">{{ $failedToday }}</div>
+          <div class="text-muted small">Failed Today</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {{-- ── User accounts + templates ────────────────────────────────────────────── --}}
+  <x-data-display.card class="mb-4">
     <x-slot name="header">
       <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <h5 class="card-title mb-1">
-            <i class="ri-send-plane-line text-primary me-2"></i>Offer Posting
-          </h5>
-          <p class="text-muted mb-0">Start posting offers for your accounts</p>
-        </div>
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-outline-primary btn-refresh">
-            <i class="ri-refresh-line me-1"></i> Refresh
-          </button>
-          <button type="button" class="btn btn-success btn-post-all">
-            <i class="ri-play-large-line me-1"></i> Start All Posting
-          </button>
-        </div>
+        <h5 class="card-title mb-0">
+          <i class="ri-account-circle-line text-primary me-2"></i>Accounts &amp; Templates
+        </h5>
+        <a href="{{ route('offer-templates.create') }}" class="btn btn-sm btn-primary">
+          <i class="ri-add-line me-1"></i>New Template
+        </a>
       </div>
     </x-slot>
 
-    <!-- Quick Stats -->
-    <div class="row mb-4">
-      <div class="col-md-3 col-6">
-        <div class="bg-light rounded border p-3 text-center">
-          <h3 class="text-primary mb-1">{{ $userAccounts->count() }}</h3>
-          <small class="text-muted">Total Users</small>
-        </div>
+    @if ($userAccounts->isEmpty())
+      <div class="py-5 text-center text-muted">
+        <i class="ri-user-search-line display-3 d-block mb-3 opacity-25"></i>
+        <p>No user accounts yet.</p>
+        <a href="{{ route('user-accounts.create') }}" class="btn btn-primary btn-sm">
+          <i class="ri-user-add-line me-1"></i>Add User Account
+        </a>
       </div>
-      <div class="col-md-3 col-6">
-        <div class="bg-light rounded border p-3 text-center">
-          <h3 class="text-success mb-1">{{ $userAccounts->sum('active_templates_count') }}</h3>
-          <small class="text-muted">Active Templates</small>
-        </div>
-      </div>
-      <div class="col-md-3 col-6">
-        <div class="bg-light rounded border p-3 text-center">
-          <h3 class="text-info mb-1">{{ $userAccounts->where('active_templates_count', '>', 0)->count() }}</h3>
-          <small class="text-muted">Ready Accounts</small>
-        </div>
-      </div>
-      <div class="col-md-3 col-6">
-        <div class="bg-light rounded border p-3 text-center">
-          <h3 class="text-warning mb-1">{{ $userAccounts->sum('total_templates') }}</h3>
-          <small class="text-muted">Total Templates</small>
-        </div>
-      </div>
-    </div>
-
-    <!-- Output Panel (Fixed at top) -->
-    <div class="alert alert-info output-panel mb-4" style="display: none;">
-      <div class="d-flex justify-content-between align-items-start">
-        <div class="flex-grow-1">
-          <h6 class="alert-heading mb-2">
-            <i class="ri-information-line me-1"></i>Posting Status
-          </h6>
-          <pre class="output-text small mb-0"
-               style="white-space: pre-wrap; background: transparent; border: none; padding: 0; margin: 0;"></pre>
-        </div>
-        <button type="button" class="btn-close ms-3" onclick="hideOutput()"></button>
-      </div>
-    </div>
-
-    <!-- User Accounts List -->
-    <div class="row">
-      @foreach ($userAccounts as $user)
-        <div class="col-xl-6 col-lg-12">
-          <div class="card mb-3 border-0 shadow-sm">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-start">
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="https://ui-avatars.com/api/?name={{ urlencode($user->email) }}&background=7269ef&color=fff&size=64"
-                         alt="user-image" class="rounded-circle">
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="fw-semibold mb-1">{{ $user->email }}</h6>
-                    <div class="d-flex text-muted small gap-3">
-                      <span><i class="ri-file-text-line me-1"></i>{{ $user->total_templates }} total</span>
-                      <span><i class="ri-checkbox-circle-line me-1"></i>{{ $user->active_templates_count }}
-                        active</span>
+    @else
+      <div class="accordion accordion-flush" id="usersAccordion">
+        @foreach ($userAccounts as $index => $user)
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button
+                class="accordion-button {{ $index > 0 ? 'collapsed' : '' }} py-3 ps-3"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#user-pane-{{ $user->id }}"
+                aria-expanded="{{ $index === 0 ? 'true' : 'false' }}">
+                <div class="d-flex align-items-center gap-3 w-100 me-3">
+                  <img
+                    src="https://ui-avatars.com/api/?name={{ urlencode($user->email) }}&background=7269ef&color=fff&size=40"
+                    class="rounded-circle flex-shrink-0" width="40" height="40" alt="">
+                  <div>
+                    <div class="fw-semibold">{{ $user->email }}</div>
+                    <div class="text-muted small">
+                      {{ $user->total_templates }} template{{ $user->total_templates !== 1 ? 's' : '' }}
+                      &middot;
+                      {{ $user->active_templates_count }} active
                     </div>
                   </div>
-                </div>
-
-                <div class="text-end">
-                  <span class="badge bg-{{ $user->active_templates_count > 0 ? 'success' : 'secondary' }} mb-2">
-                    {{ $user->active_templates_count > 0 ? 'Ready' : 'No Templates' }}
-                  </span>
-                  <br>
-                  <button type="button" class="btn btn-primary btn-sm btn-start-posting mt-1"
-                          data-user-id="{{ $user->id }}"
-                          {{ $user->active_templates_count == 0 ? 'disabled' : '' }}>
-                    <i class="ri-play-circle-line me-1"></i>
-                    Start Posting
-                  </button>
-                </div>
-              </div>
-
-              <!-- Templates Preview (Collapsible) -->
-              <div class="mt-3">
-                <button class="btn btn-outline-light btn-sm w-100 text-muted btn-toggle-templates" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#templates-{{ $user->id }}"
-                        aria-expanded="false">
-                  <i class="ri-arrow-down-s-line me-1"></i>
-                  View Templates
-                </button>
-
-                <div class="collapse mt-2" id="templates-{{ $user->id }}">
-                  <div class="templates-container" id="templates-list-{{ $user->id }}">
-                    <div class="text-muted small py-2 text-center">
-                      Loading templates...
-                    </div>
+                  <div class="ms-auto d-flex gap-2">
+                    @if ($user->active_templates_count > 0)
+                      <span class="badge bg-success-subtle text-success border border-success-subtle">
+                        <i class="ri-checkbox-circle-line me-1"></i>{{ $user->active_templates_count }} active
+                      </span>
+                    @else
+                      <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                        No active templates
+                      </span>
+                    @endif
                   </div>
                 </div>
+              </button>
+            </h2>
+
+            <div
+              id="user-pane-{{ $user->id }}"
+              class="accordion-collapse collapse {{ $index === 0 ? 'show' : '' }}"
+              data-bs-parent="#usersAccordion">
+              <div class="accordion-body p-0">
+                @if ($user->offers->isEmpty())
+                  <div class="py-4 text-center text-muted small">
+                    No templates for this account.
+                    <a href="{{ route('offer-templates.create') }}">Create one →</a>
+                  </div>
+                @else
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th class="ps-3">Template</th>
+                          <th class="text-center" style="width:80px">Active</th>
+                          <th class="text-center" style="width:100px">Queued</th>
+                          <th style="width:160px">Last Posted</th>
+                          <th class="text-end pe-3" style="width:160px">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @foreach ($user->offers as $template)
+                          <tr id="template-row-{{ $template->id }}">
+                            <td class="ps-3">
+                              <div class="fw-medium">{{ $template->title }}</div>
+                              <div class="text-muted small">
+                                TH{{ $template->th_level }}
+                                @if ($template->king_level) &middot; K{{ $template->king_level }} @endif
+                                &middot; ${{ number_format($template->price, 2) }}
+                              </div>
+                            </td>
+
+                            <td class="text-center">
+                              <div class="form-check form-switch d-inline-flex justify-content-center mb-0">
+                                <input
+                                  class="form-check-input toggle-active"
+                                  type="checkbox"
+                                  role="switch"
+                                  data-template-id="{{ $template->id }}"
+                                  {{ $template->is_active ? 'checked' : '' }}>
+                              </div>
+                            </td>
+
+                            <td class="text-center">
+                              @php $queued = $template->offers_to_generate ?? 0; @endphp
+                              <span
+                                class="badge queued-badge {{ $queued > 0 ? 'bg-warning text-dark' : 'bg-secondary-subtle text-secondary' }}"
+                                id="queued-{{ $template->id }}">
+                                {{ $queued }}
+                              </span>
+                            </td>
+
+                            <td>
+                              <span class="text-muted small" title="{{ $template->last_posted_at }}">
+                                {{ $template->last_posted_at ? $template->last_posted_at->diffForHumans() : '—' }}
+                              </span>
+                            </td>
+
+                            <td class="text-end pe-3">
+                              <button
+                                class="btn btn-sm btn-outline-warning btn-queue-post"
+                                data-template-id="{{ $template->id }}"
+                                title="Add 1 forced post — runner will pick it up next run">
+                                <i class="ri-add-circle-line"></i> Queue
+                              </button>
+                              <a
+                                href="{{ route('offer-templates.edit', $template->id) }}"
+                                class="btn btn-sm btn-outline-secondary ms-1"
+                                title="Edit template">
+                                <i class="ri-edit-line"></i>
+                              </a>
+                            </td>
+                          </tr>
+                        @endforeach
+                      </tbody>
+                    </table>
+                  </div>
+                @endif
               </div>
             </div>
           </div>
-        </div>
-      @endforeach
-    </div>
-
-    <!-- Empty State -->
-    @if ($userAccounts->isEmpty())
-      <div class="py-5 text-center">
-        <div class="mb-4">
-          <i class="ri-user-search-line display-1 text-muted opacity-25"></i>
-        </div>
-        <h4 class="text-muted">No User Accounts</h4>
-        <p class="text-muted mb-4">Add user accounts to start posting offers</p>
-        <button type="button" class="btn btn-primary">
-          <i class="ri-user-add-line me-2"></i>Add User Account
-        </button>
+        @endforeach
       </div>
     @endif
-
-    <!-- Progress Bar (for all posting) -->
-    <div class="progress mb-3" id="allPostingProgress" style="display: none; height: 6px;">
-      <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
-    </div>
   </x-data-display.card>
 
-  @push('styles')
-    <style>
-      .output-panel {
-        border-left: 4px solid #0dcaf0;
-      }
+  {{-- ── Recent logs ──────────────────────────────────────────────────────────── --}}
+  <x-data-display.card>
+    <x-slot name="header">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="ri-history-line text-primary me-2"></i>Recent Logs
+        </h5>
+        <a href="{{ route('offer-logs.index') }}" class="btn btn-sm btn-outline-secondary">
+          View All →
+        </a>
+      </div>
+    </x-slot>
 
-      .templates-container {
-        max-height: 200px;
-        overflow-y: auto;
-        background: #f8f9fa;
-        border-radius: 0.375rem;
-        padding: 0.75rem;
-      }
-
-      .templates-container::-webkit-scrollbar {
-        width: 4px;
-      }
-
-      .templates-container::-webkit-scrollbar-track {
-        background: #f1f1f1;
-      }
-
-      .templates-container::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 10px;
-      }
-
-      .btn-start-posting {
-        min-width: 120px;
-      }
-
-      .btn-post-all {
-        min-width: 140px;
-      }
-    </style>
-  @endpush
+    @if ($recentLogs->isEmpty())
+      <div class="py-5 text-center text-muted">
+        <i class="ri-file-list-3-line display-3 d-block mb-2 opacity-25"></i>
+        No logs yet. Run the local runner to start posting.
+      </div>
+    @else
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width:130px">When</th>
+              <th>Template</th>
+              <th style="width:90px" class="text-center">Status</th>
+              <th>Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach ($recentLogs as $log)
+              <tr>
+                <td class="text-muted small text-nowrap">
+                  <span title="{{ $log->executed_at }}">
+                    {{ $log->executed_at?->diffForHumans() ?? '—' }}
+                  </span>
+                </td>
+                <td class="small fw-medium">
+                  {{ $log->template?->title ?? '<deleted>' }}
+                </td>
+                <td class="text-center">
+                  @if ($log->status === 'success')
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                      <i class="ri-checkbox-circle-line me-1"></i>success
+                    </span>
+                  @else
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                      <i class="ri-close-circle-line me-1"></i>failed
+                    </span>
+                  @endif
+                </td>
+                <td class="text-muted small">
+                  {{ Str::limit($log->message, 100) }}
+                </td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
+      </div>
+    @endif
+  </x-data-display.card>
 
   @push('scripts')
     <script>
-      function hideOutput() {
-        $('.output-panel').fadeOut();
-      }
+      const CSRF = '{{ csrf_token() }}';
 
-      function showOutput(message, type = 'info') {
-        const $panel = $('.output-panel');
-        const $text = $('.output-text');
+      // ── Toggle active ────────────────────────────────────────────────────────
+      document.querySelectorAll('.toggle-active').forEach(function (el) {
+        el.addEventListener('change', function () {
+          const id      = this.dataset.templateId;
+          const checked = this.checked;
+          const self    = this;
 
-        // Update panel style based on type
-        $panel.removeClass('alert-info alert-success alert-danger')
-          .addClass(`alert-${type}`);
-
-        $text.text(message);
-        $panel.slideDown();
-
-        // Auto-hide success messages after 10 seconds
-        if (type === 'success') {
-          setTimeout(hideOutput, 10000);
-        }
-      }
-
-      $(document).ready(function() {
-        // Load templates when toggle button is clicked
-        $('.btn-toggle-templates').on('click', function() {
-          const $button = $(this);
-          const target = $button.data('bs-target');
-          const userId = target.split('-')[1];
-
-          // Only load if not already loaded
-          const $container = $(`#templates-list-${userId}`);
-          if ($container.children().length === 1 && $container.text().includes('Loading')) {
-            loadUserTemplates(userId);
-          }
+          fetch(`/offer-templates/toggle-status/${id}`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+            body:    JSON.stringify({ status: checked ? 1 : 0 }),
+          })
+          .then(r => r.json())
+          .then(data => {
+            if (!data.success) self.checked = !checked; // revert on failure
+          })
+          .catch(() => { self.checked = !checked; });
         });
+      });
 
-        // Start posting for individual user
-        $('.btn-start-posting').click(function() {
-          const $button = $(this);
-          const userId = $button.data('user-id');
+      // ── Queue post ───────────────────────────────────────────────────────────
+      document.querySelectorAll('.btn-queue-post').forEach(function (el) {
+        el.addEventListener('click', function () {
+          const id   = this.dataset.templateId;
+          const btn  = this;
 
-          $button.prop('disabled', true).html(`
-          <div class="spinner-border spinner-border-sm me-1" role="status"></div>
-          Posting...
-        `);
+          btn.disabled = true;
 
-          showOutput(`🚀 Starting posting for user ${userId}...`, 'info');
-
-          $.ajax({
-            url: `/automation/run/user/${userId}`,
-            method: 'POST',
-            data: {
-              _token: '{{ csrf_token() }}'
-            },
-            success: function(response) {
-              showOutput(response.output, 'success');
-              $button.html('<i class="ri-play-circle-line me-1"></i>Start Posting').prop('disabled', false);
-
-              // Refresh templates for this user
-              loadUserTemplates(userId);
-            },
-            error: function(xhr) {
-              showOutput('❌ Error: ' + (xhr.responseJSON?.message || 'Posting failed'), 'danger');
-              $button.html('<i class="ri-play-circle-line me-1"></i>Start Posting').prop('disabled', false);
+          fetch(`/offer-templates/${id}/queue-post`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+          })
+          .then(r => r.json())
+          .then(data => {
+            if (data.success) {
+              const badge = document.getElementById(`queued-${id}`);
+              if (badge) {
+                badge.textContent = data.offers_to_generate;
+                badge.className = 'badge queued-badge bg-warning text-dark';
+              }
             }
-          });
+          })
+          .finally(() => { btn.disabled = false; });
         });
-
-        // Start all posting
-        $('.btn-post-all').click(function() {
-          const $button = $(this);
-          const $progress = $('#allPostingProgress');
-
-          $button.prop('disabled', true).html(`
-          <div class="spinner-border spinner-border-sm me-1" role="status"></div>
-          Starting All...
-        `);
-          $progress.show();
-
-          showOutput('🚀 Starting posting for all users...', 'info');
-
-          $.ajax({
-            url: '{{ route('automation.run.all-users') }}',
-            method: 'POST',
-            data: {
-              _token: '{{ csrf_token() }}'
-            },
-            success: function(response) {
-              showOutput(response.output, 'success');
-              $button.html('<i class="ri-play-large-line me-1"></i>Start All Posting').prop('disabled',
-                false);
-              $progress.hide();
-
-              // Refresh the page to update counts
-              setTimeout(() => {
-                location.reload();
-              }, 3000);
-            },
-            error: function(xhr) {
-              showOutput('❌ Error: ' + (xhr.responseJSON?.message || 'All posting failed'), 'danger');
-              $button.html('<i class="ri-play-large-line me-1"></i>Start All Posting').prop('disabled',
-                false);
-              $progress.hide();
-            }
-          });
-        });
-
-        // Refresh button
-        $('.btn-refresh').click(function() {
-          const $btn = $(this);
-          $btn.prop('disabled', true).html('<i class="ri-refresh-line me-1"></i> Refreshing...');
-          setTimeout(() => location.reload(), 1000);
-        });
-
-        function loadUserTemplates(userId) {
-          const $container = $(`#templates-list-${userId}`);
-
-          $.get(`/automation/user/${userId}/templates`, function(templates) {
-            let html = '';
-
-            if (templates.length > 0) {
-              templates.forEach(template => {
-                const lastPosted = template.last_posted_at ?
-                  new Date(template.last_posted_at).toLocaleDateString() : 'Never';
-
-                html += `
-                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-                  <div>
-                    <strong class="small">${template.title}</strong>
-                    <br>
-                    <small class="text-muted">Last: ${lastPosted}</small>
-                  </div>
-                  <span class="badge bg-${template.is_active ? 'success' : 'secondary'}">
-                    ${template.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-              `;
-              });
-            } else {
-              html = '<div class="text-center text-muted small">No templates found</div>';
-            }
-
-            $container.html(html);
-          }).fail(function() {
-            $container.html('<div class="text-center text-danger small">Failed to load templates</div>');
-          });
-        }
-
-        // Load templates for first user by default
-        @if ($userAccounts->isNotEmpty())
-          loadUserTemplates({{ $userAccounts->first()->id }});
-        @endif
       });
     </script>
   @endpush
+
 </x-layouts.admin.master>
