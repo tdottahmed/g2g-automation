@@ -28,4 +28,12 @@ class OfferTemplate extends Model
     {
         return $this->hasMany(OfferAutomationLog::class);
     }
+
+    public function shouldPostNow(int $intervalMinutes): bool
+    {
+        if (!$this->last_posted_at) {
+            return true;
+        }
+        return $this->last_posted_at->addMinutes($intervalMinutes)->isPast();
+    }
 }
