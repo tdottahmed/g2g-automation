@@ -148,11 +148,11 @@ async function processUserGroup(userGroup) {
 
         // ── Delete each template's offer ──────────────────────────────────────
         for (const template of templates) {
-            const { template_id, Title } = template;
-            console.log(`\n   🔄 Deleting: "${Title}" (id=${template_id})`);
+            const { template_id, Title, price } = template;
+            console.log(`\n   🔄 Deleting: "${Title}" @ ${price} (id=${template_id})`);
 
             try {
-                const deleted = await deleteOfferByTitle(page, Title);
+                const deleted = await deleteOfferByTitle(page, Title, price);
 
                 if (deleted) {
                     await reportDeleteSuccess(template_id, {
@@ -187,20 +187,20 @@ async function processUserGroup(userGroup) {
 // ─── Core: find + delete a specific offer by title ───────────────────────────
 
 /**
- * Navigate to the g2g offers list, find the row matching `title`, select it,
- * then delete it. Returns true if deleted (or not found), false on failure.
+ * Navigate to the g2g offers list, find the row matching `title` and `price`,
+ * select it, then delete it. Returns true if deleted (or not found), false on failure.
  */
-async function deleteOfferByTitle(page, title) {
+async function deleteOfferByTitle(page, title, price) {
     // Navigate to offers list
     await page.goto(`${BASE_URL}/offers/list`, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(2000);
 
     // Click the Accounts tab
     const tabClicked = await clickAccountsTab(page);
     if (!tabClicked) {
         throw new Error("Could not click Accounts tab");
     }
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(2000);
 
     // Wait for table to load
     const hasRows = await waitForTableRows(page);
@@ -215,7 +215,7 @@ async function deleteOfferByTitle(page, title) {
 
     while (!selected && rounds < 10) {
         rounds++;
-        selected = await selectRowByTitle(page, title);
+        selected = await selectRowByTitleAndPrice(page, title, price);
 
         if (selected) break;
 
@@ -252,6 +252,14 @@ async function deleteOfferByTitle(page, title) {
 // ─── Step helpers ─────────────────────────────────────────────────────────────
 
 async function clickAccountsTab(page) {
+    // Wait for the page's tab bar to render (it's a Vue/Quasar SPA)
+    try {
+        await page.waitForSelector(
+            `a[href*="cat_id=${ACCOUNTS_CAT_ID}"], a:has-text('Accounts'), button:has-text('Accounts')`,
+            { state: "visible", timeout: 15000 }
+        );
+    } catch { /* fallthrough — attempt clicks anyway */ }
+
     const link = page.locator(`a[href*="cat_id=${ACCOUNTS_CAT_ID}"]`).first();
     if ((await link.count()) > 0) {
         await link.scrollIntoViewIfNeeded();
@@ -282,43 +290,68 @@ async function waitForTableRows(page) {
 }
 
 /**
- * Scan visible table rows for one matching `title` (partial, case-insensitive).
- * Clicks its checkbox. Returns true if found and selected.
+ * Scan visible table rows for one matching `title` + `price`.
+ * Matches title against the .text-body1 cell (g2g truncates long titles in the DOM,
+ * so we compare on the first 50 chars). Price is matched against the 5th column.
+ * Clicks the row's checkbox. Returns true if found and selected.
  */
-async function selectRowByTitle(page, title) {
-    const normalised = title.toLowerCase().trim();
+async function selectRowByTitleAndPrice(page, title, price) {
+    // g2g truncates long titles in the DOM — use the first 50 chars as the key
+    const titlePrefix  = title.toLowerCase().trim().substring(0, 50);
+    const targetPrice  = price ? parseFloat(price) : null;
 
-    const rows = page.locator(".q-table tbody tr");
+    const rows  = page.locator(".q-table tbody tr");
     const count = await rows.count();
 
     for (let i = 0; i < count; i++) {
-        const row     = rows.nth(i);
-        let   rowText = "";
+        const row = rows.nth(i);
 
+        // ── Title match (2nd td, .text-body1 span) ───────────────────────────
+        let rowTitle = "";
         try {
-            rowText = (await row.innerText({ timeout: 3000 })).toLowerCase();
+            rowTitle = (
+                await row.locator("td:nth-child(2) .text-body1 span").first().innerText({ timeout: 3000 })
+            ).toLowerCase().trim();
         } catch {
-            continue;
-        }
-
-        if (rowText.includes(normalised)) {
-            // Click the row checkbox (first td's checkbox)
-            const checkbox = row.locator("td div[role='checkbox'], td .q-checkbox").first();
-
-            if ((await checkbox.count()) === 0) {
-                // Try clicking the row itself to select it
-                await row.click({ force: true });
-            } else {
-                const checked = await checkbox.getAttribute("aria-checked").catch(() => "false");
-                if (checked !== "true") {
-                    await checkbox.click({ force: true });
-                }
+            // fallback: full row text
+            try {
+                rowTitle = (await row.innerText({ timeout: 3000 })).toLowerCase();
+            } catch {
+                continue;
             }
-
-            await page.waitForTimeout(600);
-            console.log(`   ✅ Found and selected row: "${title}"`);
-            return true;
         }
+
+        if (!rowTitle.includes(titlePrefix)) continue;
+
+        // ── Price match (5th td) ──────────────────────────────────────────────
+        if (targetPrice !== null) {
+            let rowPriceText = "";
+            try {
+                rowPriceText = (
+                    await row.locator("td:nth-child(5) span").last().innerText({ timeout: 2000 })
+                ).trim();
+            } catch { /* skip price check if cell not found */ }
+
+            if (rowPriceText) {
+                const rowPrice = parseFloat(rowPriceText);
+                if (!isNaN(rowPrice) && Math.abs(rowPrice - targetPrice) > 0.01) continue;
+            }
+        }
+
+        // ── Select the row ────────────────────────────────────────────────────
+        const checkbox = row.locator("td div[role='checkbox'], td .q-checkbox").first();
+        if ((await checkbox.count()) === 0) {
+            await row.click({ force: true });
+        } else {
+            const checked = await checkbox.getAttribute("aria-checked").catch(() => "false");
+            if (checked !== "true") {
+                await checkbox.click({ force: true });
+            }
+        }
+
+        await page.waitForTimeout(600);
+        console.log(`   ✅ Found and selected: "${title}" @ ${price}`);
+        return true;
     }
 
     return false;

@@ -203,6 +203,7 @@ class AutomationApiController extends Controller
                 'templates' => $userTemplates->map(fn ($t) => [
                     'template_id' => $t->id,
                     'Title'       => $t->title,
+                    'price'       => (string) ($t->price ?? '0'),
                 ])->values()->all(),
             ];
         }
