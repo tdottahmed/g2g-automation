@@ -1,39 +1,60 @@
 /**
  * delete-offers.js — Delete all live Accounts offers for a g2g.com account.
  *
- * Usage:
+ * Standalone mode (manual):
  *   node delete-offers.js <email>
- *   node delete-offers.js <email> --dry-run   (navigate but don't delete)
+ *   node delete-offers.js <email> --dry-run
  *
- * Reads COOKIES_DIR, HEADLESS, SLOW_MO, and G2G_BASE_URL from .env
+ * API mode (driven by admin panel):
+ *   node delete-offers.js --api           — run once against API queue
+ *   node delete-offers.js --api --watch   — poll API every WATCH_INTERVAL_SECONDS
+ *   node delete-offers.js --api --dry-run — same but don't actually delete
+ *
+ * Reads COOKIES_DIR, HEADLESS, SLOW_MO, G2G_BASE_URL (and LARAVEL_API_URL +
+ * API_KEY for --api mode) from .env
  */
 
-import "dotenv/config";
+import "./env-loader.js";
 import path from "path";
 import { mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { chromium } from "playwright";
-import { ensureLoggedIn } from "./utils/auth.js";
+import { ensureLoggedIn, saveAuthState } from "./utils/auth.js";
+import {
+    fetchPendingDeleteAll,
+    reportDeleteAllComplete,
+    reportDeleteAllFailed,
+} from "./api-client.js";
 
 const __dirname   = path.dirname(fileURLToPath(import.meta.url));
 const BASE_URL    = process.env.G2G_BASE_URL ?? "https://www.g2g.com";
 const HEADLESS    = process.env.HEADLESS === "true";
 const SLOW_MO     = parseInt(process.env.SLOW_MO ?? "150", 10);
 const COOKIES_DIR = path.resolve(process.env.COOKIES_DIR ?? path.join(__dirname, "cookies"));
+const WATCH_INTERVAL = parseInt(process.env.WATCH_INTERVAL_SECONDS ?? "60", 10);
 mkdirSync(COOKIES_DIR, { recursive: true });
 
 // Accounts category UUID on g2g.com (used to find the correct tab link)
 const ACCOUNTS_CAT_ID = "5830014a-b974-45c6-9672-b51e83112fb7";
 
 const args    = process.argv.slice(2);
-const email   = args.find((a) => !a.startsWith("--"));
-const DRY_RUN = args.includes("--dry-run");
+const API_MODE = args.includes("--api");
+const DRY_RUN  = args.includes("--dry-run");
+const WATCH    = args.includes("--watch");
+const email    = !API_MODE ? args.find((a) => !a.startsWith("--")) : null;
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 async function main() {
+    if (API_MODE) {
+        await runApiMode();
+        return;
+    }
+
     if (!email) {
-        console.error("❌  Usage: node delete-offers.js <email> [--dry-run]");
+        console.error("❌  Usage:");
+        console.error("    node delete-offers.js <email> [--dry-run]");
+        console.error("    node delete-offers.js --api [--watch] [--dry-run]");
         process.exit(1);
     }
 
@@ -305,6 +326,102 @@ async function confirmDeletion(page) {
     } catch (err) {
         console.log(`    ❌  Confirm dialog error: ${err.message}`);
         return false;
+    }
+}
+
+// ─── API mode (driven by admin panel queue_delete_all flag) ──────────────────
+
+async function runApiMode() {
+    console.log("🗑️  G2G Delete-All Runner (API mode)");
+    console.log(`   API URL  : ${process.env.LARAVEL_API_URL}`);
+    console.log(`   Headless : ${HEADLESS}`);
+    if (DRY_RUN) console.log("   Mode     : DRY RUN");
+
+    if (WATCH) {
+        console.log(`\n👀 Watch mode — polling every ${WATCH_INTERVAL}s\n`);
+        while (true) {
+            await runApiOnce();
+            console.log(`\n⏳ Next check in ${WATCH_INTERVAL}s...`);
+            await new Promise((r) => setTimeout(r, WATCH_INTERVAL * 1000));
+        }
+    } else {
+        await runApiOnce();
+    }
+}
+
+async function runApiOnce() {
+    console.log(`\n[${new Date().toLocaleTimeString()}] Fetching pending delete-all accounts...`);
+
+    let data;
+    try {
+        data = await fetchPendingDeleteAll();
+    } catch (err) {
+        console.error("❌ Failed to fetch pending delete-all:", err.message);
+        return;
+    }
+
+    const { users = [] } = data;
+    if (users.length === 0) {
+        console.log("ℹ️  No accounts queued for delete-all.");
+        return;
+    }
+
+    console.log(`📋 Found ${users.length} account(s) to delete-all`);
+
+    for (const user of users) {
+        await runApiUserDelete(user);
+    }
+
+    console.log("\n✅ Run complete.");
+}
+
+async function runApiUserDelete(user) {
+    const { user_id, email: acctEmail, password } = user;
+    const emailPrefix = acctEmail.split("@")[0];
+    const cookieFile  = path.join(COOKIES_DIR, `${emailPrefix}.json`);
+
+    console.log(`\n👤 Processing: ${acctEmail}`);
+
+    let browser = null;
+    try {
+        browser = await chromium.launch({ headless: HEADLESS, slowMo: SLOW_MO, args: ["--start-maximized"] })
+            .catch((err) => {
+                if (err.message.includes("Executable doesn't exist")) {
+                    console.error("\n❌ Playwright not installed. Run: npx playwright install chromium");
+                    process.exit(1);
+                }
+                throw err;
+            });
+
+        const context = await browser.newContext({ viewport: { width: 1600, height: 900 } });
+        const page    = await context.newPage();
+
+        const loggedIn = await ensureLoggedIn(page, context, {
+            baseUrl: BASE_URL, email: acctEmail, password, cookieFile,
+        });
+
+        if (!loggedIn) {
+            console.error(`❌ Auth failed for ${acctEmail}`);
+            await reportDeleteAllFailed(user_id, "Authentication failed").catch(() => {});
+            return;
+        }
+
+        const totalDeleted = await deleteAllOffers(page);
+
+        if (DRY_RUN) {
+            console.log(`\n   ℹ️  Dry run — no offers deleted.`);
+        } else {
+            console.log(`\n   ✅ Deleted ${totalDeleted} offer(s)`);
+            await reportDeleteAllComplete(user_id, { deleted_count: totalDeleted, runner_host: process.env.HOSTNAME ?? "local" });
+        }
+
+        // Persist any refreshed session tokens back to disk
+        await saveAuthState(context, cookieFile).catch(() => {});
+    } catch (err) {
+        console.error(`❌ Fatal error for ${acctEmail}:`, err.message);
+        await reportDeleteAllFailed(user_id, err.message).catch(() => {});
+    } finally {
+        if (browser) await browser.close().catch(() => {});
     }
 }
 

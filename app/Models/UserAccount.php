@@ -10,6 +10,7 @@ class UserAccount extends Model
 
     protected $casts = [
         'is_generated_cookies' => 'boolean',
+        'queue_delete_all'     => 'boolean',
     ];
 
     public function offers()

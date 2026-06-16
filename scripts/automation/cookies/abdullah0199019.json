@@ -25,27 +25,17 @@
       "value": "1",
       "domain": ".www.g2g.com",
       "path": "/",
-      "expires": 1813125546,
+      "expires": 1813130998,
       "httpOnly": false,
       "secure": true,
       "sameSite": "Lax"
-    },
-    {
-      "name": "_rdt_uuid",
-      "value": "1781589465494.a9b42a2c-6876-49e0-a50a-65a562de0424",
-      "domain": ".g2g.com",
-      "path": "/",
-      "expires": 1789365465,
-      "httpOnly": false,
-      "secure": true,
-      "sameSite": "Strict"
     },
     {
       "name": "_fbp",
       "value": "fb.1.1781589465604.837615421568105159",
       "domain": ".g2g.com",
       "path": "/",
-      "expires": 1789365545,
+      "expires": 1789371047,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -55,7 +45,7 @@
       "value": "%7B%22country%22%3A%22BD%22%2C%22currency%22%3A%22USD%22%2C%22language%22%3A%22en%22%7D",
       "domain": ".www.g2g.com",
       "path": "/",
-      "expires": 1813125544,
+      "expires": 1813131017,
       "httpOnly": false,
       "secure": true,
       "sameSite": "Lax"
@@ -75,7 +65,7 @@
       "value": "3FCqayDIuNIKqB8iPERw2vFFYTb",
       "domain": ".tiktok.com",
       "path": "/",
-      "expires": 1815285465.822656,
+      "expires": 1815290999.283184,
       "httpOnly": false,
       "secure": true,
       "sameSite": "None"
@@ -101,21 +91,11 @@
       "sameSite": "Lax"
     },
     {
-      "name": "_ga",
-      "value": "GA1.2.648405053.1781589466",
-      "domain": ".g2g.com",
-      "path": "/",
-      "expires": 1816149465.965299,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Lax"
-    },
-    {
       "name": "_gid",
       "value": "GA1.2.820877773.1781589466",
       "domain": ".g2g.com",
       "path": "/",
-      "expires": 1781675865,
+      "expires": 1781681399,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -125,7 +105,7 @@
       "value": "1",
       "domain": ".g2g.com",
       "path": "/",
-      "expires": 1815285466,
+      "expires": 1815290999,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -135,7 +115,7 @@
       "value": "01KV7G3Q0Y94YVCG7K7M2AE029_.tt.1",
       "domain": ".g2g.com",
       "path": "/",
-      "expires": 1815285466,
+      "expires": 1815290999,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -151,52 +131,12 @@
       "sameSite": "Lax"
     },
     {
-      "name": "_scid_r",
-      "value": "G8UjlPtMnINrZJxX7x_-Z_Pa7xrHi7sj",
-      "domain": ".g2g.com",
-      "path": "/",
-      "expires": 1815717466,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Lax"
-    },
-    {
-      "name": "_uetsid",
-      "value": "4c336fa0694811f1a5125dc90fadcdea",
-      "domain": ".g2g.com",
-      "path": "/",
-      "expires": 1781675866,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Lax"
-    },
-    {
-      "name": "_uetvid",
-      "value": "4c338950694811f18ce7afbd8bf4377c",
-      "domain": ".g2g.com",
-      "path": "/",
-      "expires": 1815285466,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Lax"
-    },
-    {
       "name": "muc_ads",
       "value": "a521e350-02de-465c-bb96-b1e6ab43673b",
       "domain": ".t.co",
       "path": "/",
       "expires": 1816149466.241546,
       "httpOnly": false,
-      "secure": true,
-      "sameSite": "None"
-    },
-    {
-      "name": "__cf_bm",
-      "value": "ixSHXb8MlgIR_LzxNfJ8qaev.uWDHQVCP1vfUnl.bmk-1781589465.987203-1.0.1.1-ghHjZ64a4dpn6rxnoelaVLroizwpjk7VMTSE_Dvj_vvDhHo8mEW5W1ANJFaZnK0O1hShOJX1yH08rokOozpbc9EEexap_G9jCr.FwsFUNjjz81MntvV6xS_crGi9N9Yp",
-      "domain": ".t.co",
-      "path": "/",
-      "expires": 1781591266.241608,
-      "httpOnly": true,
       "secure": true,
       "sameSite": "None"
     },
@@ -241,26 +181,6 @@
       "sameSite": "None"
     },
     {
-      "name": "__cf_bm",
-      "value": ".imMbZxQ1CYkC2VVwFWQlN_EPRe31atsB4F6LRQhnm8-1781589466.023743-1.0.1.1-xbnWdIvH8rqaK98P0YOlNw0zjzc9NL5W2u9B_GG.4uwoWp0dMc7hm74FkL5rB2_utysJ2BvmzqK6tj7IbIfoHfxG4TGIwzzKLv6fdXRX02qsMOCVbwT5IpKPf8RxN2MD",
-      "domain": ".twitter.com",
-      "path": "/",
-      "expires": 1781591266.264173,
-      "httpOnly": true,
-      "secure": true,
-      "sameSite": "None"
-    },
-    {
-      "name": "_ga_7N3SZK9ECC",
-      "value": "GS2.2.s1781589466$o1$g1$t1781589466$j60$l0$h0",
-      "domain": ".g2g.com",
-      "path": "/",
-      "expires": 1816149466.339084,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Lax"
-    },
-    {
       "name": "MR",
       "value": "0",
       "domain": ".bat.bing.com",
@@ -295,7 +215,7 @@
       "value": "A3oSW1ttPEI4nfihKpZywAo",
       "domain": ".amazon-adsystem.com",
       "path": "/",
-      "expires": 1798783066.654896,
+      "expires": 1798788599.939703,
       "httpOnly": true,
       "secure": true,
       "sameSite": "None"
@@ -305,7 +225,7 @@
       "value": "0",
       "domain": ".amazon-adsystem.com",
       "path": "/",
-      "expires": 1816149466.655184,
+      "expires": 1816154999.939916,
       "httpOnly": true,
       "secure": true,
       "sameSite": "None"
@@ -401,16 +321,6 @@
       "sameSite": "None"
     },
     {
-      "name": "ANONCHK",
-      "value": "0",
-      "domain": ".c.clarity.ms",
-      "path": "/",
-      "expires": 1781590068.902177,
-      "httpOnly": false,
-      "secure": true,
-      "sameSite": "None"
-    },
-    {
       "name": "sc_at",
       "value": "v2|H4sIAAAAAAAA/03Gyw0AIQgFwIpIHsLy2W5IwCos3qtzGiwV72HCmJMKF9Vuo17TkNSKysOKnz34i1SL8xQXj9gK1kAAAAA=",
       "domain": ".snapchat.com",
@@ -441,26 +351,6 @@
       "sameSite": "Lax"
     },
     {
-      "name": "_rdt_em",
-      "value": ":72db2e9f99be920642fc8843919ce7408808c195d4c16b1e1858eb9cade54142",
-      "domain": ".g2g.com",
-      "path": "/",
-      "expires": 1789365473,
-      "httpOnly": false,
-      "secure": true,
-      "sameSite": "Strict"
-    },
-    {
-      "name": "_clsk",
-      "value": "610u5l%5E1781589474634%5E2%5E1%5Ea.clarity.ms%2Fcollect",
-      "domain": ".g2g.com",
-      "path": "/",
-      "expires": 1781675874,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Lax"
-    },
-    {
       "name": "refresh_token",
       "value": "1001247631.0ff271f23525d612ce7f919b5eec865a",
       "domain": ".g2g.com",
@@ -475,7 +365,7 @@
       "value": "279800ca206388042775a96536435c82",
       "domain": ".www.g2g.com",
       "path": "/",
-      "expires": 1797141543,
+      "expires": 1797147048,
       "httpOnly": false,
       "secure": true,
       "sameSite": "Lax"
@@ -485,47 +375,167 @@
       "value": "dc954347bed20d23f24bf848e0ef4ba0",
       "domain": ".g2g.com",
       "path": "/",
-      "expires": 1786773543,
+      "expires": 1786779048,
       "httpOnly": false,
       "secure": true,
       "sameSite": "Lax"
     },
     {
-      "name": "ttcsid",
-      "value": "1781589466146::KhaadNzSAtOUFoub29O2.1.1781589546043.0::1.79576.0::71405.5.558.325::0.0.0",
+      "name": "_rdt_uuid",
+      "value": "1781589465494.a9b42a2c-6876-49e0-a50a-65a562de0424",
       "domain": ".g2g.com",
       "path": "/",
-      "expires": 1815285546,
+      "expires": 1789370999,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "_rdt_em",
+      "value": ":72db2e9f99be920642fc8843919ce7408808c195d4c16b1e1858eb9cade54142",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1789370999,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "_dc_gtm_UA-46996921-1",
+      "value": "1",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1781595059,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
-      "name": "ttcsid_D101IURC77UEHH7PTG80",
-      "value": "1781589466145::mtoynArmKfQAMpP8dOFy.1.1781589546043.1",
+      "name": "_ga",
+      "value": "GA1.1.648405053.1781589466",
       "domain": ".g2g.com",
       "path": "/",
-      "expires": 1815285546,
+      "expires": 1816154999.288297,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "__cf_bm",
+      "value": "ovdp4NVG.NsHzOc4E9t6bbxcd1aPlhvMNmlavYmLHuc-1781594999.3695133-1.0.1.1-BJdkty608iWxZkVC_lRnjb9jEchtc7s.7YiXfOPpLTv74cFmxG4SNBhZpRfzbcPaMoITmP1EBzfodPV_5dktKsNRktZ61ciPIGvglp.8CHham8pHy1ALC5oCQeoFBKe5",
+      "domain": ".t.co",
+      "path": "/",
+      "expires": 1781596799.617326,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "__cf_bm",
+      "value": "MKxRSgjyG.ikraLIZJKRYFN6etjqZ6TRg24bMxiC0tk-1781594999.3666856-1.0.1.1-CxfcA69xdZvoBn8VS2TyC3s_CkMKJue0BwaMRFP2FsbYVHKT9xJdODMp8uPIIqR2NnA1CQGaMMW3FFMzWyyxNA6FqSpU4C1gcGnDgJOdTcxq_30KmNRJrF56wnT4RYRa",
+      "domain": ".twitter.com",
+      "path": "/",
+      "expires": 1781596799.61932,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_uetsid",
+      "value": "4c336fa0694811f1a5125dc90fadcdea",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1781681399,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_uetvid",
+      "value": "4c338950694811f18ce7afbd8bf4377c",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1815290999,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_ga_7N3SZK9ECC",
+      "value": "GS2.2.s1781594999$o2$g0$t1781594999$j60$l0$h0",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1816154999.798197,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_scid_r",
+      "value": "3RAoLPO2AyoRFkfdDVYnVtil5KLP9SV7yE40lQ",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1815722999,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "RT",
+      "value": "\"z=1&dm=www.g2g.com&si=4b8fa85c-88a9-47f2-aa85-c0fb42e4aef0&ss=mqgbnqoe&sl=1&tt=1dw&rl=1&nu=8fnfc09v&cl=j3w\"",
+      "domain": ".www.g2g.com",
+      "path": "/",
+      "expires": 1782199817,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_clsk",
+      "value": "1olo8o9%5E1781595018766%5E2%5E0%5Ea.clarity.ms%2Fcollect",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1781681418,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "_ga_MESX7PR0C0",
-      "value": "GS2.1.s1781589465$o1$g1$t1781589546$j58$l0$h1047340152",
+      "value": "GS2.1.s1781594999$o2$g1$t1781595047$j12$l0$h1833898976",
       "domain": ".g2g.com",
       "path": "/",
-      "expires": 1816149546.263077,
+      "expires": 1816155047.582547,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "ttcsid_D101IURC77UEHH7PTG80",
+      "value": "1781594999466::4Mf1goEMElMBg7-CcLzy.2.1781595047699.1",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1815291047,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "ttcsid",
+      "value": "1781594999467::2eXtPTRZqspyUFHswK50.2.1781595047699.0::1.18621.0::48227.30.1012.3632::50338.17.0",
+      "domain": ".g2g.com",
+      "path": "/",
+      "expires": 1815291049,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "_dd_s",
-      "value": "rum=0&expire=1781590446774",
+      "value": "rum=0&expire=1781595949804",
       "domain": "www.g2g.com",
       "path": "/",
-      "expires": 1781590446,
+      "expires": 1781595953,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Strict"
@@ -537,7 +547,88 @@
       "localStorage": [
         {
           "name": "u_sclid",
-          "value": "k99L9dR8HnMOA-p1_j24D4fjB3uguz0TG8UjlPtMnINrZJxX7x_-Z_Pa7xrHi7sj"
+          "value": "gr75EO7bKzutps2BETNoG47CtZa6Gk2M1JAoLPO2AyoRFkfdDVYnVtil5KLP9SV7"
+        },
+        {
+          "name": "cpatch",
+          "value": "__q_bool|1"
+        },
+        {
+          "name": "_uetvid_exp",
+          "value": "Sun, 11 Jul 2027 05:57:46 GMT"
+        },
+        {
+          "name": "g2g_repayment_timer",
+          "value": "1781589545199"
+        },
+        {
+          "name": "firebase:host:g2g-sls-firebase-default-rtdb.asia-southeast1.firebasedatabase.app",
+          "value": "\"s-gke-apse1-nssi3-2.asia-southeast1.firebasedatabase.app\""
+        },
+        {
+          "name": "accessToken",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3ODE1OTUwNDgsImV4cCI6MTc4MTU5NTk0OCwic3ViIjoiMTAwMTI0NzYzMSIsInN1YlR5cGUiOiJ1c2VyIiwic3ViUm9sZSI6WyJ1c2VyIl0sImF1ZCI6Imh0dHBzOi8vd3d3LmcyZy5jb20iLCJpc3MiOiJHMkdTbHMifQ.lZbGHgnTPg8IG9RwkV4V8LKJZbPDU-psUvH-oPSPINw"
+        },
+        {
+          "name": "ga4_session",
+          "value": "{\"id\":1781589465374,\"timestamp\":1781589465374}"
+        },
+        {
+          "name": "_gcl_ls",
+          "value": "{\"schema\":\"gcl\",\"version\":1,\"gcl_ctr\":{\"value\":{\"value\":0,\"timeouts\":0,\"errors\":0,\"eopCount\":0,\"creationTimeMs\":1781589465959},\"expires\":1789365465959}}"
+        },
+        {
+          "name": "_uetsid",
+          "value": "4c336fa0694811f1a5125dc90fadcdea"
+        },
+        {
+          "name": "_grecaptcha",
+          "value": "09AKhCRwgf114L7eN4kj5UyCtONVO4QjItWIprZnVpKlDzQkllFbVVBj-PyVPJSIaxq9mP0yPnZjUSv-d7qhHgjLTziGuoLg4-n9-1blL1If_mer9_yyfMWrBjNAYzXL9g"
+        },
+        {
+          "name": "g2g_protect_account_reminder",
+          "value": "true"
+        },
+        {
+          "name": "_boomr_akamaiXhrRetry",
+          "value": "{\"items\":{},\"expires\":1781591267133}"
+        },
+        {
+          "name": "u_sclid_r",
+          "value": "gr75EO7bKzutps2BETNoG47CtZa6Gk2M1JAoLPO2AyoRFkfdDVYnVtil5KLP9SV7"
+        },
+        {
+          "name": "lastExternalReferrerTime",
+          "value": "1781589465596"
+        },
+        {
+          "name": "_uetsid_exp",
+          "value": "Wed, 17 Jun 2026 05:57:46 GMT"
+        },
+        {
+          "name": "rc::f",
+          "value": "0aAJh6VkpvhZW3Xfdt2k6OMl23sOQGsm_Skg5WsTNjYjEVAvzDHxlsdXf6HU-CrQbSH_cOLg8"
+        },
+        {
+          "name": "_uetvid",
+          "value": "4c338950694811f18ce7afbd8bf4377c"
+        },
+        {
+          "name": "lastExternalReferrer",
+          "value": "empty"
+        },
+        {
+          "name": "rc::a",
+          "value": "MXF3MHViMXUzcDhhbQ=="
+        }
+      ]
+    },
+    {
+      "origin": "https://consentcdn.cookiebot.com",
+      "localStorage": [
+        {
+          "name": "u_sclid",
+          "value": "gr75EO7bKzutps2BETNoG47CtZa6Gk2M1JAoLPO2AyoRFkfdDVYnVtil5KLP9SV7"
         },
         {
           "name": "cpatch",
@@ -568,12 +659,12 @@
           "value": "{\"schema\":\"gcl\",\"version\":1,\"gcl_ctr\":{\"value\":{\"value\":0,\"timeouts\":0,\"errors\":0,\"eopCount\":0,\"creationTimeMs\":1781589465959},\"expires\":1789365465959}}"
         },
         {
-          "name": "_uetsid",
-          "value": "4c336fa0694811f1a5125dc90fadcdea"
-        },
-        {
           "name": "_grecaptcha",
           "value": "09AKhCRwgf114L7eN4kj5UyCtONVO4QjItWIprZnVpKlDzQkllFbVVBj-PyVPJSIaxq9mP0yPnZjUSv-d7qhHgjLTziGuoLg4-n9-1blL1If_mer9_yyfMWrBjNAYzXL9g"
+        },
+        {
+          "name": "_uetsid",
+          "value": "4c336fa0694811f1a5125dc90fadcdea"
         },
         {
           "name": "_boomr_akamaiXhrRetry",
@@ -581,7 +672,7 @@
         },
         {
           "name": "u_sclid_r",
-          "value": "k99L9dR8HnMOA-p1_j24D4fjB3uguz0TG8UjlPtMnINrZJxX7x_-Z_Pa7xrHi7sj"
+          "value": "gr75EO7bKzutps2BETNoG47CtZa6Gk2M1JAoLPO2AyoRFkfdDVYnVtil5KLP9SV7"
         },
         {
           "name": "lastExternalReferrerTime",
@@ -592,38 +683,174 @@
           "value": "Wed, 17 Jun 2026 05:57:46 GMT"
         },
         {
+          "name": "rc::f",
+          "value": "0aAJh6VkpvhZW3Xfdt2k6OMl23sOQGsm_Skg5WsTNjYjEVAvzDHxlsdXf6HU-CrQbSH_cOLg8"
+        },
+        {
           "name": "_uetvid",
           "value": "4c338950694811f18ce7afbd8bf4377c"
         },
         {
           "name": "lastExternalReferrer",
           "value": "empty"
+        },
+        {
+          "name": "rc::a",
+          "value": "MXF3MHViMXUzcDhhbQ=="
         }
       ]
     },
     {
-      "origin": "https://tr.snapchat.com",
+      "origin": "https://www.facebook.com",
       "localStorage": [
+        {
+          "name": "u_sclid",
+          "value": "gr75EO7bKzutps2BETNoG47CtZa6Gk2M1JAoLPO2AyoRFkfdDVYnVtil5KLP9SV7"
+        },
+        {
+          "name": "cpatch",
+          "value": "__q_bool|1"
+        },
+        {
+          "name": "_uetvid_exp",
+          "value": "Sun, 11 Jul 2027 05:57:46 GMT"
+        },
+        {
+          "name": "g2g_repayment_timer",
+          "value": "1781589545199"
+        },
+        {
+          "name": "firebase:host:g2g-sls-firebase-default-rtdb.asia-southeast1.firebasedatabase.app",
+          "value": "\"s-gke-apse1-nssi3-2.asia-southeast1.firebasedatabase.app\""
+        },
+        {
+          "name": "accessToken",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3ODE1ODk1NDMsImV4cCI6MTc4MTU5MDQ0Mywic3ViIjoiMTAwMTI0NzYzMSIsInN1YlR5cGUiOiJ1c2VyIiwic3ViUm9sZSI6WyJ1c2VyIl0sImF1ZCI6Imh0dHBzOi8vd3d3LmcyZy5jb20iLCJpc3MiOiJHMkdTbHMifQ.fwKP1nEKQRW8Kee2LSAjqwj5m5X6Hz0TQCJbf263aqs"
+        },
+        {
+          "name": "ga4_session",
+          "value": "{\"id\":1781589465374,\"timestamp\":1781589465374}"
+        },
+        {
+          "name": "_gcl_ls",
+          "value": "{\"schema\":\"gcl\",\"version\":1,\"gcl_ctr\":{\"value\":{\"value\":0,\"timeouts\":0,\"errors\":0,\"eopCount\":0,\"creationTimeMs\":1781589465959},\"expires\":1789365465959}}"
+        },
+        {
+          "name": "_grecaptcha",
+          "value": "09AKhCRwgf114L7eN4kj5UyCtONVO4QjItWIprZnVpKlDzQkllFbVVBj-PyVPJSIaxq9mP0yPnZjUSv-d7qhHgjLTziGuoLg4-n9-1blL1If_mer9_yyfMWrBjNAYzXL9g"
+        },
+        {
+          "name": "_uetsid",
+          "value": "4c336fa0694811f1a5125dc90fadcdea"
+        },
+        {
+          "name": "_boomr_akamaiXhrRetry",
+          "value": "{\"items\":{},\"expires\":1781591267133}"
+        },
         {
           "name": "u_sclid_r",
           "value": "gr75EO7bKzutps2BETNoG47CtZa6Gk2M1JAoLPO2AyoRFkfdDVYnVtil5KLP9SV7"
         },
         {
-          "name": "u_sclid",
-          "value": "gr75EO7bKzutps2BETNoG47CtZa6Gk2M1JAoLPO2AyoRFkfdDVYnVtil5KLP9SV7"
-        }
-      ]
-    },
-    {
-      "origin": "https://recaptcha.net",
-      "localStorage": [
+          "name": "lastExternalReferrerTime",
+          "value": "1781589465596"
+        },
         {
-          "name": "rc::a",
-          "value": "MXF3MHViMXUzcDhhbQ=="
+          "name": "_uetsid_exp",
+          "value": "Wed, 17 Jun 2026 05:57:46 GMT"
         },
         {
           "name": "rc::f",
           "value": "0aAJh6VkpvhZW3Xfdt2k6OMl23sOQGsm_Skg5WsTNjYjEVAvzDHxlsdXf6HU-CrQbSH_cOLg8"
+        },
+        {
+          "name": "_uetvid",
+          "value": "4c338950694811f18ce7afbd8bf4377c"
+        },
+        {
+          "name": "lastExternalReferrer",
+          "value": "empty"
+        },
+        {
+          "name": "rc::a",
+          "value": "MXF3MHViMXUzcDhhbQ=="
+        }
+      ]
+    },
+    {
+      "origin": "https://s-gke-apse1-nssi3-2.asia-southeast1.firebasedatabase.app",
+      "localStorage": [
+        {
+          "name": "u_sclid",
+          "value": "gr75EO7bKzutps2BETNoG47CtZa6Gk2M1JAoLPO2AyoRFkfdDVYnVtil5KLP9SV7"
+        },
+        {
+          "name": "cpatch",
+          "value": "__q_bool|1"
+        },
+        {
+          "name": "_uetvid_exp",
+          "value": "Sun, 11 Jul 2027 05:57:46 GMT"
+        },
+        {
+          "name": "g2g_repayment_timer",
+          "value": "1781589545199"
+        },
+        {
+          "name": "firebase:host:g2g-sls-firebase-default-rtdb.asia-southeast1.firebasedatabase.app",
+          "value": "\"s-gke-apse1-nssi3-2.asia-southeast1.firebasedatabase.app\""
+        },
+        {
+          "name": "accessToken",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3ODE1ODk1NDMsImV4cCI6MTc4MTU5MDQ0Mywic3ViIjoiMTAwMTI0NzYzMSIsInN1YlR5cGUiOiJ1c2VyIiwic3ViUm9sZSI6WyJ1c2VyIl0sImF1ZCI6Imh0dHBzOi8vd3d3LmcyZy5jb20iLCJpc3MiOiJHMkdTbHMifQ.fwKP1nEKQRW8Kee2LSAjqwj5m5X6Hz0TQCJbf263aqs"
+        },
+        {
+          "name": "ga4_session",
+          "value": "{\"id\":1781589465374,\"timestamp\":1781589465374}"
+        },
+        {
+          "name": "_gcl_ls",
+          "value": "{\"schema\":\"gcl\",\"version\":1,\"gcl_ctr\":{\"value\":{\"value\":0,\"timeouts\":0,\"errors\":0,\"eopCount\":0,\"creationTimeMs\":1781589465959},\"expires\":1789365465959}}"
+        },
+        {
+          "name": "_grecaptcha",
+          "value": "09AKhCRwgf114L7eN4kj5UyCtONVO4QjItWIprZnVpKlDzQkllFbVVBj-PyVPJSIaxq9mP0yPnZjUSv-d7qhHgjLTziGuoLg4-n9-1blL1If_mer9_yyfMWrBjNAYzXL9g"
+        },
+        {
+          "name": "_uetsid",
+          "value": "4c336fa0694811f1a5125dc90fadcdea"
+        },
+        {
+          "name": "_boomr_akamaiXhrRetry",
+          "value": "{\"items\":{},\"expires\":1781591267133}"
+        },
+        {
+          "name": "u_sclid_r",
+          "value": "gr75EO7bKzutps2BETNoG47CtZa6Gk2M1JAoLPO2AyoRFkfdDVYnVtil5KLP9SV7"
+        },
+        {
+          "name": "lastExternalReferrerTime",
+          "value": "1781589465596"
+        },
+        {
+          "name": "_uetsid_exp",
+          "value": "Wed, 17 Jun 2026 05:57:46 GMT"
+        },
+        {
+          "name": "rc::f",
+          "value": "0aAJh6VkpvhZW3Xfdt2k6OMl23sOQGsm_Skg5WsTNjYjEVAvzDHxlsdXf6HU-CrQbSH_cOLg8"
+        },
+        {
+          "name": "_uetvid",
+          "value": "4c338950694811f18ce7afbd8bf4377c"
+        },
+        {
+          "name": "lastExternalReferrer",
+          "value": "empty"
+        },
+        {
+          "name": "rc::a",
+          "value": "MXF3MHViMXUzcDhhbQ=="
         }
       ]
     }

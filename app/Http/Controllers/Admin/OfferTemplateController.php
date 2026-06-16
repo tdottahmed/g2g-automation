@@ -9,10 +9,19 @@ use Illuminate\Http\Request;
 
 class OfferTemplateController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $offers = OfferTemplate::latest()->get();
-        return view('admin.offer-templates.index', compact('offers'));
+        $offers = OfferTemplate::with('userAccount')
+            ->when($request->filled('account'), fn ($q) => $q->where('user_account_id', $request->account))
+            ->when($request->status === 'active',        fn ($q) => $q->where('is_active', true))
+            ->when($request->status === 'inactive',      fn ($q) => $q->where('is_active', false))
+            ->when($request->status === 'queued_delete', fn ($q) => $q->where('queue_delete', true))
+            ->latest()
+            ->get();
+
+        $userAccounts = UserAccount::orderBy('owner_name')->get();
+
+        return view('admin.offer-templates.index', compact('offers', 'userAccounts'));
     }
 
     public function create()
@@ -140,9 +149,14 @@ class OfferTemplateController extends Controller
     }
 
 
-    public function destroy(OfferTemplate $offerTemplate)
+    public function destroy(Request $request, OfferTemplate $offerTemplate)
     {
         $offerTemplate->delete();
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return redirect()->route('offer-templates.index')->with('success', 'Offer template deleted successfully.');
     }
 
@@ -173,5 +187,50 @@ class OfferTemplateController extends Controller
             'success'            => true,
             'offers_to_generate' => $offerTemplate->fresh()->offers_to_generate,
         ]);
+    }
+
+    public function queueDelete(OfferTemplate $offerTemplate)
+    {
+        $offerTemplate->update(['queue_delete' => !$offerTemplate->queue_delete]);
+
+        return response()->json([
+            'success'      => true,
+            'queue_delete' => $offerTemplate->fresh()->queue_delete,
+        ]);
+    }
+
+    public function bulkAction(Request $request)
+    {
+        $request->validate([
+            'action' => 'required|in:activate,deactivate,queue_post,queue_delete,cancel_delete,delete',
+            'ids'    => 'required|array|min:1',
+            'ids.*'  => 'integer|exists:offer_templates,id',
+        ]);
+
+        $ids    = $request->ids;
+        $action = $request->action;
+
+        switch ($action) {
+            case 'activate':
+                OfferTemplate::whereIn('id', $ids)->update(['is_active' => true]);
+                break;
+            case 'deactivate':
+                OfferTemplate::whereIn('id', $ids)->update(['is_active' => false]);
+                break;
+            case 'queue_post':
+                OfferTemplate::whereIn('id', $ids)->increment('offers_to_generate');
+                break;
+            case 'queue_delete':
+                OfferTemplate::whereIn('id', $ids)->update(['queue_delete' => true]);
+                break;
+            case 'cancel_delete':
+                OfferTemplate::whereIn('id', $ids)->update(['queue_delete' => false]);
+                break;
+            case 'delete':
+                OfferTemplate::whereIn('id', $ids)->delete();
+                break;
+        }
+
+        return response()->json(['success' => true, 'action' => $action, 'count' => count($ids)]);
     }
 }

@@ -23,6 +23,7 @@ class OfferAutomationController extends Controller
         }])->withCount([
             'offers as total_templates',
             'offers as active_templates_count' => fn ($q) => $q->where('is_active', true),
+            'offers as queue_delete_count'     => fn ($q) => $q->where('queue_delete', true),
         ])->get();
 
         $activeTemplates = OfferTemplate::where('is_active', true)->count();

@@ -17,6 +17,7 @@ class OfferTemplate extends Model
         'instant_delivery' => 'boolean',
         'enable_wholesale_pricing' => 'boolean',
         'last_posted_at' => 'datetime',
+        'queue_delete'   => 'boolean',
     ];
 
     public function userAccount()

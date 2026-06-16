@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ApplicationSetup;
 use App\Models\OfferAutomationLog;
 use App\Models\OfferTemplate;
+use App\Models\UserAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -121,6 +122,127 @@ class AutomationApiController extends Controller
                 'error'     => $error,
                 'failed_at' => now()->toIso8601String(),
             ])
+        );
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Returns accounts queued for delete-all (delete every live offer from g2g.com).
+     */
+    public function pendingDeleteAll(): JsonResponse
+    {
+        $accounts = UserAccount::where('queue_delete_all', true)->get();
+
+        $users = $accounts->map(fn ($a) => [
+            'user_id'  => $a->id,
+            'email'    => $a->email,
+            'password' => $a->password,
+        ])->values()->all();
+
+        return response()->json(['users' => $users, 'server_time' => now()->toIso8601String()]);
+    }
+
+    /**
+     * Mark a delete-all operation as complete for one account.
+     */
+    public function deleteAllComplete(UserAccount $userAccount): JsonResponse
+    {
+        $userAccount->update(['queue_delete_all' => false]);
+
+        OfferAutomationLog::create([
+            'offer_template_id' => null,
+            'status'            => 'success',
+            'message'           => "Delete-all completed for account '{$userAccount->email}'",
+            'details'           => ['account_id' => $userAccount->id, 'completed_at' => now()->toIso8601String()],
+            'executed_at'       => now(),
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Mark a delete-all operation as failed for one account.
+     */
+    public function deleteAllFailed(UserAccount $userAccount, Request $request): JsonResponse
+    {
+        $error = $request->input('error', 'Unknown error');
+
+        OfferAutomationLog::create([
+            'offer_template_id' => null,
+            'status'            => 'failed',
+            'message'           => "Delete-all failed for account '{$userAccount->email}': {$error}",
+            'details'           => ['account_id' => $userAccount->id, 'error' => $error, 'failed_at' => now()->toIso8601String()],
+            'executed_at'       => now(),
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Returns templates queued for deletion from g2g.com, grouped by user account.
+     */
+    public function pendingDeletions(): JsonResponse
+    {
+        $templates = OfferTemplate::with('userAccount')
+            ->where('queue_delete', true)
+            ->get();
+
+        $result = [];
+
+        foreach ($templates->groupBy('user_account_id') as $userTemplates) {
+            $userAccount = $userTemplates->first()->userAccount;
+            if (!$userAccount) {
+                continue;
+            }
+
+            $result[] = [
+                'user_id'   => $userAccount->id,
+                'email'     => $userAccount->email,
+                'password'  => $userAccount->password,
+                'templates' => $userTemplates->map(fn ($t) => [
+                    'template_id' => $t->id,
+                    'Title'       => $t->title,
+                ])->values()->all(),
+            ];
+        }
+
+        return response()->json([
+            'users'       => $result,
+            'server_time' => now()->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * Mark a template as successfully deleted from g2g.com.
+     */
+    public function deleteSuccess(OfferTemplate $template, Request $request): JsonResponse
+    {
+        $details = $request->input('details', []);
+
+        $template->update(['queue_delete' => false, 'is_active' => false]);
+
+        OfferAutomationLog::logSuccess(
+            $template,
+            "Successfully deleted offer from g2g.com for template '{$template->title}'",
+            array_merge($details, ['deleted_at' => now()->toIso8601String()])
+        );
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Mark a template deletion as failed.
+     */
+    public function deleteFailed(OfferTemplate $template, Request $request): JsonResponse
+    {
+        $error   = $request->input('error', 'Unknown error');
+        $details = $request->input('details', []);
+
+        OfferAutomationLog::logFailed(
+            $template,
+            "Failed to delete offer from g2g.com for template '{$template->title}': {$error}",
+            array_merge($details, ['error' => $error, 'failed_at' => now()->toIso8601String()])
         );
 
         return response()->json(['success' => true]);

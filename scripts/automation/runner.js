@@ -13,13 +13,13 @@
  *   LARAVEL_API_URL, API_KEY, COOKIES_DIR
  */
 
-import "dotenv/config";
+import "./env-loader.js";
 import path from "path";
 import { mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { chromium } from "playwright";
 import { heartbeat, fetchPending, reportSuccess, reportFailed } from "./api-client.js";
-import { ensureLoggedIn } from "./utils/auth.js";
+import { ensureLoggedIn, saveAuthState } from "./utils/auth.js";
 import { navigateToAccountsSection, clickContinueButton } from "./utils/sell.js";
 import { fillOfferForm, submitFormAndAddNew, submitForm } from "./utils/form-filler.js";
 
@@ -211,6 +211,9 @@ async function processUserGroup(userGroup) {
                 break;
             }
         }
+
+        // Persist any refreshed session tokens back to disk
+        if (context) await saveAuthState(context, cookieFile).catch(() => {});
     } catch (error) {
         console.error(`❌ Fatal error for user ${email}:`, error.message);
     } finally {

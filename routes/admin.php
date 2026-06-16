@@ -24,9 +24,12 @@ Route::group(['middleware' => ['role:super-admin|admin|staff|user']], function (
     Route::post('settings/organization', [ApplicationSetupController::class, 'update'])->name('applicationSetup.update');
 
     Route::resource('user-accounts', UserAccountController::class);
-    Route::resource('offer-templates', OfferTemplateController::class);
+    Route::post('user-accounts/{userAccount}/queue-delete-all', [UserAccountController::class, 'queueDeleteAll'])->name('user-accounts.queue-delete-all');
+    Route::post('offer-templates/bulk-action', [OfferTemplateController::class, 'bulkAction'])->name('offer-templates.bulk-action');
     Route::post('offer-templates/toggle-status/{id}', [OfferTemplateController::class, 'toggleStatus'])->name('offer-templates.toggle-status');
+    Route::resource('offer-templates', OfferTemplateController::class);
     Route::post('offer-templates/{offerTemplate}/queue-post', [OfferTemplateController::class, 'queuePost'])->name('offer-templates.queue-post');
+    Route::post('offer-templates/{offerTemplate}/queue-delete', [OfferTemplateController::class, 'queueDelete'])->name('offer-templates.queue-delete');
 
     Route::resource('levels', LevelController::class);
 
