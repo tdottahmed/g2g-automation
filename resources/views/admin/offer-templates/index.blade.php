@@ -5,7 +5,6 @@
         <h5 class="card-title mb-0">{{ __('Offer Templates') }}</h5>
 
         <div class="d-flex align-items-center gap-2 flex-wrap">
-          {{-- Filters --}}
           <form method="GET" action="{{ route('offer-templates.index') }}"
                 class="d-flex align-items-center gap-2 mb-0" id="filter-form">
 
@@ -18,11 +17,10 @@
               @endforeach
             </select>
 
-            <select name="status" class="form-select form-select-sm" style="min-width:120px" onchange="this.form.submit()">
-              <option value="">All Status</option>
-              <option value="active"   {{ request('status') === 'active'   ? 'selected' : '' }}>Active</option>
-              <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
-              <option value="queued_delete" {{ request('status') === 'queued_delete' ? 'selected' : '' }}>Queued Delete</option>
+            <select name="status" class="form-select form-select-sm" style="min-width:140px" onchange="this.form.submit()">
+              <option value="">All Templates</option>
+              <option value="permanent"     {{ request('status') === 'permanent'     ? 'selected' : '' }}>Permanent</option>
+              <option value="non_permanent" {{ request('status') === 'non_permanent' ? 'selected' : '' }}>Non-Permanent</option>
             </select>
 
             @if (request('account') || request('status'))
@@ -49,8 +47,7 @@
         <th>{{ __('Title') }}</th>
         <th>{{ __('Account') }}</th>
         <th>{{ __('Price') }}</th>
-        <th class="text-center">{{ __('Status') }}</th>
-        <th class="text-center">{{ __('Delete Queue') }}</th>
+        <th class="text-center">{{ __('Permanent') }}</th>
         <th>{{ __('Actions') }}</th>
       </x-data-display.thead>
 
@@ -63,8 +60,7 @@
                   class="form-check-input row-checkbox"
                   type="checkbox"
                   value="{{ $offer->id }}"
-                  data-is-active="{{ $offer->is_active ? '1' : '0' }}"
-                  data-queue-delete="{{ $offer->queue_delete ? '1' : '0' }}">
+                  data-is-permanent="{{ $offer->is_permanent ? '1' : '0' }}">
               </div>
             </td>
             <td>
@@ -76,10 +72,10 @@
                     <i class="ri-send-plane-line me-1"></i>Post ×{{ $offer->offers_to_generate }}
                   </span>
                 @endif
-                @if ($offer->queue_delete)
-                  <span class="badge bg-danger badge-del-queue"
-                        title="Queued for deletion from g2g.com">
-                    <i class="ri-delete-bin-line me-1"></i>Del
+                @if ($offer->is_permanent)
+                  <span class="badge bg-success-subtle text-success border border-success-subtle badge-permanent"
+                        title="Protected — skipped during delete-all">
+                    <i class="ri-shield-check-line me-1"></i>Permanent
                   </span>
                 @endif
               </div>
@@ -94,32 +90,18 @@
               <span class="text-muted small">{{ $offer->userAccount->owner_name ?? '—' }}</span>
             </td>
             <td>${{ number_format($offer->price, 2) }}</td>
+
+            {{-- Permanent toggle --}}
             <td class="text-center">
-              <form action="{{ route('offer-templates.toggle-status', $offer->id) }}" method="POST" class="d-inline">
-                @csrf
-                @if ($offer->is_active)
-                  <input type="hidden" name="status" value="0">
-                  <button type="submit" class="btn btn-sm btn-outline-danger off-offer-btn">
-                    <i class="ri-stop-circle-line me-1"></i>Active
-                  </button>
-                @else
-                  <input type="hidden" name="status" value="1">
-                  <button type="submit" class="btn btn-sm btn-outline-success start-offer-btn">
-                    <i class="ri-play-circle-fill me-1"></i>Inactive
-                  </button>
-                @endif
-              </form>
-            </td>
-            <td class="text-center">
-              @if ($offer->queue_delete)
-                <span class="badge bg-danger-subtle text-danger border border-danger-subtle queue-delete-badge-{{ $offer->id }}">
-                  <i class="ri-delete-bin-line me-1"></i>Queued
-                </span>
-              @else
-                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle queue-delete-badge-{{ $offer->id }}">
-                  —
-                </span>
-              @endif
+              <button
+                type="button"
+                class="btn btn-sm {{ $offer->is_permanent ? 'btn-success' : 'btn-outline-secondary' }} btn-toggle-permanent"
+                data-template-id="{{ $offer->id }}"
+                data-permanent="{{ $offer->is_permanent ? '1' : '0' }}"
+                title="{{ $offer->is_permanent ? 'Click to unmark as permanent' : 'Click to mark as permanent (skipped on delete-all)' }}">
+                <i class="{{ $offer->is_permanent ? 'ri-shield-check-line' : 'ri-shield-line' }}"></i>
+                <span class="ms-1 d-none d-md-inline">{{ $offer->is_permanent ? 'Protected' : 'Deletable' }}</span>
+              </button>
             </td>
 
             <x-data-display.table-actions>
@@ -136,16 +118,6 @@
                   <i class="ri-add-circle-line"></i> {{ __('Queue Post +1') }}
                 </button>
               </li>
-              <li>
-                <button
-                  type="button"
-                  class="dropdown-item {{ $offer->queue_delete ? 'text-secondary' : 'text-warning' }} btn-toggle-queue-delete"
-                  data-template-id="{{ $offer->id }}"
-                  data-queued="{{ $offer->queue_delete ? '1' : '0' }}">
-                  <i class="ri-delete-bin-2-line"></i>
-                  {{ $offer->queue_delete ? __('Cancel Delete Queue') : __('Queue for Delete') }}
-                </button>
-              </li>
               <li><hr class="dropdown-divider"></li>
               <li>
                 <button
@@ -160,7 +132,7 @@
           </tr>
         @empty
           <tr>
-            <td colspan="7" class="text-muted text-center py-4">
+            <td colspan="6" class="text-muted text-center py-4">
               {{ __('No offers found.') }}
             </td>
           </tr>
@@ -181,20 +153,14 @@
         </button>
       </div>
       <div class="d-flex gap-2 flex-wrap">
-        <button type="button" class="btn btn-sm btn-success" data-bulk="activate">
-          <i class="ri-play-circle-fill me-1"></i>Activate
+        <button type="button" class="btn btn-sm btn-success" data-bulk="mark_permanent">
+          <i class="ri-shield-check-line me-1"></i>Mark Permanent
         </button>
-        <button type="button" class="btn btn-sm btn-warning text-dark" data-bulk="deactivate">
-          <i class="ri-stop-circle-line me-1"></i>Deactivate
+        <button type="button" class="btn btn-sm btn-outline-light" data-bulk="unmark_permanent">
+          <i class="ri-shield-line me-1"></i>Unmark Permanent
         </button>
         <button type="button" class="btn btn-sm btn-info text-dark" data-bulk="queue_post">
           <i class="ri-add-circle-line me-1"></i>Queue Post +1
-        </button>
-        <button type="button" class="btn btn-sm btn-danger" data-bulk="queue_delete">
-          <i class="ri-delete-bin-2-line me-1"></i>Queue for Delete
-        </button>
-        <button type="button" class="btn btn-sm btn-outline-light" data-bulk="cancel_delete">
-          <i class="ri-close-circle-line me-1"></i>Cancel Delete Queue
         </button>
         <button type="button" class="btn btn-sm btn-outline-danger" data-bulk="delete">
           <i class="ri-delete-bin-line me-1"></i>Delete from DB
@@ -225,8 +191,9 @@
         } else {
           bulkBar.classList.add('d-none');
         }
-        selectAllCb.indeterminate = checked.length > 0 && checked.length < document.querySelectorAll('.row-checkbox').length;
-        selectAllCb.checked       = checked.length > 0 && checked.length === document.querySelectorAll('.row-checkbox').length;
+        const allBoxes = document.querySelectorAll('.row-checkbox');
+        selectAllCb.indeterminate = checked.length > 0 && checked.length < allBoxes.length;
+        selectAllCb.checked       = checked.length > 0 && checked.length === allBoxes.length;
       }
 
       selectAllCb.addEventListener('change', function () {
@@ -253,29 +220,20 @@
           if (ids.length === 0) return;
 
           const labels = {
-            activate:      `Activate ${ids.length} template(s)?`,
-            deactivate:    `Deactivate ${ids.length} template(s)?`,
-            queue_post:    `Add +1 to post queue for ${ids.length} template(s)?`,
-            queue_delete:  `Queue ${ids.length} template(s) for deletion from g2g.com?`,
-            cancel_delete: `Cancel delete queue for ${ids.length} template(s)?`,
-            delete:        `Permanently delete ${ids.length} template(s) from the database?`,
-          };
-
-          const icons = {
-            activate:      'question',
-            deactivate:    'question',
-            queue_post:    'question',
-            queue_delete:  'warning',
-            cancel_delete: 'question',
-            delete:        'warning',
+            mark_permanent:   `Mark ${ids.length} template(s) as permanent?`,
+            unmark_permanent: `Unmark ${ids.length} template(s) as permanent?`,
+            queue_post:       `Add +1 to post queue for ${ids.length} template(s)?`,
+            delete:           `Permanently delete ${ids.length} template(s) from the database?`,
           };
 
           Swal.fire({
             title: labels[action],
-            text: action === 'delete' || action === 'queue_delete'
-              ? 'This action cannot be easily undone.'
-              : 'You can change this anytime.',
-            icon: icons[action],
+            text: action === 'delete'
+              ? 'This action cannot be undone.'
+              : action === 'mark_permanent'
+                ? 'These offers will be skipped during delete-all runs.'
+                : 'You can change this anytime.',
+            icon: action === 'delete' ? 'warning' : 'question',
             showCancelButton: true,
             confirmButtonText: 'Yes, proceed',
             cancelButtonText: 'Cancel',
@@ -323,27 +281,73 @@
         });
       });
 
-      // ── Toggle status (single row) ───────────────────────────────────────────
-      document.querySelectorAll('.start-offer-btn, .off-offer-btn').forEach(function (button) {
-        button.addEventListener('click', function (e) {
-          e.preventDefault();
-          const form       = this.closest('form');
-          const isActivate = this.classList.contains('start-offer-btn');
+      // ── Toggle permanent (single) ────────────────────────────────────────────
+      document.querySelectorAll('.btn-toggle-permanent').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const id        = this.dataset.templateId;
+          const permanent = this.dataset.permanent === '1';
+          const btnEl     = this;
 
           Swal.fire({
-            title: isActivate ? 'Activate this offer?' : 'Deactivate this offer?',
-            text: 'You can change this status anytime.',
+            title: permanent ? 'Remove permanent protection?' : 'Mark as permanent?',
+            text:  permanent
+              ? 'This offer will be included in future delete-all runs.'
+              : 'This offer will be skipped during delete-all runs.',
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: isActivate ? 'Yes, activate!' : 'Yes, deactivate!',
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'Cancel',
             customClass: {
               confirmButton: 'btn btn-primary w-xs me-2 mt-2',
-              cancelButton:  'btn btn-danger w-xs mt-2',
+              cancelButton:  'btn btn-outline-secondary w-xs mt-2',
             },
             buttonsStyling: false,
             showCloseButton: true,
           }).then(function (result) {
-            if (result.isConfirmed) form.submit();
+            if (!result.isConfirmed) return;
+
+            fetch(`/offer-templates/${id}/toggle-permanent`, {
+              method:  'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+            })
+            .then(r => r.json())
+            .then(function (data) {
+              if (!data.success) return;
+
+              const isPermanent = data.is_permanent;
+              const row         = document.getElementById(`template-row-${id}`);
+
+              // Update button appearance
+              btnEl.dataset.permanent = isPermanent ? '1' : '0';
+              btnEl.className = btnEl.className
+                .replace(/btn-(success|outline-secondary)/, isPermanent ? 'btn-success' : 'btn-outline-secondary');
+              btnEl.title = isPermanent
+                ? 'Click to unmark as permanent'
+                : 'Click to mark as permanent (skipped on delete-all)';
+              btnEl.innerHTML = `<i class="${isPermanent ? 'ri-shield-check-line' : 'ri-shield-line'}"></i>`
+                              + `<span class="ms-1 d-none d-md-inline">${isPermanent ? 'Protected' : 'Deletable'}</span>`;
+
+              // Update inline badge in title cell
+              if (row) {
+                const titleDiv = row.querySelector('.d-flex.align-items-center.gap-2');
+                let badge      = row.querySelector('.badge-permanent');
+
+                if (isPermanent) {
+                  if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'badge bg-success-subtle text-success border border-success-subtle badge-permanent';
+                    badge.title = 'Protected — skipped during delete-all';
+                    titleDiv.appendChild(badge);
+                  }
+                  badge.innerHTML = '<i class="ri-shield-check-line me-1"></i>Permanent';
+                } else if (badge) {
+                  badge.remove();
+                }
+              }
+            })
+            .catch(function () {
+              Swal.fire({ title: 'Error', text: 'Could not update permanent status.', icon: 'error' });
+            });
           });
         });
       });
@@ -361,7 +365,6 @@
           .then(r => r.json())
           .then(function (data) {
             if (data.success) {
-              // Upsert the "Post ×N" badge in the title cell
               if (row) {
                 const titleDiv = row.querySelector('.d-flex.align-items-center.gap-2');
                 let postBadge  = row.querySelector('.badge-post-queue');
@@ -380,85 +383,6 @@
         });
       });
 
-      // ── Toggle queue-delete single ───────────────────────────────────────────
-      document.querySelectorAll('.btn-toggle-queue-delete').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          const id      = this.dataset.templateId;
-          const queued  = this.dataset.queued === '1';
-          const btnEl   = this;
-
-          const title = queued
-            ? 'Cancel delete queue for this template?'
-            : 'Queue this template for deletion from g2g.com?';
-
-          Swal.fire({
-            title,
-            text: queued ? '' : 'The runner will delete the matching g2g.com listing on next run.',
-            icon: queued ? 'question' : 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes',
-            cancelButtonText: 'Cancel',
-            customClass: {
-              confirmButton: queued ? 'btn btn-secondary w-xs me-2 mt-2' : 'btn btn-danger w-xs me-2 mt-2',
-              cancelButton:  'btn btn-outline-secondary w-xs mt-2',
-            },
-            buttonsStyling: false,
-            showCloseButton: true,
-          }).then(function (result) {
-            if (!result.isConfirmed) return;
-
-            fetch(`/offer-templates/${id}/queue-delete`, {
-              method:  'POST',
-              headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-            })
-            .then(r => r.json())
-            .then(function (data) {
-              if (data.success) {
-                const row = document.getElementById(`template-row-${id}`);
-
-                // Update the column badge
-                const colBadge = document.querySelector(`.queue-delete-badge-${id}`);
-                if (colBadge) {
-                  if (data.queue_delete) {
-                    colBadge.className = `badge bg-danger-subtle text-danger border border-danger-subtle queue-delete-badge-${id}`;
-                    colBadge.innerHTML = '<i class="ri-delete-bin-line me-1"></i>Queued';
-                  } else {
-                    colBadge.className = `badge bg-secondary-subtle text-secondary border border-secondary-subtle queue-delete-badge-${id}`;
-                    colBadge.innerHTML = '—';
-                  }
-                }
-
-                // Upsert / remove the inline "Del" badge in the title cell
-                if (row) {
-                  const titleDiv = row.querySelector('.d-flex.align-items-center.gap-2');
-                  let   delBadge = row.querySelector('.badge-del-queue');
-
-                  if (data.queue_delete) {
-                    if (!delBadge) {
-                      delBadge = document.createElement('span');
-                      delBadge.className = 'badge bg-danger badge-del-queue';
-                      delBadge.title = 'Queued for deletion from g2g.com';
-                      titleDiv.appendChild(delBadge);
-                    }
-                    delBadge.innerHTML = '<i class="ri-delete-bin-line me-1"></i>Del';
-                  } else if (delBadge) {
-                    delBadge.remove();
-                  }
-                }
-
-                // Update dropdown button text + colour
-                btnEl.dataset.queued = data.queue_delete ? '1' : '0';
-                btnEl.className = btnEl.className.replace(/text-(warning|secondary)/, data.queue_delete ? 'text-secondary' : 'text-warning');
-                btnEl.innerHTML = `<i class="ri-delete-bin-2-line"></i> ${data.queue_delete ? 'Cancel Delete Queue' : 'Queue for Delete'}`;
-              }
-            })
-            .catch(function () {
-              Swal.fire({ title: 'Error', text: 'Could not update queue.', icon: 'error' });
-            });
-          });
-        });
-      });
-
       // ── Delete from DB (single) ──────────────────────────────────────────────
       document.querySelectorAll('.btn-delete-template').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -467,7 +391,7 @@
 
           Swal.fire({
             title: 'Delete from database?',
-            html: `<strong>${title}</strong><br><span class="text-muted small">This only removes the record here — it does NOT delete the g2g.com listing. Use "Queue for Delete" for that.</span>`,
+            html: `<strong>${title}</strong><br><span class="text-muted small">This only removes the record here — it does NOT delete the g2g.com listing.</span>`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Yes, delete from DB',

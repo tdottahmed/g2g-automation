@@ -13,9 +13,8 @@ class OfferTemplateController extends Controller
     {
         $offers = OfferTemplate::with('userAccount')
             ->when($request->filled('account'), fn ($q) => $q->where('user_account_id', $request->account))
-            ->when($request->status === 'active',        fn ($q) => $q->where('is_active', true))
-            ->when($request->status === 'inactive',      fn ($q) => $q->where('is_active', false))
-            ->when($request->status === 'queued_delete', fn ($q) => $q->where('queue_delete', true))
+            ->when($request->status === 'permanent',    fn ($q) => $q->where('is_permanent', true))
+            ->when($request->status === 'non_permanent', fn ($q) => $q->where('is_permanent', false))
             ->latest()
             ->get();
 
@@ -51,9 +50,8 @@ class OfferTemplateController extends Controller
             'delivery_speed_min'     => 'required|numeric|min:0|max:59',
         ]);
 
-        // Prepare delivery method JSON
         $deliveryData = [
-            'method'        => 'manual', // always manual
+            'method'        => 'manual',
             'quantity_from' => $request->delivery_quantity_from,
             'speed_hour'    => $request->delivery_speed_hour,
             'speed_min'     => $request->delivery_speed_min,
@@ -71,24 +69,19 @@ class OfferTemplateController extends Controller
             'price'           => $request->price,
             'currency'        => $request->currency,
             'region'          => $request->region,
+            'is_permanent'    => $request->boolean('is_permanent'),
             'medias'          => $request->filled('medias') ? json_encode($request->medias) : null,
             'delivery_method' => json_encode($deliveryData),
         ];
 
         try {
             OfferTemplate::create($data);
-
-            return redirect()
-                ->route('offer-templates.index')
-                ->with('success', 'Offer template created successfully.');
+            return redirect()->route('offer-templates.index')->with('success', 'Offer template created successfully.');
         } catch (\Throwable $th) {
             logger()->error('Error creating offer template: ' . $th->getMessage());
-            return back()
-                ->with('error', 'An error occurred while creating the offer template. Please try again.')
-                ->withInput();
+            return back()->with('error', 'An error occurred while creating the offer template. Please try again.')->withInput();
         }
     }
-
 
     public function edit(OfferTemplate $offerTemplate)
     {
@@ -113,12 +106,14 @@ class OfferTemplateController extends Controller
             'medias.*.title'  => 'nullable|string|max:255',
             'medias.*.link'   => 'nullable|url|max:500',
         ]);
+
         $deliveryData = [
             'method'        => 'manual',
             'quantity_from' => $request->delivery_quantity_from ?? 0,
             'speed_hour'    => $request->delivery_speed_hour ?? 0,
             'speed_min'     => $request->delivery_speed_min ?? 0,
         ];
+
         $data = [
             'user_account_id' => $request->user_account_id,
             'title'           => $request->title,
@@ -131,23 +126,19 @@ class OfferTemplateController extends Controller
             'price'           => $request->price,
             'currency'        => $request->currency,
             'region'          => $request->region,
+            'is_permanent'    => $request->boolean('is_permanent'),
             'medias'          => $request->filled('medias') ? array_values($request->medias) : null,
-            'delivery_method' => json_encode($deliveryData)
+            'delivery_method' => json_encode($deliveryData),
         ];
 
         try {
             $offerTemplate->update($data);
-            return redirect()
-                ->route('offer-templates.index')
-                ->with('success', 'Offer template updated successfully.');
+            return redirect()->route('offer-templates.index')->with('success', 'Offer template updated successfully.');
         } catch (\Throwable $th) {
             logger()->error('Error updating offer template: ' . $th->getMessage());
-            return back()
-                ->withErrors(['error' => 'An error occurred while updating the offer template. Please try again.'])
-                ->withInput();
+            return back()->withErrors(['error' => 'An error occurred while updating the offer template. Please try again.'])->withInput();
         }
     }
-
 
     public function destroy(Request $request, OfferTemplate $offerTemplate)
     {
@@ -160,23 +151,17 @@ class OfferTemplateController extends Controller
         return redirect()->route('offer-templates.index')->with('success', 'Offer template deleted successfully.');
     }
 
-    public function toggleStatus(Request $request, $id)
+    public function togglePermanent(Request $request, OfferTemplate $offerTemplate)
     {
-        $offer = OfferTemplate::findOrFail($id);
-
-        if ($request->has('status')) {
-            $offer->is_active = $request->input('status');
+        if ($request->has('is_permanent')) {
+            $offerTemplate->is_permanent = (bool) $request->input('is_permanent');
         } else {
-            $offer->is_active = !$offer->is_active;
+            $offerTemplate->is_permanent = !$offerTemplate->is_permanent;
         }
 
-        $offer->save();
+        $offerTemplate->save();
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'is_active' => $offer->is_active]);
-        }
-
-        return redirect()->back()->with('success', 'Offer status updated successfully!');
+        return response()->json(['success' => true, 'is_permanent' => $offerTemplate->is_permanent]);
     }
 
     public function queuePost(OfferTemplate $offerTemplate)
@@ -189,20 +174,10 @@ class OfferTemplateController extends Controller
         ]);
     }
 
-    public function queueDelete(OfferTemplate $offerTemplate)
-    {
-        $offerTemplate->update(['queue_delete' => !$offerTemplate->queue_delete]);
-
-        return response()->json([
-            'success'      => true,
-            'queue_delete' => $offerTemplate->fresh()->queue_delete,
-        ]);
-    }
-
     public function bulkAction(Request $request)
     {
         $request->validate([
-            'action' => 'required|in:activate,deactivate,queue_post,queue_delete,cancel_delete,delete',
+            'action' => 'required|in:mark_permanent,unmark_permanent,queue_post,delete',
             'ids'    => 'required|array|min:1',
             'ids.*'  => 'integer|exists:offer_templates,id',
         ]);
@@ -211,20 +186,14 @@ class OfferTemplateController extends Controller
         $action = $request->action;
 
         switch ($action) {
-            case 'activate':
-                OfferTemplate::whereIn('id', $ids)->update(['is_active' => true]);
+            case 'mark_permanent':
+                OfferTemplate::whereIn('id', $ids)->update(['is_permanent' => true]);
                 break;
-            case 'deactivate':
-                OfferTemplate::whereIn('id', $ids)->update(['is_active' => false]);
+            case 'unmark_permanent':
+                OfferTemplate::whereIn('id', $ids)->update(['is_permanent' => false]);
                 break;
             case 'queue_post':
                 OfferTemplate::whereIn('id', $ids)->increment('offers_to_generate');
-                break;
-            case 'queue_delete':
-                OfferTemplate::whereIn('id', $ids)->update(['queue_delete' => true]);
-                break;
-            case 'cancel_delete':
-                OfferTemplate::whereIn('id', $ids)->update(['queue_delete' => false]);
                 break;
             case 'delete':
                 OfferTemplate::whereIn('id', $ids)->delete();

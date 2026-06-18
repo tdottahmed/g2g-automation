@@ -13,9 +13,6 @@ use Illuminate\Support\Carbon;
 
 class AutomationApiController extends Controller
 {
-    /**
-     * Returns templates that should be posted right now, grouped by user account.
-     */
     public function pending(): JsonResponse
     {
         $intervalMinutes = (int) (
@@ -27,9 +24,7 @@ class AutomationApiController extends Controller
             true
         );
 
-        $templates = OfferTemplate::with('userAccount')
-            ->where('is_active', true)
-            ->get();
+        $templates = OfferTemplate::with('userAccount')->get();
 
         $result = [];
 
@@ -72,9 +67,6 @@ class AutomationApiController extends Controller
         ]);
     }
 
-    /**
-     * Mark a template as successfully posted.
-     */
     public function success(OfferTemplate $template, Request $request): JsonResponse
     {
         $details = $request->input('details', []);
@@ -85,10 +77,6 @@ class AutomationApiController extends Controller
         if ($template->offers_to_generate && $template->offers_to_generate > 0) {
             $template->decrement('offers_to_generate');
             $remainingOffers = $template->fresh()->offers_to_generate;
-
-            if ($remainingOffers <= 0) {
-                $template->update(['is_active' => false]);
-            }
         }
 
         OfferAutomationLog::logSuccess(
@@ -103,13 +91,9 @@ class AutomationApiController extends Controller
         return response()->json([
             'success'          => true,
             'remaining_offers' => $remainingOffers ?? 'unlimited',
-            'is_active'        => $template->fresh()->is_active,
         ]);
     }
 
-    /**
-     * Mark a template as failed.
-     */
     public function failed(OfferTemplate $template, Request $request): JsonResponse
     {
         $error   = $request->input('error', 'Unknown error');
@@ -128,42 +112,42 @@ class AutomationApiController extends Controller
     }
 
     /**
-     * Returns accounts queued for delete-all (delete every live offer from g2g.com).
+     * Returns accounts queued for delete-all, with their permanent template titles so the
+     * desktop runner can skip those offers on g2g.com.
      */
     public function pendingDeleteAll(): JsonResponse
     {
-        $accounts = UserAccount::where('queue_delete_all', true)->get();
+        $accounts = UserAccount::where('queue_delete_all', true)
+            ->with(['offers' => fn ($q) => $q->where('is_permanent', true)->select('id', 'user_account_id', 'title')])
+            ->get();
 
         $users = $accounts->map(fn ($a) => [
-            'user_id'  => $a->id,
-            'email'    => $a->email,
-            'password' => $a->password,
+            'user_id'          => $a->id,
+            'email'            => $a->email,
+            'password'         => $a->password,
+            'permanent_titles' => $a->offers->pluck('title')->values()->all(),
         ])->values()->all();
 
         return response()->json(['users' => $users, 'server_time' => now()->toIso8601String()]);
     }
 
-    /**
-     * Mark a delete-all operation as complete for one account.
-     */
-    public function deleteAllComplete(UserAccount $userAccount): JsonResponse
+    public function deleteAllComplete(UserAccount $userAccount, Request $request): JsonResponse
     {
+        $details = $request->input('details', []);
+
         $userAccount->update(['queue_delete_all' => false]);
 
         OfferAutomationLog::create([
             'offer_template_id' => null,
             'status'            => 'success',
             'message'           => "Delete-all completed for account '{$userAccount->email}'",
-            'details'           => ['account_id' => $userAccount->id, 'completed_at' => now()->toIso8601String()],
+            'details'           => array_merge($details, ['account_id' => $userAccount->id, 'completed_at' => now()->toIso8601String()]),
             'executed_at'       => now(),
         ]);
 
         return response()->json(['success' => true]);
     }
 
-    /**
-     * Mark a delete-all operation as failed for one account.
-     */
     public function deleteAllFailed(UserAccount $userAccount, Request $request): JsonResponse
     {
         $error = $request->input('error', 'Unknown error');
@@ -179,102 +163,21 @@ class AutomationApiController extends Controller
         return response()->json(['success' => true]);
     }
 
-    /**
-     * Returns templates queued for deletion from g2g.com, grouped by user account.
-     */
-    public function pendingDeletions(): JsonResponse
-    {
-        $templates = OfferTemplate::with('userAccount')
-            ->where('queue_delete', true)
-            ->get();
-
-        $result = [];
-
-        foreach ($templates->groupBy('user_account_id') as $userTemplates) {
-            $userAccount = $userTemplates->first()->userAccount;
-            if (!$userAccount) {
-                continue;
-            }
-
-            $result[] = [
-                'user_id'   => $userAccount->id,
-                'email'     => $userAccount->email,
-                'password'  => $userAccount->password,
-                'templates' => $userTemplates->map(fn ($t) => [
-                    'template_id' => $t->id,
-                    'Title'       => $t->title,
-                    'price'       => (string) ($t->price ?? '0'),
-                ])->values()->all(),
-            ];
-        }
-
-        return response()->json([
-            'users'       => $result,
-            'server_time' => now()->toIso8601String(),
-        ]);
-    }
-
-    /**
-     * Mark a template as successfully deleted from g2g.com.
-     */
-    public function deleteSuccess(OfferTemplate $template, Request $request): JsonResponse
-    {
-        $details = $request->input('details', []);
-
-        $template->update(['queue_delete' => false, 'is_active' => false]);
-
-        OfferAutomationLog::logSuccess(
-            $template,
-            "Successfully deleted offer from g2g.com for template '{$template->title}'",
-            array_merge($details, ['deleted_at' => now()->toIso8601String()])
-        );
-
-        return response()->json(['success' => true]);
-    }
-
-    /**
-     * Mark a template deletion as failed.
-     */
-    public function deleteFailed(OfferTemplate $template, Request $request): JsonResponse
-    {
-        $error   = $request->input('error', 'Unknown error');
-        $details = $request->input('details', []);
-
-        OfferAutomationLog::logFailed(
-            $template,
-            "Failed to delete offer from g2g.com for template '{$template->title}': {$error}",
-            array_merge($details, ['error' => $error, 'failed_at' => now()->toIso8601String()])
-        );
-
-        return response()->json(['success' => true]);
-    }
-
-    /**
-     * Returns all user accounts with their active template count.
-     * Used by the desktop app's account-picker before running delete-all.
-     */
     public function userAccounts(): JsonResponse
     {
-        $accounts = UserAccount::withCount([
-            'offers as active_templates_count' => fn ($q) => $q->where('is_active', true),
-            'offers as total_templates_count',
-        ])
+        $accounts = UserAccount::withCount('offers as total_templates_count')
             ->orderBy('email')
             ->get();
 
         return response()->json([
             'accounts' => $accounts->map(fn ($a) => [
-                'id'                     => $a->id,
-                'email'                  => $a->email,
-                'active_templates_count' => $a->active_templates_count,
-                'total_templates_count'  => $a->total_templates_count,
+                'id'                    => $a->id,
+                'email'                 => $a->email,
+                'total_templates_count' => $a->total_templates_count,
             ])->values()->all(),
         ]);
     }
 
-    /**
-     * Simple connectivity / auth check.
-     */
     public function heartbeat(): JsonResponse
     {
         return response()->json([
@@ -318,6 +221,7 @@ class AutomationApiController extends Controller
             'mediaData'                 => $mediaData,
             'offers_to_generate'        => $template->offers_to_generate,
             'last_posted_at'            => $template->last_posted_at?->toIso8601String() ?? null,
+            'is_permanent'              => $template->is_permanent,
         ];
     }
 

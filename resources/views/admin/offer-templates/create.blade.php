@@ -113,6 +113,18 @@
       <x-data-entry.input type="text" name="region" label="Region" placeholder="Region" value="Global"
                           disabled />
 
+      <div class="mt-3">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="is_permanent" id="is_permanent" value="1"
+                 {{ old('is_permanent') ? 'checked' : '' }}>
+          <label class="form-check-label" for="is_permanent">
+            <i class="ri-shield-check-line me-1 text-success"></i>
+            <strong>{{ __('Permanent') }}</strong>
+            <span class="text-muted small ms-1">— this offer will be skipped during delete-all runs</span>
+          </label>
+        </div>
+      </div>
+
     </x-data-entry.form>
   </x-data-display.card>
   @push('scripts')

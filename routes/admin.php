@@ -5,7 +5,6 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\OfferAutomationController;
 use App\Http\Controllers\Admin\OfferAutomationLogController;
 use App\Http\Controllers\Admin\OfferTemplateController;
-use App\Http\Controllers\Admin\OfferSchedulerController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
@@ -26,10 +25,9 @@ Route::group(['middleware' => ['role:super-admin|admin|staff|user']], function (
     Route::resource('user-accounts', UserAccountController::class);
     Route::post('user-accounts/{userAccount}/queue-delete-all', [UserAccountController::class, 'queueDeleteAll'])->name('user-accounts.queue-delete-all');
     Route::post('offer-templates/bulk-action', [OfferTemplateController::class, 'bulkAction'])->name('offer-templates.bulk-action');
-    Route::post('offer-templates/toggle-status/{id}', [OfferTemplateController::class, 'toggleStatus'])->name('offer-templates.toggle-status');
+    Route::post('offer-templates/{offerTemplate}/toggle-permanent', [OfferTemplateController::class, 'togglePermanent'])->name('offer-templates.toggle-permanent');
     Route::resource('offer-templates', OfferTemplateController::class);
     Route::post('offer-templates/{offerTemplate}/queue-post', [OfferTemplateController::class, 'queuePost'])->name('offer-templates.queue-post');
-    Route::post('offer-templates/{offerTemplate}/queue-delete', [OfferTemplateController::class, 'queueDelete'])->name('offer-templates.queue-delete');
 
     Route::resource('levels', LevelController::class);
 

@@ -17,7 +17,7 @@ class UserAccountController extends Controller
     {
         $userAccounts = UserAccount::withCount([
             'offers as templates_count',
-            'offers as active_templates_count' => fn ($q) => $q->where('is_active', true),
+            'offers as permanent_templates_count' => fn ($q) => $q->where('is_permanent', true),
         ])->latest()->get();
 
         return view('admin.user-accounts.index', compact('userAccounts'));

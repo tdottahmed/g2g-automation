@@ -29,9 +29,8 @@
       </div>
       <ul class="navbar-nav" id="navbar-nav">
         <li class="menu-title"><span data-key="t-menu">Menu</span></li>
-        <x-layouts.admin.partials.sidebar-menu-item route="dashboard" icon="ri-dashboard-line" label="Dashboard" />
         <x-layouts.admin.partials.sidebar-menu-item route="automation.dashboard" icon="ri-dashboard-line"
-                                                    label="Automation Dashboard" />
+                                                    label="Dashboard" />
         <x-layouts.admin.partials.sidebar-menu-item route="user-accounts.index" icon="ri-user-3-line"
                                                     label="User Accounts" />
         <x-layouts.admin.partials.sidebar-menu-item route="levels.index" icon="ri-building-3-fill" label="Levels" />
@@ -39,13 +38,6 @@
                                                     label="Offer Templates" />
         <x-layouts.admin.partials.sidebar-menu-item route="offer-logs.index" icon="ri-newspaper-line"
                                                     label="Offer Automation Logs" />
-        {{-- 
-        <x-layouts.admin.partials.sidebar-menu-item route="roles.index" icon="ri-user-2-line" label="Users Management"
-                                                    :dropdown-routes="[
-                                                        'roles.index' => 'Roles',
-                                                        'permissions.index' => 'Permissions',
-                                                        'users.index' => 'Users',
-                                                    ]" /> --}}
         <x-layouts.admin.partials.sidebar-menu-item route="applicationSetup.index" icon="ri-settings-3-line"
                                                     label="Application Setup" />
 

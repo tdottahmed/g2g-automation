@@ -9,15 +9,14 @@ class OfferTemplate extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'medias' => 'array',
-        'delivery_method' => 'array',
-        'wholesale_pricing' => 'array',
-        'is_active' => 'boolean',
-        'enable_low_stock_alert' => 'boolean',
-        'instant_delivery' => 'boolean',
+        'medias'                   => 'array',
+        'delivery_method'          => 'array',
+        'wholesale_pricing'        => 'array',
+        'is_permanent'             => 'boolean',
+        'enable_low_stock_alert'   => 'boolean',
+        'instant_delivery'         => 'boolean',
         'enable_wholesale_pricing' => 'boolean',
-        'last_posted_at' => 'datetime',
-        'queue_delete'   => 'boolean',
+        'last_posted_at'           => 'datetime',
     ];
 
     public function userAccount()

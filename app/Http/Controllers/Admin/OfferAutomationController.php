@@ -7,6 +7,7 @@ use App\Models\ApplicationSetup;
 use App\Models\OfferAutomationLog;
 use App\Models\OfferTemplate;
 use App\Models\UserAccount;
+use Illuminate\Http\Request;
 
 class OfferAutomationController extends Controller
 {
@@ -16,26 +17,16 @@ class OfferAutomationController extends Controller
             ApplicationSetup::where('type', 'schedule_interval_minutes')->value('value') ?? 15
         );
 
-        $userAccounts = UserAccount::with(['offers' => function ($q) {
-            $q->orderByDesc('is_active')->orderByDesc('last_posted_at');
-        }])->withCount([
+        // Load counts only — templates are fetched lazily via AJAX per account
+        $userAccounts = UserAccount::withCount([
             'offers as total_templates',
-            'offers as active_templates_count' => fn ($q) => $q->where('is_active', true),
-            'offers as queue_delete_count'     => fn ($q) => $q->where('queue_delete', true),
-        ])->get();
+            'offers as permanent_templates_count' => fn ($q) => $q->where('is_permanent', true),
+            'offers as queued_posts_count'        => fn ($q) => $q->where('offers_to_generate', '>', 0),
+        ])->latest()->get();
 
-        $activeTemplates = OfferTemplate::where('is_active', true)->count();
-
-        $pendingCount = OfferTemplate::where('is_active', true)
-            ->where(function ($q) use ($intervalMinutes) {
-                $q->where(function ($inner) {
-                    $inner->whereNotNull('offers_to_generate')
-                          ->where('offers_to_generate', '>', 0);
-                })->orWhere(function ($inner) use ($intervalMinutes) {
-                    $inner->whereNull('last_posted_at')
-                          ->orWhere('last_posted_at', '<', now()->subMinutes($intervalMinutes));
-                });
-            })->count();
+        $totalTemplates   = OfferTemplate::count();
+        $permanentCount   = OfferTemplate::where('is_permanent', true)->count();
+        $queuedPostsCount = OfferTemplate::where('offers_to_generate', '>', 0)->count();
 
         $postedToday = OfferAutomationLog::where('status', 'success')
             ->whereDate('executed_at', today())
@@ -47,25 +38,43 @@ class OfferAutomationController extends Controller
 
         $recentLogs = OfferAutomationLog::with('template')
             ->latest('executed_at')
-            ->limit(20)
+            ->limit(15)
             ->get();
 
         return view('admin.offer-automation.dashboard', compact(
             'userAccounts',
             'recentLogs',
-            'activeTemplates',
-            'pendingCount',
+            'totalTemplates',
+            'permanentCount',
+            'queuedPostsCount',
             'postedToday',
             'failedToday',
             'intervalMinutes'
         ));
     }
 
-    public function getUserTemplates($userAccountId)
+    /**
+     * AJAX: return paginated templates for one account.
+     * Supports ?search=, ?permanent= (permanent|non_permanent), ?page=
+     */
+    public function getUserTemplates(Request $request, UserAccount $userAccount)
     {
-        $templates = OfferTemplate::where('user_account_id', $userAccountId)
-            ->select(['id', 'title', 'is_active', 'last_posted_at', 'created_at'])
-            ->get();
+        $query = OfferTemplate::where('user_account_id', $userAccount->id);
+
+        if ($request->filled('search')) {
+            $query->where('title', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->permanent === 'permanent') {
+            $query->where('is_permanent', true);
+        } elseif ($request->permanent === 'non_permanent') {
+            $query->where('is_permanent', false);
+        }
+
+        $templates = $query
+            ->select(['id', 'title', 'is_permanent', 'offers_to_generate', 'last_posted_at', 'price', 'th_level', 'king_level', 'queen_level'])
+            ->latest()
+            ->paginate(25);
 
         return response()->json($templates);
     }

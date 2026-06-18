@@ -13,6 +13,11 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        return redirect()->route('automation.dashboard');
+    }
+
+    public function _legacyIndex()
+    {
         // Ensure all variables have default values
         $metrics = $this->getKeyMetrics();
         $chartData = $this->getChartData();
@@ -40,7 +45,7 @@ class DashboardController extends Controller
 
         // Template statistics
         $totalTemplates = OfferTemplate::count();
-        $activeTemplates = OfferTemplate::where('is_active', true)->count();
+        $activeTemplates = OfferTemplate::count();
 
         // Success rate for last 7 days
         $recentLogs = OfferAutomationLog::where('executed_at', '>=', now()->subDays(7))->get();

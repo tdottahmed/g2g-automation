@@ -2,17 +2,13 @@
 
   {{-- ── Runner info banner ──────────────────────────────────────────────────── --}}
   <div class="alert alert-primary border-0 d-flex align-items-center gap-3 mb-4 shadow-sm">
-    <i class="ri-terminal-box-line fs-3 flex-shrink-0"></i>
+    <i class="ri-desktop-line fs-3 flex-shrink-0"></i>
     <div class="flex-grow-1">
-      <div class="fw-semibold mb-1">Posting is handled by the local runner — no PHP commands needed.</div>
+      <div class="fw-semibold mb-1">Posting is handled by the G2G Automation Desktop App.</div>
       <div class="small text-body-secondary">
-        From <code>scripts/automation/</code>, run:
-        <code class="ms-1 bg-primary bg-opacity-10 px-2 py-1 rounded">node runner.js --watch</code>
-        <span class="mx-1">&middot;</span>
-        <code class="bg-danger bg-opacity-10 px-2 py-1 rounded">node delete-specific-offers.js --api --watch</code>
-        <span class="mx-1">&middot;</span>
-        <code class="bg-warning bg-opacity-10 px-2 py-1 rounded">node delete-offers.js --api --watch</code>
-        — polling every {{ $intervalMinutes }} min.
+        Keep the desktop app running and connected. It polls every
+        <strong>{{ $intervalMinutes }} min</strong> for pending templates and reports results back automatically.
+        Permanent offers are always skipped during delete-all runs.
       </div>
     </div>
     <a href="{{ route('offer-logs.index') }}" class="btn btn-sm btn-outline-primary flex-shrink-0">
@@ -22,55 +18,56 @@
 
   {{-- ── Stats row ────────────────────────────────────────────────────────────── --}}
   <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body text-center py-4">
-          <div class="fs-2 fw-bold text-primary mb-1">{{ $activeTemplates }}</div>
-          <div class="text-muted small">Active Templates</div>
+    @php
+      $stats = [
+        ['icon'=>'ri-account-circle-line','color'=>'primary',  'value'=>$userAccounts->count(),'label'=>'Accounts'],
+        ['icon'=>'ri-file-list-3-line',   'color'=>'info',     'value'=>$totalTemplates,        'label'=>'Total Templates'],
+        ['icon'=>'ri-shield-check-line',  'color'=>'success',  'value'=>$permanentCount,        'label'=>'Permanent'],
+        ['icon'=>'ri-send-plane-line',    'color'=>'warning',  'value'=>$queuedPostsCount,      'label'=>'Queued Posts'],
+        ['icon'=>'ri-checkbox-circle-line','color'=>'success', 'value'=>$postedToday,           'label'=>'Posted Today'],
+        ['icon'=>'ri-close-circle-line',  'color'=>'danger',   'value'=>$failedToday,           'label'=>'Failed Today'],
+      ];
+    @endphp
+    @foreach ($stats as $s)
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body text-center py-3 px-2">
+            <div class="avatar-sm mx-auto mb-2">
+              <div class="avatar-title bg-{{ $s['color'] }}-subtle text-{{ $s['color'] }} rounded-circle">
+                <i class="{{ $s['icon'] }} fs-18"></i>
+              </div>
+            </div>
+            <div class="fs-3 fw-bold text-{{ $s['color'] }} mb-0 lh-1">{{ $s['value'] }}</div>
+            <div class="text-muted small mt-1">{{ $s['label'] }}</div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="col-6 col-md-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body text-center py-4">
-          <div class="fs-2 fw-bold text-warning mb-1">{{ $pendingCount }}</div>
-          <div class="text-muted small">Pending Now</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-6 col-md-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body text-center py-4">
-          <div class="fs-2 fw-bold text-success mb-1">{{ $postedToday }}</div>
-          <div class="text-muted small">Posted Today</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-6 col-md-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body text-center py-4">
-          <div class="fs-2 fw-bold text-danger mb-1">{{ $failedToday }}</div>
-          <div class="text-muted small">Failed Today</div>
-        </div>
-      </div>
-    </div>
+    @endforeach
   </div>
 
-  {{-- ── Accounts & Templates ─────────────────────────────────────────────────── --}}
+  {{-- ── Accounts section ─────────────────────────────────────────────────────── --}}
   <x-data-display.card class="mb-4">
     <x-slot name="header">
-      <div class="d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">
-          <i class="ri-account-circle-line text-primary me-2"></i>Accounts &amp; Templates
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <h5 class="card-title mb-0 me-auto">
+          <i class="ri-account-circle-line text-primary me-2"></i>Accounts
         </h5>
-        <div class="d-flex gap-2">
-          <a href="{{ route('user-accounts.create') }}" class="btn btn-sm btn-outline-secondary">
-            <i class="ri-user-add-line me-1"></i>New Account
-          </a>
-          <a href="{{ route('offer-templates.create') }}" class="btn btn-sm btn-primary">
-            <i class="ri-add-line me-1"></i>New Template
-          </a>
+
+        {{-- Account search --}}
+        <div class="input-group input-group-sm" style="max-width:220px">
+          <span class="input-group-text bg-transparent border-end-0">
+            <i class="ri-search-line text-muted"></i>
+          </span>
+          <input type="text" id="account-search" class="form-control border-start-0 ps-0"
+                 placeholder="Search accounts…">
         </div>
+
+        <a href="{{ route('user-accounts.create') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="ri-user-add-line me-1"></i>New Account
+        </a>
+        <a href="{{ route('offer-templates.create') }}" class="btn btn-sm btn-primary">
+          <i class="ri-add-line me-1"></i>New Template
+        </a>
       </div>
     </x-slot>
 
@@ -83,287 +80,139 @@
         </a>
       </div>
     @else
-      <div class="accordion accordion-flush" id="usersAccordion">
-        @foreach ($userAccounts as $index => $user)
-          <div class="accordion-item" id="account-section-{{ $user->id }}">
-
-            {{-- ── Accordion header ──────────────────────────────────────────── --}}
-            <h2 class="accordion-header">
-              <button
-                class="accordion-button {{ $index > 0 ? 'collapsed' : '' }} py-3 ps-3"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#user-pane-{{ $user->id }}"
-                aria-expanded="{{ $index === 0 ? 'true' : 'false' }}">
-                <div class="d-flex align-items-center gap-3 w-100 me-3">
-                  <img
-                    src="https://ui-avatars.com/api/?name={{ urlencode($user->email) }}&background=7269ef&color=fff&size=40"
-                    class="rounded-circle flex-shrink-0" width="40" height="40" alt="">
-                  <div>
-                    <div class="fw-semibold">{{ $user->email }}</div>
-                    <div class="text-muted small">
-                      {{ $user->total_templates }} template{{ $user->total_templates !== 1 ? 's' : '' }}
-                      &middot; {{ $user->active_templates_count }} active
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="account-table">
+          <thead class="table-light">
+            <tr>
+              <th>Account</th>
+              <th class="text-center" style="width:110px">Templates</th>
+              <th class="text-center" style="width:90px">Protected</th>
+              <th class="text-center" style="width:80px">Post Queue</th>
+              <th class="text-center" style="width:110px">Delete All</th>
+              <th class="text-end pe-3" style="width:200px">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach ($userAccounts as $account)
+              <tr class="account-row" data-email="{{ strtolower($account->email) }}" data-owner="{{ strtolower($account->owner_name ?? '') }}"
+                  id="account-row-{{ $account->id }}">
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <img src="https://ui-avatars.com/api/?name={{ urlencode($account->email) }}&background=7269ef&color=fff&size=36"
+                         class="rounded-circle flex-shrink-0" width="36" height="36" alt="">
+                    <div>
+                      <div class="fw-semibold lh-sm">{{ $account->email }}</div>
+                      @if ($account->owner_name)
+                        <div class="text-muted small">{{ $account->owner_name }}</div>
+                      @endif
                     </div>
-                  </div>
-                  <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
-                    @if ($user->queue_delete_all)
-                      <span class="badge bg-danger d-none d-sm-inline-flex" title="Delete-all is queued — runner will wipe all g2g offers for this account">
-                        <i class="ri-delete-bin-line me-1"></i>Delete All Queued
+                    @if (!$account->is_generated_cookies)
+                      <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1"
+                            title="No saved cookies — desktop app needs to log in">
+                        <i class="ri-alert-line"></i>
                       </span>
-                    @endif
-                    @if (($user->queue_delete_count ?? 0) > 0)
-                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle d-none d-sm-inline-flex">
-                        <i class="ri-delete-bin-2-line me-1"></i>{{ $user->queue_delete_count }} del queued
-                      </span>
-                    @endif
-                    @if ($user->is_generated_cookies)
-                      <span class="badge bg-success-subtle text-success border border-success-subtle d-none d-md-inline-flex">
-                        <i class="ri-shield-check-line me-1"></i>Cookies
-                      </span>
-                    @else
-                      <span class="badge bg-warning-subtle text-warning border border-warning-subtle d-none d-md-inline-flex">
-                        <i class="ri-alert-line me-1"></i>No Cookies
-                      </span>
-                    @endif
-                    @if ($user->active_templates_count > 0)
-                      <span class="badge bg-success-subtle text-success border border-success-subtle">
-                        <i class="ri-checkbox-circle-line me-1"></i>{{ $user->active_templates_count }} active
-                      </span>
-                    @else
-                      <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">No active</span>
                     @endif
                   </div>
-                </div>
-              </button>
-            </h2>
-
-            {{-- ── Accordion body ────────────────────────────────────────────── --}}
-            <div
-              id="user-pane-{{ $user->id }}"
-              class="accordion-collapse collapse {{ $index === 0 ? 'show' : '' }}"
-              data-bs-parent="#usersAccordion">
-              <div class="accordion-body p-0">
-
-                {{-- Account action bar --}}
-                <div class="d-flex align-items-center gap-2 px-3 py-2 bg-light border-bottom flex-wrap">
-                  <span class="text-muted small fw-medium me-auto">{{ $user->owner_name }}</span>
-
-                  <a href="{{ route('offer-templates.create') }}?account={{ $user->id }}"
-                     class="btn btn-sm btn-outline-primary">
-                    <i class="ri-add-line"></i> Add Template
-                  </a>
-                  <a href="{{ route('user-accounts.edit', $user->id) }}"
-                     class="btn btn-sm btn-outline-secondary">
-                    <i class="ri-edit-line"></i> Edit Account
-                  </a>
-
-                  {{-- Delete All from g2g button --}}
-                  <button
-                    type="button"
-                    class="btn btn-sm {{ $user->queue_delete_all ? 'btn-warning' : 'btn-outline-warning' }} btn-delete-all-g2g"
-                    data-account-id="{{ $user->id }}"
-                    data-account-email="{{ $user->email }}"
-                    data-queued="{{ $user->queue_delete_all ? '1' : '0' }}"
-                    title="{{ $user->queue_delete_all ? 'Cancel: un-queue delete-all' : 'Queue: delete ALL live offers for this account from g2g.com on next runner cycle' }}">
-                    <i class="ri-delete-bin-2-line me-1"></i>
-                    <span class="btn-delete-all-label-{{ $user->id }}">
-                      {{ $user->queue_delete_all ? 'Cancel Delete All' : 'Delete All from g2g' }}
+                </td>
+                <td class="text-center">
+                  <span class="fw-semibold">{{ $account->total_templates }}</span>
+                </td>
+                <td class="text-center">
+                  @if ($account->permanent_templates_count > 0)
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                      <i class="ri-shield-check-line me-1"></i>{{ $account->permanent_templates_count }}
                     </span>
+                  @else
+                    <span class="text-muted small">—</span>
+                  @endif
+                </td>
+                <td class="text-center">
+                  @if ($account->queued_posts_count > 0)
+                    <span class="badge bg-warning text-dark">
+                      <i class="ri-send-plane-line me-1"></i>{{ $account->queued_posts_count }}
+                    </span>
+                  @else
+                    <span class="text-muted small">—</span>
+                  @endif
+                </td>
+                <td class="text-center">
+                  @if ($account->queue_delete_all)
+                    <span class="badge bg-danger">
+                      <i class="ri-delete-bin-line me-1"></i>Queued
+                    </span>
+                  @else
+                    <span class="text-muted small">—</span>
+                  @endif
+                </td>
+                <td class="text-end pe-3">
+                  {{-- Manage Templates --}}
+                  <button type="button"
+                          class="btn btn-sm btn-outline-primary btn-manage-templates"
+                          data-account-id="{{ $account->id }}"
+                          data-account-email="{{ $account->email }}"
+                          data-total="{{ $account->total_templates }}"
+                          data-permanent="{{ $account->permanent_templates_count }}"
+                          title="Browse and manage templates for this account">
+                    <i class="ri-layout-grid-line me-1"></i>Templates
                   </button>
 
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline-danger btn-delete-account"
-                    data-account-id="{{ $user->id }}"
-                    data-account-email="{{ $user->email }}"
-                    data-templates="{{ $user->total_templates }}">
-                    <i class="ri-delete-bin-line"></i> Delete Account
+                  {{-- Delete All from g2g --}}
+                  <button type="button"
+                          class="btn btn-sm ms-1 {{ $account->queue_delete_all ? 'btn-warning' : 'btn-outline-warning' }} btn-delete-all-g2g"
+                          data-account-id="{{ $account->id }}"
+                          data-account-email="{{ $account->email }}"
+                          data-permanent-count="{{ $account->permanent_templates_count }}"
+                          data-queued="{{ $account->queue_delete_all ? '1' : '0' }}"
+                          title="{{ $account->queue_delete_all ? 'Cancel delete-all' : 'Queue: delete all g2g offers (skips permanent)' }}">
+                    <i class="ri-delete-bin-2-line"></i>
                   </button>
-                </div>
 
-                {{-- Per-account bulk action bar (hidden until rows selected) --}}
-                <div class="d-none px-3 py-2 border-bottom bg-dark text-white" id="bulk-bar-{{ $user->id }}">
-                  <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <span class="fw-semibold small" id="bulk-count-{{ $user->id }}">0 selected</span>
-                    <div class="vr mx-1"></div>
-                    <button type="button" class="btn btn-sm btn-success bulk-action-btn"
-                            data-account="{{ $user->id }}" data-action="activate">
-                      <i class="ri-play-circle-fill me-1"></i>Activate
+                  {{-- More actions dropdown --}}
+                  <div class="dropdown d-inline-block ms-1">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split px-2"
+                            type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     </button>
-                    <button type="button" class="btn btn-sm btn-secondary bulk-action-btn"
-                            data-account="{{ $user->id }}" data-action="deactivate">
-                      <i class="ri-stop-circle-line me-1"></i>Deactivate
-                    </button>
-                    <button type="button" class="btn btn-sm btn-info text-dark bulk-action-btn"
-                            data-account="{{ $user->id }}" data-action="queue_post">
-                      <i class="ri-add-circle-line me-1"></i>Queue Post +1
-                    </button>
-                    <button type="button" class="btn btn-sm btn-danger bulk-action-btn"
-                            data-account="{{ $user->id }}" data-action="queue_delete">
-                      <i class="ri-delete-bin-2-line me-1"></i>Queue Delete
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-light bulk-action-btn"
-                            data-account="{{ $user->id }}" data-action="cancel_delete">
-                      <i class="ri-close-circle-line me-1"></i>Cancel Delete Queue
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger bulk-action-btn"
-                            data-account="{{ $user->id }}" data-action="delete">
-                      <i class="ri-delete-bin-line me-1"></i>Delete from DB
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-light bulk-clear-btn ms-auto"
-                            data-account="{{ $user->id }}">
-                      <i class="ri-close-line"></i> Clear
-                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                      <li>
+                        <a class="dropdown-item" href="{{ route('user-accounts.edit', $account->id) }}">
+                          <i class="ri-edit-line me-2"></i>Edit Account
+                        </a>
+                      </li>
+                      <li>
+                        <a class="dropdown-item" href="{{ route('offer-templates.create') }}?account={{ $account->id }}">
+                          <i class="ri-add-circle-line me-2"></i>Add Template
+                        </a>
+                      </li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li>
+                        <button type="button" class="dropdown-item text-danger btn-delete-account"
+                                data-account-id="{{ $account->id }}"
+                                data-account-email="{{ $account->email }}"
+                                data-templates="{{ $account->total_templates }}">
+                          <i class="ri-delete-bin-line me-2"></i>Delete Account
+                        </button>
+                      </li>
+                    </ul>
                   </div>
-                </div>
-
-                {{-- Template table --}}
-                @if ($user->offers->isEmpty())
-                  <div class="py-4 text-center text-muted small">
-                    No templates for this account.
-                    <a href="{{ route('offer-templates.create') }}">Create one →</a>
-                  </div>
-                @else
-                  <div class="table-responsive">
-                    <table class="table table-sm table-hover align-middle mb-0">
-                      <thead class="table-light">
-                        <tr>
-                          <th style="width:36px" class="ps-3">
-                            <div class="form-check mb-0">
-                              <input class="form-check-input tpl-select-all"
-                                     type="checkbox"
-                                     data-account="{{ $user->id }}"
-                                     title="Select all for {{ $user->email }}">
-                            </div>
-                          </th>
-                          <th>Template</th>
-                          <th class="text-center" style="width:70px">Active</th>
-                          <th class="text-center" style="width:90px">Post Q</th>
-                          <th style="width:140px">Last Posted</th>
-                          <th class="text-end pe-3" style="width:220px">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @foreach ($user->offers as $template)
-                          <tr id="template-row-{{ $template->id }}">
-                            <td class="ps-3">
-                              <div class="form-check mb-0">
-                                <input
-                                  class="form-check-input tpl-cb"
-                                  type="checkbox"
-                                  value="{{ $template->id }}"
-                                  data-account="{{ $user->id }}">
-                              </div>
-                            </td>
-
-                            <td>
-                              <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <span class="fw-medium">{{ $template->title }}</span>
-                                @if (($template->offers_to_generate ?? 0) > 0)
-                                  <span class="badge bg-warning text-dark badge-post-queue-{{ $template->id }}"
-                                        title="Queued for posting: {{ $template->offers_to_generate }} run(s)">
-                                    <i class="ri-send-plane-line me-1"></i>Post ×{{ $template->offers_to_generate }}
-                                  </span>
-                                @endif
-                                @if ($template->queue_delete)
-                                  <span class="badge bg-danger badge-del-queue-{{ $template->id }}"
-                                        title="Queued for deletion from g2g.com">
-                                    <i class="ri-delete-bin-line me-1"></i>Del
-                                  </span>
-                                @endif
-                              </div>
-                              <div class="text-muted small mt-1">
-                                TH{{ $template->th_level }}
-                                @if ($template->king_level) &middot; K{{ $template->king_level }} @endif
-                                &middot; ${{ number_format($template->price, 2) }}
-                              </div>
-                            </td>
-
-                            <td class="text-center">
-                              <div class="form-check form-switch d-inline-flex justify-content-center mb-0">
-                                <input
-                                  class="form-check-input toggle-active"
-                                  type="checkbox"
-                                  role="switch"
-                                  data-template-id="{{ $template->id }}"
-                                  {{ $template->is_active ? 'checked' : '' }}>
-                              </div>
-                            </td>
-
-                            <td class="text-center">
-                              @php $queued = $template->offers_to_generate ?? 0; @endphp
-                              <span
-                                class="badge queued-count-badge {{ $queued > 0 ? 'bg-warning text-dark' : 'bg-secondary-subtle text-secondary' }}"
-                                id="queued-{{ $template->id }}">
-                                {{ $queued }}
-                              </span>
-                            </td>
-
-                            <td>
-                              <span class="text-muted small" title="{{ $template->last_posted_at }}">
-                                {{ $template->last_posted_at ? $template->last_posted_at->diffForHumans() : '—' }}
-                              </span>
-                            </td>
-
-                            <td class="text-end pe-3">
-                              {{-- Queue Post --}}
-                              <button
-                                class="btn btn-sm btn-outline-warning btn-queue-post"
-                                data-template-id="{{ $template->id }}"
-                                title="Add 1 forced post">
-                                <i class="ri-add-circle-line"></i> Queue
-                              </button>
-
-                              {{-- Queue for g2g Delete --}}
-                              <button
-                                type="button"
-                                class="btn btn-sm ms-1 {{ $template->queue_delete ? 'btn-danger' : 'btn-outline-secondary' }} btn-toggle-del-queue"
-                                data-template-id="{{ $template->id }}"
-                                data-queued="{{ $template->queue_delete ? '1' : '0' }}"
-                                title="{{ $template->queue_delete ? 'Cancel g2g delete queue' : 'Queue for deletion from g2g.com' }}">
-                                <i class="ri-delete-bin-2-line"></i>
-                              </button>
-
-                              {{-- Edit --}}
-                              <a
-                                href="{{ route('offer-templates.edit', $template->id) }}"
-                                class="btn btn-sm btn-outline-secondary ms-1"
-                                title="Edit template">
-                                <i class="ri-edit-line"></i>
-                              </a>
-
-                              {{-- Delete from DB --}}
-                              <button
-                                type="button"
-                                class="btn btn-sm btn-outline-danger ms-1 btn-delete-template"
-                                data-template-id="{{ $template->id }}"
-                                data-template-title="{{ $template->title }}"
-                                title="Delete template record from database">
-                                <i class="ri-delete-bin-line"></i>
-                              </button>
-                            </td>
-                          </tr>
-                        @endforeach
-                      </tbody>
-                    </table>
-                  </div>
-                @endif
-
-              </div>
-            </div>
-          </div>
-        @endforeach
+                </td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
+      </div>
+      <div id="account-no-results" class="py-4 text-center text-muted d-none">
+        <i class="ri-search-line fs-2 opacity-50"></i>
+        <p class="mt-2 mb-0">No accounts match your search.</p>
       </div>
     @endif
   </x-data-display.card>
 
-  {{-- ── Recent logs ──────────────────────────────────────────────────────────── --}}
+  {{-- ── Recent Logs ──────────────────────────────────────────────────────────── --}}
   <x-data-display.card>
     <x-slot name="header">
       <div class="d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">
-          <i class="ri-history-line text-primary me-2"></i>Recent Logs
+          <i class="ri-history-line text-primary me-2"></i>Recent Activity
         </h5>
         <a href="{{ route('offer-logs.index') }}" class="btn btn-sm btn-outline-secondary">
           View All →
@@ -374,7 +223,7 @@
     @if ($recentLogs->isEmpty())
       <div class="py-5 text-center text-muted">
         <i class="ri-file-list-3-line display-3 d-block mb-2 opacity-25"></i>
-        No logs yet. Run the local runner to start posting.
+        No logs yet. Keep the desktop app running to start seeing activity.
       </div>
     @else
       <div class="table-responsive">
@@ -383,8 +232,8 @@
             <tr>
               <th style="width:130px">When</th>
               <th>Template</th>
-              <th style="width:90px" class="text-center">Status</th>
-              <th>Message</th>
+              <th class="text-center" style="width:90px">Status</th>
+              <th class="d-none d-md-table-cell">Message</th>
             </tr>
           </thead>
           <tbody>
@@ -393,9 +242,7 @@
                 <td class="text-muted small text-nowrap">
                   <span title="{{ $log->executed_at }}">{{ $log->executed_at?->diffForHumans() ?? '—' }}</span>
                 </td>
-                <td class="small fw-medium">
-                  {{ $log->template?->title ?? '—' }}
-                </td>
+                <td class="small fw-medium">{{ $log->template?->title ?? '—' }}</td>
                 <td class="text-center">
                   @if ($log->status === 'success')
                     <span class="badge bg-success-subtle text-success border border-success-subtle">
@@ -407,7 +254,7 @@
                     </span>
                   @endif
                 </td>
-                <td class="text-muted small">{{ Str::limit($log->message, 100) }}</td>
+                <td class="text-muted small d-none d-md-table-cell">{{ Str::limit($log->message, 90) }}</td>
               </tr>
             @endforeach
           </tbody>
@@ -416,419 +263,617 @@
     @endif
   </x-data-display.card>
 
+  {{-- ══════════════════════════════════════════════════════════════════════════ --}}
+  {{-- Template Management Offcanvas                                             --}}
+  {{-- ══════════════════════════════════════════════════════════════════════════ --}}
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="templatesOffcanvas"
+       style="width:min(760px,100vw)" aria-labelledby="templatesOffcanvasLabel">
+
+    {{-- Header --}}
+    <div class="offcanvas-header border-bottom pb-3">
+      <div>
+        <h5 class="offcanvas-title mb-0" id="templatesOffcanvasLabel">Templates</h5>
+        <div class="text-muted small mt-1" id="oc-account-meta"></div>
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+
+    {{-- Toolbar --}}
+    <div class="px-3 py-2 border-bottom bg-light d-flex align-items-center gap-2 flex-wrap">
+      <div class="input-group input-group-sm flex-grow-1" style="min-width:180px;max-width:300px">
+        <span class="input-group-text bg-white"><i class="ri-search-line text-muted"></i></span>
+        <input type="text" id="oc-search" class="form-control border-start-0 ps-0" placeholder="Search templates…">
+      </div>
+      <select id="oc-perm-filter" class="form-select form-select-sm" style="max-width:160px">
+        <option value="">All templates</option>
+        <option value="permanent">Permanent only</option>
+        <option value="non_permanent">Non-permanent</option>
+      </select>
+      <a id="oc-add-template-btn" href="#" class="btn btn-sm btn-primary ms-auto">
+        <i class="ri-add-line me-1"></i>Add Template
+      </a>
+    </div>
+
+    {{-- Bulk action bar (hidden until rows selected) --}}
+    <div id="oc-bulk-bar" class="d-none px-3 py-2 bg-dark text-white border-bottom">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="fw-semibold small" id="oc-bulk-count">0 selected</span>
+        <div class="vr mx-1"></div>
+        <button type="button" class="btn btn-sm btn-success oc-bulk-btn" data-action="mark_permanent">
+          <i class="ri-shield-check-line me-1"></i>Mark Permanent
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-light oc-bulk-btn" data-action="unmark_permanent">
+          <i class="ri-shield-line me-1"></i>Unmark
+        </button>
+        <button type="button" class="btn btn-sm btn-info text-dark oc-bulk-btn" data-action="queue_post">
+          <i class="ri-add-circle-line me-1"></i>Queue +1
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-danger oc-bulk-btn" data-action="delete">
+          <i class="ri-delete-bin-line me-1"></i>Delete
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-light ms-auto" id="oc-bulk-clear">
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+    </div>
+
+    {{-- Body --}}
+    <div class="offcanvas-body p-0">
+      {{-- Loading spinner --}}
+      <div id="oc-loading" class="py-5 text-center text-muted d-none">
+        <div class="spinner-border spinner-border-sm text-primary mb-2"></div>
+        <p class="small mb-0">Loading templates…</p>
+      </div>
+
+      {{-- Empty state --}}
+      <div id="oc-empty" class="py-5 text-center text-muted d-none">
+        <i class="ri-file-list-3-line display-3 d-block mb-2 opacity-25"></i>
+        <p class="mb-0">No templates match your filter.</p>
+      </div>
+
+      {{-- Template table --}}
+      <div class="table-responsive d-none" id="oc-table-wrap">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead class="table-light sticky-top">
+            <tr>
+              <th style="width:36px" class="ps-3">
+                <div class="form-check mb-0">
+                  <input class="form-check-input" type="checkbox" id="oc-select-all">
+                </div>
+              </th>
+              <th>Template</th>
+              <th class="text-center" style="width:95px">Permanent</th>
+              <th class="text-center" style="width:70px">Queue</th>
+              <th class="d-none d-md-table-cell" style="width:110px">Last Posted</th>
+              <th class="text-end pe-3" style="width:110px">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="oc-tbody"></tbody>
+        </table>
+      </div>
+
+      {{-- Pagination --}}
+      <div id="oc-pagination" class="d-none px-3 py-3 border-top d-flex align-items-center justify-content-between gap-2 flex-wrap">
+        <div class="text-muted small" id="oc-page-info"></div>
+        <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-outline-secondary" id="oc-prev" disabled>
+            <i class="ri-arrow-left-s-line"></i> Prev
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" id="oc-next" disabled>
+            Next <i class="ri-arrow-right-s-line"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   @push('scripts')
-    <script>
-      const CSRF = '{{ csrf_token() }}';
+  <script>
+    const CSRF = '{{ csrf_token() }}';
 
-      // ── Helpers ──────────────────────────────────────────────────────────────
+    // ── State ──────────────────────────────────────────────────────────────────
+    let currentAccountId    = null;
+    let currentPage         = 1;
+    let lastMeta            = {};
+    let searchDebounceTimer = null;
 
-      function getCheckedForAccount(accountId) {
-        return Array.from(document.querySelectorAll(`.tpl-cb[data-account="${accountId}"]:checked`));
-      }
+    // ── Account search (client-side) ───────────────────────────────────────────
+    document.getElementById('account-search')?.addEventListener('input', function () {
+      const q       = this.value.toLowerCase().trim();
+      const rows    = document.querySelectorAll('.account-row');
+      let   visible = 0;
 
-      function updateBulkBar(accountId) {
-        const checked   = getCheckedForAccount(accountId);
-        const bar       = document.getElementById(`bulk-bar-${accountId}`);
-        const label     = document.getElementById(`bulk-count-${accountId}`);
-        const selectAll = document.querySelector(`.tpl-select-all[data-account="${accountId}"]`);
-        const total     = document.querySelectorAll(`.tpl-cb[data-account="${accountId}"]`).length;
-
-        if (bar)   bar.classList.toggle('d-none', checked.length === 0);
-        if (label) label.textContent = `${checked.length} selected`;
-        if (selectAll) {
-          selectAll.indeterminate = checked.length > 0 && checked.length < total;
-          selectAll.checked       = checked.length === total && total > 0;
-        }
-      }
-
-      // ── Select-all per account ───────────────────────────────────────────────
-      document.querySelectorAll('.tpl-select-all').forEach(function (cb) {
-        cb.addEventListener('change', function () {
-          const accountId = this.dataset.account;
-          document.querySelectorAll(`.tpl-cb[data-account="${accountId}"]`)
-            .forEach(c => c.checked = this.checked);
-          updateBulkBar(accountId);
-        });
+      rows.forEach(row => {
+        const match = !q
+          || row.dataset.email.includes(q)
+          || row.dataset.owner.includes(q);
+        row.classList.toggle('d-none', !match);
+        if (match) visible++;
       });
 
-      document.querySelectorAll('.tpl-cb').forEach(function (cb) {
-        cb.addEventListener('change', function () {
-          updateBulkBar(this.dataset.account);
-        });
+      document.getElementById('account-no-results')?.classList.toggle('d-none', visible > 0);
+    });
+
+    // ── Open template offcanvas ────────────────────────────────────────────────
+    document.querySelectorAll('.btn-manage-templates').forEach(btn => {
+      btn.addEventListener('click', function () {
+        currentAccountId = this.dataset.accountId;
+        currentPage      = 1;
+
+        document.getElementById('templatesOffcanvasLabel').textContent =
+          this.dataset.accountEmail;
+        document.getElementById('oc-account-meta').textContent =
+          `${this.dataset.total} template(s) · ${this.dataset.permanent} permanent`;
+        document.getElementById('oc-add-template-btn').href =
+          `/offer-templates/create?account=${currentAccountId}`;
+
+        // Reset filters
+        document.getElementById('oc-search').value       = '';
+        document.getElementById('oc-perm-filter').value  = '';
+        clearOcBulkSelection();
+
+        const oc = new bootstrap.Offcanvas(document.getElementById('templatesOffcanvas'));
+        oc.show();
+        loadTemplates();
+      });
+    });
+
+    // ── Search / filter inside offcanvas ───────────────────────────────────────
+    document.getElementById('oc-search').addEventListener('input', function () {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        currentPage = 1;
+        loadTemplates();
+      }, 380);
+    });
+
+    document.getElementById('oc-perm-filter').addEventListener('change', function () {
+      currentPage = 1;
+      loadTemplates();
+    });
+
+    // ── Load templates via AJAX ────────────────────────────────────────────────
+    function loadTemplates() {
+      if (!currentAccountId) return;
+
+      const search    = document.getElementById('oc-search').value.trim();
+      const permanent = document.getElementById('oc-perm-filter').value;
+      const params    = new URLSearchParams({ page: currentPage });
+      if (search)    params.set('search', search);
+      if (permanent) params.set('permanent', permanent);
+
+      showOcState('loading');
+
+      fetch(`/automation/user/${currentAccountId}/templates?${params}`, {
+        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+      })
+      .then(r => r.json())
+      .then(data => {
+        lastMeta = data;
+        renderTemplates(data.data ?? []);
+        renderPagination(data);
+      })
+      .catch(() => showOcState('empty'));
+    }
+
+    // ── Render template rows ───────────────────────────────────────────────────
+    function renderTemplates(templates) {
+      if (!templates.length) { showOcState('empty'); return; }
+
+      showOcState('table');
+      const tbody = document.getElementById('oc-tbody');
+      tbody.innerHTML = templates.map(t => {
+        const lastPosted = t.last_posted_at
+          ? `<span title="${t.last_posted_at}">${relativeTime(t.last_posted_at)}</span>`
+          : '<span class="text-muted">—</span>';
+
+        const levels = [
+          t.th_level  ? `TH${t.th_level}`   : null,
+          t.king_level  ? `K${t.king_level}` : null,
+          t.queen_level ? `Q${t.queen_level}` : null,
+        ].filter(Boolean).join(' · ');
+
+        const queueBadge = (t.offers_to_generate ?? 0) > 0
+          ? `<span class="badge bg-warning text-dark" id="oc-queue-${t.id}" title="Queued posts">
+               <i class="ri-send-plane-line me-1"></i>${t.offers_to_generate}
+             </span>`
+          : `<span class="badge bg-secondary-subtle text-secondary" id="oc-queue-${t.id}">—</span>`;
+
+        const permBtn = t.is_permanent
+          ? `<button class="btn btn-sm btn-success oc-perm-btn" data-id="${t.id}" data-permanent="1" title="Protected — click to unmark">
+               <i class="ri-shield-check-line"></i>
+             </button>`
+          : `<button class="btn btn-sm btn-outline-secondary oc-perm-btn" data-id="${t.id}" data-permanent="0" title="Deletable — click to protect">
+               <i class="ri-shield-line"></i>
+             </button>`;
+
+        return `
+          <tr id="oc-row-${t.id}">
+            <td class="ps-3">
+              <div class="form-check mb-0">
+                <input class="form-check-input oc-cb" type="checkbox" value="${t.id}">
+              </div>
+            </td>
+            <td>
+              <div class="fw-medium lh-sm" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(t.title)}">
+                ${escHtml(t.title)}
+              </div>
+              <div class="text-muted small">${levels}${t.price ? ` · $${parseFloat(t.price).toFixed(2)}` : ''}</div>
+            </td>
+            <td class="text-center">${permBtn}</td>
+            <td class="text-center">${queueBadge}</td>
+            <td class="text-muted small d-none d-md-table-cell">${lastPosted}</td>
+            <td class="text-end pe-3">
+              <button class="btn btn-sm btn-outline-warning oc-queue-btn" data-id="${t.id}" title="Queue +1 forced post">
+                <i class="ri-add-circle-line"></i>
+              </button>
+              <a href="/offer-templates/${t.id}/edit" class="btn btn-sm btn-outline-secondary ms-1" title="Edit">
+                <i class="ri-edit-line"></i>
+              </a>
+              <button class="btn btn-sm btn-outline-danger ms-1 oc-delete-btn" data-id="${t.id}" data-title="${escHtml(t.title)}" title="Delete from DB">
+                <i class="ri-delete-bin-line"></i>
+              </button>
+            </td>
+          </tr>`;
+      }).join('');
+
+      // Bind row actions
+      bindOcRowActions();
+      updateOcSelectAll();
+    }
+
+    // ── Bind row-level actions ─────────────────────────────────────────────────
+    function bindOcRowActions() {
+      // Checkboxes
+      document.querySelectorAll('.oc-cb').forEach(cb => {
+        cb.addEventListener('change', updateOcBulkBar);
       });
 
-      // ── Bulk clear ───────────────────────────────────────────────────────────
-      document.querySelectorAll('.bulk-clear-btn').forEach(function (btn) {
+      // Select-all header
+      document.getElementById('oc-select-all').addEventListener('change', function () {
+        document.querySelectorAll('.oc-cb').forEach(c => c.checked = this.checked);
+        updateOcBulkBar();
+      });
+
+      // Permanent toggle
+      document.querySelectorAll('.oc-perm-btn').forEach(btn => {
         btn.addEventListener('click', function () {
-          const accountId = this.dataset.account;
-          document.querySelectorAll(`.tpl-cb[data-account="${accountId}"]`)
-            .forEach(c => c.checked = false);
-          updateBulkBar(accountId);
-        });
-      });
-
-      // ── Bulk action buttons ──────────────────────────────────────────────────
-      const bulkLabels = {
-        activate:      (n) => `Activate ${n} template(s)?`,
-        deactivate:    (n) => `Deactivate ${n} template(s)?`,
-        queue_post:    (n) => `Add +1 post queue to ${n} template(s)?`,
-        queue_delete:  (n) => `Queue ${n} template(s) for deletion from g2g.com?`,
-        cancel_delete: (n) => `Cancel delete queue for ${n} template(s)?`,
-        delete:        (n) => `Permanently delete ${n} template(s) from the database?`,
-      };
-
-      document.querySelectorAll('.bulk-action-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          const accountId = this.dataset.account;
-          const action    = this.dataset.action;
-          const checked   = getCheckedForAccount(accountId);
-          const ids       = checked.map(c => parseInt(c.value, 10));
-
-          if (ids.length === 0) return;
+          const id          = this.dataset.id;
+          const isPermanent = this.dataset.permanent === '1';
 
           Swal.fire({
-            title: bulkLabels[action](ids.length),
-            text: (action === 'delete' || action === 'queue_delete') ? 'This cannot be easily undone.' : 'You can change this anytime.',
-            icon: (action === 'delete' || action === 'queue_delete') ? 'warning' : 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, proceed',
-            cancelButtonText: 'Cancel',
-            customClass: {
-              confirmButton: action === 'delete' ? 'btn btn-danger w-xs me-2 mt-2' : 'btn btn-primary w-xs me-2 mt-2',
-              cancelButton:  'btn btn-secondary w-xs mt-2',
-            },
-            buttonsStyling: false,
-            showCloseButton: true,
-          }).then(function (result) {
-            if (!result.isConfirmed) return;
-
-            fetch('/offer-templates/bulk-action', {
-              method:  'POST',
-              headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-              body:    JSON.stringify({ action, ids }),
-            })
-            .then(r => r.json())
-            .then(function (data) {
-              if (data.success) {
-                if (action === 'delete') {
-                  ids.forEach(id => {
-                    const row = document.getElementById(`template-row-${id}`);
-                    if (row) row.remove();
-                  });
-                  document.querySelectorAll(`.tpl-cb[data-account="${accountId}"]`)
-                    .forEach(c => c.checked = false);
-                  updateBulkBar(accountId);
-                  Swal.fire({ title: 'Done!', text: `${data.count} template(s) deleted.`, icon: 'success', timer: 1800, showConfirmButton: false });
-                } else {
-                  Swal.fire({
-                    title: 'Done!', text: `${data.count} template(s) updated.`, icon: 'success', timer: 1800, showConfirmButton: false,
-                  }).then(() => window.location.reload());
-                }
-              }
-            })
-            .catch(function () {
-              Swal.fire({ title: 'Error', text: 'Bulk action failed.', icon: 'error' });
-            });
-          });
-        });
-      });
-
-      // ── Toggle active ────────────────────────────────────────────────────────
-      document.querySelectorAll('.toggle-active').forEach(function (el) {
-        el.addEventListener('change', function () {
-          const id      = this.dataset.templateId;
-          const checked = this.checked;
-          const self    = this;
-
-          fetch(`/offer-templates/toggle-status/${id}`, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-            body:    JSON.stringify({ status: checked ? 1 : 0 }),
-          })
-          .then(r => r.json())
-          .then(function (data) {
-            if (!data.success) self.checked = !checked;
-          })
-          .catch(function () { self.checked = !checked; });
-        });
-      });
-
-      // ── Queue Post (single) ──────────────────────────────────────────────────
-      document.querySelectorAll('.btn-queue-post').forEach(function (el) {
-        el.addEventListener('click', function () {
-          const id  = this.dataset.templateId;
-          const btn = this;
-
-          btn.disabled = true;
-
-          fetch(`/offer-templates/${id}/queue-post`, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-          })
-          .then(r => r.json())
-          .then(function (data) {
-            if (data.success) {
-              const n = data.offers_to_generate;
-
-              // Update column badge
-              const countBadge = document.getElementById(`queued-${id}`);
-              if (countBadge) {
-                countBadge.textContent = n;
-                countBadge.className = 'badge queued-count-badge bg-warning text-dark';
-              }
-
-              // Update / create inline title badge
-              const row = document.getElementById(`template-row-${id}`);
-              if (row) {
-                const titleWrap = row.querySelector('.d-flex.align-items-center.gap-2');
-                let   pb = titleWrap.querySelector(`.badge-post-queue-${id}`);
-                if (!pb) {
-                  pb = document.createElement('span');
-                  pb.className = `badge bg-warning text-dark badge-post-queue-${id}`;
-                  pb.title = 'Queued for posting';
-                  titleWrap.appendChild(pb);
-                }
-                pb.innerHTML = `<i class="ri-send-plane-line me-1"></i>Post ×${n}`;
-              }
-            }
-          })
-          .finally(function () { btn.disabled = false; });
-        });
-      });
-
-      // ── Toggle Queue-Delete (single) ─────────────────────────────────────────
-      document.querySelectorAll('.btn-toggle-del-queue').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          const id     = this.dataset.templateId;
-          const queued = this.dataset.queued === '1';
-          const btnEl  = this;
-
-          Swal.fire({
-            title: queued ? 'Cancel delete queue?' : 'Queue for deletion from g2g.com?',
-            text:  queued ? '' : 'The runner will delete the matching g2g.com listing on its next cycle.',
-            icon:  queued ? 'question' : 'warning',
+            title: isPermanent ? 'Remove protection?' : 'Mark as permanent?',
+            text:  isPermanent
+              ? 'This offer will be included in future delete-all runs.'
+              : 'This offer will be skipped during delete-all runs.',
+            icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Yes',
             cancelButtonText: 'Cancel',
-            customClass: {
-              confirmButton: queued ? 'btn btn-secondary w-xs me-2 mt-2' : 'btn btn-danger w-xs me-2 mt-2',
-              cancelButton:  'btn btn-outline-secondary w-xs mt-2',
-            },
+            customClass: { confirmButton: 'btn btn-primary w-xs me-2 mt-2', cancelButton: 'btn btn-outline-secondary w-xs mt-2' },
             buttonsStyling: false,
             showCloseButton: true,
-          }).then(function (result) {
+          }).then(result => {
             if (!result.isConfirmed) return;
-
-            fetch(`/offer-templates/${id}/queue-delete`, {
-              method:  'POST',
+            fetch(`/offer-templates/${id}/toggle-permanent`, {
+              method: 'POST',
               headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
             })
             .then(r => r.json())
-            .then(function (data) {
+            .then(data => {
               if (!data.success) return;
-
-              const isQueued = data.queue_delete;
-
-              // Update the toggle button style
-              btnEl.dataset.queued = isQueued ? '1' : '0';
-              btnEl.className = btnEl.className
-                .replace(/btn-(outline-secondary|danger)/, isQueued ? 'btn-danger' : 'btn-outline-secondary');
-              btnEl.title = isQueued ? 'Cancel g2g delete queue' : 'Queue for deletion from g2g.com';
-
-              // Update / remove inline title badge
-              const row = document.getElementById(`template-row-${id}`);
-              if (row) {
-                const titleWrap = row.querySelector('.d-flex.align-items-center.gap-2');
-                let   db = titleWrap.querySelector(`.badge-del-queue-${id}`);
-
-                if (isQueued) {
-                  if (!db) {
-                    db = document.createElement('span');
-                    db.className = `badge bg-danger badge-del-queue-${id}`;
-                    db.title = 'Queued for deletion from g2g.com';
-                    titleWrap.appendChild(db);
-                  }
-                  db.innerHTML = '<i class="ri-delete-bin-line me-1"></i>Del';
-                } else if (db) {
-                  db.remove();
-                }
-              }
-            })
-            .catch(function () {
-              Swal.fire({ title: 'Error', text: 'Could not update queue.', icon: 'error' });
+              const p   = data.is_permanent;
+              this.dataset.permanent = p ? '1' : '0';
+              this.className = p ? 'btn btn-sm btn-success oc-perm-btn' : 'btn btn-sm btn-outline-secondary oc-perm-btn';
+              this.innerHTML = p ? '<i class="ri-shield-check-line"></i>' : '<i class="ri-shield-line"></i>';
+              this.title     = p ? 'Protected — click to unmark' : 'Deletable — click to protect';
             });
           });
         });
       });
 
-      // ── Delete template from DB ──────────────────────────────────────────────
-      document.querySelectorAll('.btn-delete-template').forEach(function (btn) {
+      // Queue +1
+      document.querySelectorAll('.oc-queue-btn').forEach(btn => {
         btn.addEventListener('click', function () {
-          const id    = this.dataset.templateId;
-          const title = this.dataset.templateTitle;
+          const id = this.dataset.id;
+          this.disabled = true;
+          fetch(`/offer-templates/${id}/queue-post`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+          })
+          .then(r => r.json())
+          .then(data => {
+            if (data.success) {
+              const badge = document.getElementById(`oc-queue-${id}`);
+              if (badge) {
+                badge.className = 'badge bg-warning text-dark';
+                badge.innerHTML = `<i class="ri-send-plane-line me-1"></i>${data.offers_to_generate}`;
+              }
+              Swal.fire({ title: 'Queued!', text: `Post queue: ${data.offers_to_generate}`, icon: 'success', timer: 1000, showConfirmButton: false });
+            }
+          })
+          .finally(() => { this.disabled = false; });
+        });
+      });
 
+      // Delete from DB
+      document.querySelectorAll('.oc-delete-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+          const id    = this.dataset.id;
+          const title = this.dataset.title;
           Swal.fire({
-            title: 'Delete template record?',
-            html: `<strong>${title}</strong><br><span class="text-muted small">Removes the record from this database only. Use "Queue Delete" to remove the live g2g.com listing.</span>`,
+            title: 'Delete from database?',
+            html: `<strong>${title}</strong><br><span class="text-muted small">Removes the record only — does not touch g2g.com.</span>`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Yes, delete from DB',
+            confirmButtonText: 'Yes, delete',
             cancelButtonText: 'Cancel',
-            customClass: {
-              confirmButton: 'btn btn-danger w-xs me-2 mt-2',
-              cancelButton:  'btn btn-secondary w-xs mt-2',
-            },
+            customClass: { confirmButton: 'btn btn-danger w-xs me-2 mt-2', cancelButton: 'btn btn-secondary w-xs mt-2' },
             buttonsStyling: false,
             showCloseButton: true,
-          }).then(function (result) {
+          }).then(result => {
             if (!result.isConfirmed) return;
-
             fetch(`/offer-templates/${id}`, {
-              method:  'DELETE',
+              method: 'DELETE',
               headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
             })
             .then(r => r.json())
-            .then(function (data) {
+            .then(data => {
               if (data.success) {
-                const row = document.getElementById(`template-row-${id}`);
-                if (row) row.remove();
-                Swal.fire({ title: 'Deleted!', icon: 'success', timer: 1500, showConfirmButton: false });
+                document.getElementById(`oc-row-${id}`)?.remove();
+                Swal.fire({ title: 'Deleted!', icon: 'success', timer: 1200, showConfirmButton: false });
               }
-            })
-            .catch(function () {
-              Swal.fire({ title: 'Error', text: 'Could not delete template.', icon: 'error' });
             });
           });
         });
       });
+    }
 
-      // ── Delete All from g2g ──────────────────────────────────────────────────
-      document.querySelectorAll('.btn-delete-all-g2g').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          const id      = this.dataset.accountId;
-          const email   = this.dataset.accountEmail;
-          const queued  = this.dataset.queued === '1';
-          const btnEl   = this;
+    // ── Bulk selection helpers ─────────────────────────────────────────────────
+    function getOcChecked() {
+      return Array.from(document.querySelectorAll('.oc-cb:checked'));
+    }
 
-          if (queued) {
-            // Cancel the queue
-            Swal.fire({
-              title: 'Cancel delete-all?',
-              text: `The runner will no longer wipe all offers for ${email}.`,
-              icon: 'question',
-              showCancelButton: true,
-              confirmButtonText: 'Yes, cancel it',
-              cancelButtonText: 'Keep queued',
-              customClass: {
-                confirmButton: 'btn btn-secondary w-xs me-2 mt-2',
-                cancelButton:  'btn btn-outline-secondary w-xs mt-2',
-              },
-              buttonsStyling: false,
-            }).then(function (result) {
-              if (!result.isConfirmed) return;
-              toggleDeleteAll(id, email, false, btnEl);
-            });
-          } else {
-            // Queue the delete-all
-            Swal.fire({
-              title: 'Delete ALL offers from g2g.com?',
-              html: `<strong>${email}</strong><br>
-                     <span class="text-muted small">This will queue a full wipe of <em>every live offer</em> for this account from g2g.com. The runner must be running with <code>--api --watch</code> to pick it up.</span>`,
-              icon: 'warning',
-              showCancelButton: true,
-              confirmButtonText: 'Yes, queue delete-all',
-              cancelButtonText: 'Cancel',
-              customClass: {
-                confirmButton: 'btn btn-danger w-xs me-2 mt-2',
-                cancelButton:  'btn btn-secondary w-xs mt-2',
-              },
-              buttonsStyling: false,
-              showCloseButton: true,
-            }).then(function (result) {
-              if (!result.isConfirmed) return;
-              toggleDeleteAll(id, email, true, btnEl);
-            });
-          }
+    function updateOcBulkBar() {
+      const checked = getOcChecked();
+      const bar     = document.getElementById('oc-bulk-bar');
+      const label   = document.getElementById('oc-bulk-count');
+      bar.classList.toggle('d-none', checked.length === 0);
+      label.textContent = `${checked.length} selected`;
+      updateOcSelectAll();
+    }
+
+    function updateOcSelectAll() {
+      const all     = document.querySelectorAll('.oc-cb');
+      const checked = getOcChecked();
+      const sa      = document.getElementById('oc-select-all');
+      if (!sa) return;
+      sa.indeterminate = checked.length > 0 && checked.length < all.length;
+      sa.checked       = all.length > 0 && checked.length === all.length;
+    }
+
+    function clearOcBulkSelection() {
+      document.querySelectorAll('.oc-cb').forEach(c => c.checked = false);
+      document.getElementById('oc-select-all').checked = false;
+      document.getElementById('oc-bulk-bar').classList.add('d-none');
+    }
+
+    document.getElementById('oc-bulk-clear').addEventListener('click', clearOcBulkSelection);
+
+    // ── Bulk actions ───────────────────────────────────────────────────────────
+    document.querySelectorAll('.oc-bulk-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const action  = this.dataset.action;
+        const checked = getOcChecked();
+        const ids     = checked.map(c => parseInt(c.value, 10));
+        if (!ids.length) return;
+
+        const labels = {
+          mark_permanent:   `Mark ${ids.length} template(s) as permanent?`,
+          unmark_permanent: `Unmark ${ids.length} template(s)?`,
+          queue_post:       `Add +1 post queue to ${ids.length} template(s)?`,
+          delete:           `Permanently delete ${ids.length} template(s) from the database?`,
+        };
+
+        Swal.fire({
+          title: labels[action],
+          text: action === 'delete'
+            ? 'This cannot be undone.'
+            : action === 'mark_permanent' ? 'These offers will be skipped during delete-all runs.' : '',
+          icon: action === 'delete' ? 'warning' : 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Yes, proceed',
+          cancelButtonText: 'Cancel',
+          customClass: {
+            confirmButton: action === 'delete' ? 'btn btn-danger w-xs me-2 mt-2' : 'btn btn-primary w-xs me-2 mt-2',
+            cancelButton: 'btn btn-secondary w-xs mt-2',
+          },
+          buttonsStyling: false,
+          showCloseButton: true,
+        }).then(result => {
+          if (!result.isConfirmed) return;
+          fetch('/offer-templates/bulk-action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+            body: JSON.stringify({ action, ids }),
+          })
+          .then(r => r.json())
+          .then(data => {
+            if (data.success) {
+              if (action === 'delete') {
+                ids.forEach(id => document.getElementById(`oc-row-${id}`)?.remove());
+                clearOcBulkSelection();
+                Swal.fire({ title: 'Done!', text: `${data.count} template(s) deleted.`, icon: 'success', timer: 1500, showConfirmButton: false });
+              } else {
+                Swal.fire({ title: 'Done!', text: `${data.count} template(s) updated.`, icon: 'success', timer: 1500, showConfirmButton: false })
+                  .then(() => { currentPage = 1; loadTemplates(); });
+              }
+            }
+          })
+          .catch(() => Swal.fire({ title: 'Error', text: 'Action failed.', icon: 'error' }));
         });
       });
+    });
 
-      function toggleDeleteAll(accountId, email, queueing, btnEl) {
-        fetch(`/user-accounts/${accountId}/queue-delete-all`, {
-          method:  'POST',
-          headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-        })
-        .then(r => r.json())
-        .then(function (data) {
-          if (!data.success) return;
+    // ── Pagination ─────────────────────────────────────────────────────────────
+    function renderPagination(data) {
+      const wrap    = document.getElementById('oc-pagination');
+      const info    = document.getElementById('oc-page-info');
+      const prev    = document.getElementById('oc-prev');
+      const next    = document.getElementById('oc-next');
 
-          const isQueued = data.queue_delete_all;
-          btnEl.dataset.queued = isQueued ? '1' : '0';
-
-          // Update button style and label
-          const label = document.querySelector(`.btn-delete-all-label-${accountId}`);
-          if (label) label.textContent = isQueued ? 'Cancel Delete All' : 'Delete All from g2g';
-          btnEl.className = btnEl.className.replace(/btn-(warning|outline-warning)/, isQueued ? 'btn-warning' : 'btn-outline-warning');
-
-          Swal.fire({
-            title: isQueued ? 'Delete-all queued!' : 'Cancelled.',
-            text: isQueued
-              ? 'Run: node delete-offers.js --api --watch  to execute it.'
-              : 'Delete-all has been cancelled.',
-            icon: 'success',
-            timer: 2500,
-            showConfirmButton: false,
-          });
-        })
-        .catch(function () {
-          Swal.fire({ title: 'Error', text: 'Could not update.', icon: 'error' });
-        });
+      if ((data.last_page ?? 1) <= 1) {
+        wrap.classList.add('d-none');
+        return;
       }
 
-      // ── Delete Account ───────────────────────────────────────────────────────
-      document.querySelectorAll('.btn-delete-account').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          const id        = this.dataset.accountId;
-          const email     = this.dataset.accountEmail;
-          const templates = parseInt(this.dataset.templates, 10);
-          const warning   = templates > 0
-            ? `This will also permanently delete <strong>${templates} template${templates !== 1 ? 's' : ''}</strong> linked to this account.`
-            : 'This action cannot be undone.';
+      wrap.classList.remove('d-none');
+      info.textContent = `Showing ${data.from}–${data.to} of ${data.total}`;
+      prev.disabled = data.current_page <= 1;
+      next.disabled = data.current_page >= data.last_page;
+    }
 
+    document.getElementById('oc-prev').addEventListener('click', function () {
+      if (currentPage > 1) { currentPage--; loadTemplates(); }
+    });
+    document.getElementById('oc-next').addEventListener('click', function () {
+      if (currentPage < (lastMeta.last_page ?? 1)) { currentPage++; loadTemplates(); }
+    });
+
+    // ── Delete All from g2g ────────────────────────────────────────────────────
+    document.querySelectorAll('.btn-delete-all-g2g').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const id           = this.dataset.accountId;
+        const email        = this.dataset.accountEmail;
+        const permanentCnt = parseInt(this.dataset.permanentCount, 10);
+        const queued       = this.dataset.queued === '1';
+        const btnEl        = this;
+
+        if (queued) {
           Swal.fire({
-            title: 'Delete account?',
-            html: `<strong>${email}</strong><br><span class="text-muted small">${warning}</span>`,
+            title: 'Cancel delete-all?',
+            text: `The desktop app will no longer wipe offers for ${email}.`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, cancel it',
+            cancelButtonText: 'Keep queued',
+            customClass: { confirmButton: 'btn btn-secondary w-xs me-2 mt-2', cancelButton: 'btn btn-outline-secondary w-xs mt-2' },
+            buttonsStyling: false,
+          }).then(result => { if (result.isConfirmed) doToggleDeleteAll(id, email, false, permanentCnt, btnEl); });
+        } else {
+          const protectedNote = permanentCnt > 0
+            ? `<br><span class="text-success small"><i class="ri-shield-check-line me-1"></i>${permanentCnt} permanent offer(s) will be <strong>skipped</strong>.</span>`
+            : '';
+          Swal.fire({
+            title: 'Delete ALL offers from g2g.com?',
+            html: `<strong>${email}</strong>${protectedNote}
+                   <br><span class="text-muted small">Every non-permanent live offer for this account will be deleted on the next desktop app run.</span>`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Yes, delete it',
+            confirmButtonText: 'Yes, queue delete-all',
             cancelButtonText: 'Cancel',
-            customClass: {
-              confirmButton: 'btn btn-danger w-xs me-2 mt-2',
-              cancelButton:  'btn btn-secondary w-xs mt-2',
-            },
+            customClass: { confirmButton: 'btn btn-danger w-xs me-2 mt-2', cancelButton: 'btn btn-secondary w-xs mt-2' },
             buttonsStyling: false,
             showCloseButton: true,
-          }).then(function (result) {
-            if (!result.isConfirmed) return;
+          }).then(result => { if (result.isConfirmed) doToggleDeleteAll(id, email, true, permanentCnt, btnEl); });
+        }
+      });
+    });
 
-            fetch(`/user-accounts/${id}`, {
-              method:  'DELETE',
-              headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-            })
-            .then(r => r.json())
-            .then(function (data) {
-              if (data.success) {
-                const section = document.getElementById(`account-section-${id}`);
-                if (section) section.remove();
-                Swal.fire({ title: 'Deleted!', icon: 'success', timer: 1500, showConfirmButton: false });
-              }
-            })
-            .catch(function () {
-              Swal.fire({ title: 'Error', text: 'Could not delete account.', icon: 'error' });
-            });
-          });
+    function doToggleDeleteAll(accountId, email, queueing, permanentCnt, btnEl) {
+      fetch(`/user-accounts/${accountId}/queue-delete-all`, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) return;
+        const isQueued = data.queue_delete_all;
+        btnEl.dataset.queued = isQueued ? '1' : '0';
+        btnEl.className = btnEl.className.replace(/btn-(warning|outline-warning)/, isQueued ? 'btn-warning' : 'btn-outline-warning');
+        btnEl.title = isQueued ? 'Cancel delete-all' : 'Queue: delete all g2g offers (skips permanent)';
+
+        // Update status badge in account row
+        const row        = document.getElementById(`account-row-${accountId}`);
+        const statusCell = row?.querySelector('td:nth-child(5)');
+        if (statusCell) {
+          statusCell.innerHTML = isQueued
+            ? `<span class="badge bg-danger"><i class="ri-delete-bin-line me-1"></i>Queued</span>`
+            : `<span class="text-muted small">—</span>`;
+        }
+
+        Swal.fire({
+          title: isQueued ? 'Delete-all queued!' : 'Cancelled.',
+          text: isQueued
+            ? `The desktop app will delete all${permanentCnt > 0 ? ` non-permanent` : ''} offers for ${email} on next run.`
+            : 'Delete-all has been cancelled.',
+          icon: 'success',
+          timer: 2500,
+          showConfirmButton: false,
+        });
+      })
+      .catch(() => Swal.fire({ title: 'Error', text: 'Could not update.', icon: 'error' }));
+    }
+
+    // ── Delete Account ─────────────────────────────────────────────────────────
+    document.querySelectorAll('.btn-delete-account').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const id        = this.dataset.accountId;
+        const email     = this.dataset.accountEmail;
+        const templates = parseInt(this.dataset.templates, 10);
+        const warning   = templates > 0
+          ? `This will also permanently delete <strong>${templates} template${templates !== 1 ? 's' : ''}</strong> linked to this account.`
+          : 'This action cannot be undone.';
+
+        Swal.fire({
+          title: 'Delete account?',
+          html: `<strong>${email}</strong><br><span class="text-muted small">${warning}</span>`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Yes, delete it',
+          cancelButtonText: 'Cancel',
+          customClass: { confirmButton: 'btn btn-danger w-xs me-2 mt-2', cancelButton: 'btn btn-secondary w-xs mt-2' },
+          buttonsStyling: false,
+          showCloseButton: true,
+        }).then(result => {
+          if (!result.isConfirmed) return;
+          fetch(`/user-accounts/${id}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+          })
+          .then(r => r.json())
+          .then(data => {
+            if (data.success) {
+              document.getElementById(`account-row-${id}`)?.remove();
+              Swal.fire({ title: 'Deleted!', icon: 'success', timer: 1200, showConfirmButton: false });
+            }
+          })
+          .catch(() => Swal.fire({ title: 'Error', text: 'Could not delete account.', icon: 'error' }));
         });
       });
-    </script>
-  @endpush
+    });
 
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    function showOcState(state) {
+      document.getElementById('oc-loading').classList.toggle('d-none',    state !== 'loading');
+      document.getElementById('oc-empty').classList.toggle('d-none',      state !== 'empty');
+      document.getElementById('oc-table-wrap').classList.toggle('d-none', state !== 'table');
+      if (state !== 'table') {
+        document.getElementById('oc-pagination').classList.add('d-none');
+      }
+    }
+
+    function escHtml(str) {
+      return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function relativeTime(isoStr) {
+      const diff = Math.floor((Date.now() - new Date(isoStr)) / 1000);
+      if (diff < 60)   return `${diff}s ago`;
+      if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+      return `${Math.floor(diff/86400)}d ago`;
+    }
+  </script>
+  @endpush
 </x-layouts.admin.master>

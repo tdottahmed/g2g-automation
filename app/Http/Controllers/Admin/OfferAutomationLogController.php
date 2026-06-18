@@ -32,7 +32,7 @@ class OfferAutomationLogController extends Controller
         }
 
         $logs = $query->paginate(20);
-        $templates = OfferTemplate::where('is_active', true)->get();
+        $templates = OfferTemplate::orderBy('title')->get();
 
         return view('admin.offer-logs.index', compact('logs', 'templates'));
     }
