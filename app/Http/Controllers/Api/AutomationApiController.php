@@ -165,16 +165,43 @@ class AutomationApiController extends Controller
 
     public function userAccounts(): JsonResponse
     {
-        $accounts = UserAccount::withCount('offers as total_templates_count')
-            ->orderBy('email')
-            ->get();
+        $accounts = UserAccount::withCount([
+            'offers as total_templates_count',
+            'offers as non_permanent_count' => fn ($q) => $q->where('is_permanent', false),
+        ])->orderBy('email')->get();
 
         return response()->json([
             'accounts' => $accounts->map(fn ($a) => [
                 'id'                    => $a->id,
                 'email'                 => $a->email,
                 'total_templates_count' => $a->total_templates_count,
+                'non_permanent_count'   => $a->non_permanent_count,
             ])->values()->all(),
+        ]);
+    }
+
+    /**
+     * Returns all non-permanent offer templates for one account.
+     * Used by the desktop app "Delete Non-Permanent" action.
+     */
+    public function getNonPermanentOffers(UserAccount $userAccount): JsonResponse
+    {
+        $offers = OfferTemplate::where('user_account_id', $userAccount->id)
+            ->where('is_permanent', false)
+            ->select(['title', 'price'])
+            ->orderBy('title')
+            ->get()
+            ->map(fn ($o) => [
+                'title' => $o->title,
+                'price' => $o->price !== null ? (string) $o->price : null,
+            ])
+            ->values()
+            ->all();
+
+        return response()->json([
+            'user_id' => $userAccount->id,
+            'email'   => $userAccount->email,
+            'offers'  => $offers,
         ]);
     }
 
