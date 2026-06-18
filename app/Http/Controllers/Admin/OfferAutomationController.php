@@ -7,8 +7,6 @@ use App\Models\ApplicationSetup;
 use App\Models\OfferAutomationLog;
 use App\Models\OfferTemplate;
 use App\Models\UserAccount;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 
 class OfferAutomationController extends Controller
 {
@@ -61,79 +59,6 @@ class OfferAutomationController extends Controller
             'failedToday',
             'intervalMinutes'
         ));
-    }
-
-    public function runForUser(Request $request, $userAccountId)
-    {
-        $userAccount = UserAccount::findOrFail($userAccountId);
-
-        try {
-            $exitCode = Artisan::call('offer:automation', [
-                '--user_account_id' => $userAccountId,
-            ]);
-
-            $output = Artisan::output();
-
-            if ($exitCode === 0) {
-                return response()->json([
-                    'success' => true,
-                    'message' => "Posting started for {$userAccount->email}",
-                    'output' => $output,
-                ]);
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => "Posting failed for {$userAccount->email}",
-                'output' => $output,
-            ], 500);
-        } catch (\Exception $e) {
-            logger()->error('Offer automation error', [
-                'user_account_id' => $userAccountId,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => "Posting error: {$e->getMessage()}",
-            ], 500);
-        }
-    }
-
-    public function runForAllUsers(Request $request)
-    {
-        try {
-            $exitCode = Artisan::call('offer:automation', [
-                '--all' => true,
-            ]);
-
-            $output = Artisan::output();
-
-            if ($exitCode === 0) {
-                return response()->json([
-                    'success' => true,
-                    'message' => "Posting started for all users",
-                    'output' => $output,
-                ]);
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => "Posting failed for all users",
-                'output' => $output,
-            ], 500);
-        } catch (\Exception $e) {
-            logger()->error('Offer automation error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => "All users posting error: {$e->getMessage()}",
-            ], 500);
-        }
     }
 
     public function getUserTemplates($userAccountId)

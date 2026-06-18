@@ -250,6 +250,29 @@ class AutomationApiController extends Controller
     }
 
     /**
+     * Returns all user accounts with their active template count.
+     * Used by the desktop app's account-picker before running delete-all.
+     */
+    public function userAccounts(): JsonResponse
+    {
+        $accounts = UserAccount::withCount([
+            'offers as active_templates_count' => fn ($q) => $q->where('is_active', true),
+            'offers as total_templates_count',
+        ])
+            ->orderBy('email')
+            ->get();
+
+        return response()->json([
+            'accounts' => $accounts->map(fn ($a) => [
+                'id'                     => $a->id,
+                'email'                  => $a->email,
+                'active_templates_count' => $a->active_templates_count,
+                'total_templates_count'  => $a->total_templates_count,
+            ])->values()->all(),
+        ]);
+    }
+
+    /**
      * Simple connectivity / auth check.
      */
     public function heartbeat(): JsonResponse

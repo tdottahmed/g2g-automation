@@ -37,12 +37,8 @@ Route::group(['middleware' => ['role:super-admin|admin|staff|user']], function (
     Route::get('offer-logs/{offerLog}', [OfferAutomationLogController::class, 'show'])->name('offer-logs.show');
     Route::post('offer-logs/clear', [OfferAutomationLogController::class, 'clear'])->name('offer-logs.clear');
 
-    // routes/web.php
     Route::prefix('automation')->group(function () {
         Route::get('/dashboard', [OfferAutomationController::class, 'dashboard'])->name('automation.dashboard');
-        Route::post('/run/user/{userAccount}', [OfferAutomationController::class, 'runForUser'])->name('automation.run.user');
-        Route::post('/run/template/{template}', [OfferAutomationController::class, 'runForTemplate'])->name('automation.run.template');
         Route::get('/user/{userAccount}/templates', [OfferAutomationController::class, 'getUserTemplates'])->name('automation.user.templates');
-        Route::post('/run/all-users', [OfferAutomationController::class, 'runForAllUsers'])->name('automation.run.all-users');
     });
 });
