@@ -196,11 +196,11 @@ class OfferTemplateController extends Controller
     {
         return match($game) {
             'clash_of_clans' => [
-                'game_data.th_level'       => 'required|integer|min:1|max:17',
-                'game_data.king_level'     => 'nullable|integer|min:0|max:100',
-                'game_data.queen_level'    => 'nullable|integer|min:0|max:100',
-                'game_data.warden_level'   => 'nullable|integer|min:0|max:65',
-                'game_data.champion_level' => 'nullable|integer|min:0|max:50',
+                'game_data.th_level'       => 'required|integer',
+                'game_data.king_level'     => 'nullable|integer',
+                'game_data.queen_level'    => 'nullable|integer',
+                'game_data.warden_level'   => 'nullable|integer',
+                'game_data.champion_level' => 'nullable|integer',
             ],
             'brawl_stars' => [
                 'game_data.platform' => 'required|in:Android,iOS',

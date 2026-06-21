@@ -72,7 +72,7 @@ class OfferAutomationController extends Controller
         }
 
         $templates = $query
-            ->select(['id', 'title', 'is_permanent', 'offers_to_generate', 'last_posted_at', 'price', 'th_level', 'king_level', 'queen_level'])
+            ->select(['id', 'title', 'is_permanent', 'offers_to_generate', 'last_posted_at', 'price', 'game', 'game_data'])
             ->latest()
             ->paginate(25);
 

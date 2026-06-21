@@ -10,8 +10,6 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\UserAccountController;
-use App\Http\Controllers\LevelController;
-
 Route::group(['middleware' => ['role:super-admin|admin|staff|user']], function () {
     Route::resource('roles', RoleController::class);
     Route::resource('permissions', PermissionController::class)->except('show');
@@ -28,8 +26,6 @@ Route::group(['middleware' => ['role:super-admin|admin|staff|user']], function (
     Route::post('offer-templates/{offerTemplate}/toggle-permanent', [OfferTemplateController::class, 'togglePermanent'])->name('offer-templates.toggle-permanent');
     Route::resource('offer-templates', OfferTemplateController::class);
     Route::post('offer-templates/{offerTemplate}/queue-post', [OfferTemplateController::class, 'queuePost'])->name('offer-templates.queue-post');
-
-    Route::resource('levels', LevelController::class);
 
     Route::get('offer-logs', [OfferAutomationLogController::class, 'index'])->name('offer-logs.index');
     Route::get('offer-logs/{offerLog}', [OfferAutomationLogController::class, 'show'])->name('offer-logs.show');

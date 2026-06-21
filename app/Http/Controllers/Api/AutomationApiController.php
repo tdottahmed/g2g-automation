@@ -219,9 +219,13 @@ class AutomationApiController extends Controller
             ? $template->delivery_method
             : (json_decode($template->delivery_method ?? '{}', true) ?? []);
 
+        $medias = is_array($template->medias)
+            ? $template->medias
+            : (json_decode($template->medias ?? '[]', true) ?? []);
+
         $mediaData = [];
-        if (!empty($template->medias)) {
-            foreach ($template->medias as $media) {
+        if (!empty($medias)) {
+            foreach ($medias as $media) {
                 if (!empty($media['link'])) {
                     $mediaData[] = [
                         'title' => $media['title'] ?? 'Media',

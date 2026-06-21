@@ -59,36 +59,33 @@
                 <label class="form-label">{{ __('Town Hall Level') }} <span class="text-danger">*</span></label>
                 <input type="number" id="coc-th-level" name="game_data[th_level]"
                        class="form-control" value="{{ old('game_data.th_level', $gd['th_level'] ?? '') }}"
-                       placeholder="e.g. 17" min="1" max="17">
+                       placeholder="e.g. 17">
                 @error('game_data.th_level') <span class="text-danger small">{{ $message }}</span> @enderror
               </div>
               <div class="col-md-6">
                 <label class="form-label small fw-semibold mb-1">♔ {{ __('Barbarian King') }}</label>
                 <input type="number" id="coc-king" name="game_data[king_level]"
                        class="form-control" value="{{ old('game_data.king_level', $gd['king_level'] ?? '') }}"
-                       placeholder="0" min="0" max="100">
+                       placeholder="0">
               </div>
               <div class="col-md-4">
                 <label class="form-label small fw-semibold mb-1">♛ {{ __('Archer Queen') }}</label>
                 <input type="number" id="coc-queen" name="game_data[queen_level]"
                        class="form-control" value="{{ old('game_data.queen_level', $gd['queen_level'] ?? '') }}"
-                       placeholder="0" min="0" max="100">
+                       placeholder="0">
               </div>
               <div class="col-md-4">
                 <label class="form-label small fw-semibold mb-1">⚑ {{ __('Grand Warden') }}</label>
                 <input type="number" id="coc-warden" name="game_data[warden_level]"
                        class="form-control" value="{{ old('game_data.warden_level', $gd['warden_level'] ?? '') }}"
-                       placeholder="0" min="0" max="65">
+                       placeholder="0">
               </div>
               <div class="col-md-4">
                 <label class="form-label small fw-semibold mb-1">✦ {{ __('Royal Champion') }}</label>
                 <input type="number" id="coc-champion" name="game_data[champion_level]"
                        class="form-control" value="{{ old('game_data.champion_level', $gd['champion_level'] ?? '') }}"
-                       placeholder="0" min="0" max="50">
+                       placeholder="0">
               </div>
-            </div>
-            <div class="mt-2">
-              <small class="text-muted"><i class="ri-magic-line me-1"></i>{{ __('Hero levels auto-fill to max for the selected TH — adjust if needed.') }}</small>
             </div>
           </div>
         </div>
@@ -379,35 +376,6 @@
 
         $('#game').on('change', function () {
           switchGame($(this).val());
-        });
-
-        // ── CoC: auto-fill hero levels from TH max ────────────────────────────
-        const cocMax = {
-          '3':  { king: 5,   queen: 0,   warden: 0,  champion: 0  },
-          '4':  { king: 10,  queen: 0,   warden: 0,  champion: 0  },
-          '5':  { king: 10,  queen: 0,   warden: 0,  champion: 0  },
-          '6':  { king: 10,  queen: 0,   warden: 0,  champion: 0  },
-          '7':  { king: 10,  queen: 0,   warden: 0,  champion: 0  },
-          '8':  { king: 20,  queen: 20,  warden: 0,  champion: 0  },
-          '9':  { king: 30,  queen: 30,  warden: 0,  champion: 0  },
-          '10': { king: 40,  queen: 40,  warden: 20, champion: 0  },
-          '11': { king: 50,  queen: 50,  warden: 30, champion: 0  },
-          '12': { king: 65,  queen: 65,  warden: 40, champion: 0  },
-          '13': { king: 75,  queen: 75,  warden: 50, champion: 15 },
-          '14': { king: 80,  queen: 80,  warden: 55, champion: 20 },
-          '15': { king: 90,  queen: 90,  warden: 60, champion: 30 },
-          '16': { king: 95,  queen: 95,  warden: 65, champion: 45 },
-          '17': { king: 100, queen: 100, warden: 65, champion: 50 },
-        };
-
-        $('#coc-th-level').on('change', function () {
-          const lvl = cocMax[$(this).val()];
-          if (lvl) {
-            $('#coc-king').val(lvl.king);
-            $('#coc-queen').val(lvl.queen);
-            $('#coc-warden').val(lvl.warden);
-            $('#coc-champion').val(lvl.champion);
-          }
         });
 
         // ── Media rows ────────────────────────────────────────────────────────
