@@ -13,7 +13,8 @@ class OfferTemplateController extends Controller
     {
         $offers = OfferTemplate::with('userAccount')
             ->when($request->filled('account'), fn ($q) => $q->where('user_account_id', $request->account))
-            ->when($request->status === 'permanent',    fn ($q) => $q->where('is_permanent', true))
+            ->when($request->filled('game'),    fn ($q) => $q->where('game', $request->game))
+            ->when($request->status === 'permanent',     fn ($q) => $q->where('is_permanent', true))
             ->when($request->status === 'non_permanent', fn ($q) => $q->where('is_permanent', false))
             ->latest()
             ->get();
@@ -26,19 +27,18 @@ class OfferTemplateController extends Controller
     public function create()
     {
         $userAccounts = UserAccount::latest()->get();
-        return view('admin.offer-templates.create', compact('userAccounts'));
+        $games = OfferTemplate::GAMES;
+        return view('admin.offer-templates.create', compact('userAccounts', 'games'));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $game = $request->input('game', 'clash_of_clans');
+
+        $request->validate(array_merge([
             'user_account_id'        => 'required|integer|exists:user_accounts,id',
+            'game'                   => 'required|in:' . implode(',', array_keys(OfferTemplate::GAMES)),
             'title'                  => 'required|string|max:255',
-            'th_level'               => 'required|string',
-            'king_level'             => 'required|string',
-            'queen_level'            => 'required|string',
-            'warden_level'           => 'required|string',
-            'champion_level'         => 'required|string',
             'price'                  => 'required|numeric|min:0',
             'currency'               => 'required|string|max:3',
             'region'                 => 'required|string|max:255',
@@ -48,30 +48,25 @@ class OfferTemplateController extends Controller
             'delivery_quantity_from' => 'required|numeric|min:1',
             'delivery_speed_hour'    => 'required|numeric|min:0',
             'delivery_speed_min'     => 'required|numeric|min:0|max:59',
-        ]);
-
-        $deliveryData = [
-            'method'        => 'manual',
-            'quantity_from' => $request->delivery_quantity_from,
-            'speed_hour'    => $request->delivery_speed_hour,
-            'speed_min'     => $request->delivery_speed_min,
-        ];
+        ], $this->gameDataRules($game)));
 
         $data = [
             'user_account_id' => $request->user_account_id,
+            'game'            => $game,
+            'game_data'       => $this->extractGameData($request),
             'title'           => $request->title,
             'description'     => $request->description,
-            'th_level'        => $request->th_level,
-            'king_level'      => $request->king_level,
-            'queen_level'     => $request->queen_level,
-            'warden_level'    => $request->warden_level,
-            'champion_level'  => $request->champion_level,
             'price'           => $request->price,
             'currency'        => $request->currency,
             'region'          => $request->region,
             'is_permanent'    => $request->boolean('is_permanent'),
             'medias'          => $request->filled('medias') ? json_encode($request->medias) : null,
-            'delivery_method' => json_encode($deliveryData),
+            'delivery_method' => json_encode([
+                'method'        => 'manual',
+                'quantity_from' => $request->delivery_quantity_from,
+                'speed_hour'    => $request->delivery_speed_hour,
+                'speed_min'     => $request->delivery_speed_min,
+            ]),
         ];
 
         try {
@@ -86,49 +81,43 @@ class OfferTemplateController extends Controller
     public function edit(OfferTemplate $offerTemplate)
     {
         $userAccounts = UserAccount::latest()->get();
-        return view('admin.offer-templates.edit', compact('offerTemplate', 'userAccounts'));
+        $games = OfferTemplate::GAMES;
+        return view('admin.offer-templates.edit', compact('offerTemplate', 'userAccounts', 'games'));
     }
 
     public function update(Request $request, OfferTemplate $offerTemplate)
     {
-        $request->validate([
+        $game = $request->input('game', 'clash_of_clans');
+
+        $request->validate(array_merge([
             'user_account_id' => 'required|integer|exists:user_accounts,id',
+            'game'            => 'required|in:' . implode(',', array_keys(OfferTemplate::GAMES)),
             'title'           => 'required|string|max:255',
-            'th_level'        => 'required|string',
-            'king_level'      => 'required|string',
-            'queen_level'     => 'required|string',
-            'warden_level'    => 'required|string',
-            'champion_level'  => 'required|string',
             'price'           => 'required|numeric|min:0',
             'currency'        => 'required|string|max:3',
             'region'          => 'required|string|max:255',
             'medias'          => 'nullable|array',
             'medias.*.title'  => 'nullable|string|max:255',
             'medias.*.link'   => 'nullable|url|max:500',
-        ]);
-
-        $deliveryData = [
-            'method'        => 'manual',
-            'quantity_from' => $request->delivery_quantity_from ?? 0,
-            'speed_hour'    => $request->delivery_speed_hour ?? 0,
-            'speed_min'     => $request->delivery_speed_min ?? 0,
-        ];
+        ], $this->gameDataRules($game)));
 
         $data = [
             'user_account_id' => $request->user_account_id,
+            'game'            => $game,
+            'game_data'       => $this->extractGameData($request),
             'title'           => $request->title,
             'description'     => $request->description,
-            'th_level'        => $request->th_level,
-            'king_level'      => $request->king_level,
-            'queen_level'     => $request->queen_level,
-            'warden_level'    => $request->warden_level,
-            'champion_level'  => $request->champion_level,
             'price'           => $request->price,
             'currency'        => $request->currency,
             'region'          => $request->region,
             'is_permanent'    => $request->boolean('is_permanent'),
             'medias'          => $request->filled('medias') ? array_values($request->medias) : null,
-            'delivery_method' => json_encode($deliveryData),
+            'delivery_method' => json_encode([
+                'method'        => 'manual',
+                'quantity_from' => $request->delivery_quantity_from ?? 0,
+                'speed_hour'    => $request->delivery_speed_hour ?? 0,
+                'speed_min'     => $request->delivery_speed_min ?? 0,
+            ]),
         ];
 
         try {
@@ -201,5 +190,60 @@ class OfferTemplateController extends Controller
         }
 
         return response()->json(['success' => true, 'action' => $action, 'count' => count($ids)]);
+    }
+
+    private function gameDataRules(string $game): array
+    {
+        return match($game) {
+            'clash_of_clans' => [
+                'game_data.th_level'       => 'required|integer|min:1|max:17',
+                'game_data.king_level'     => 'nullable|integer|min:0|max:100',
+                'game_data.queen_level'    => 'nullable|integer|min:0|max:100',
+                'game_data.warden_level'   => 'nullable|integer|min:0|max:65',
+                'game_data.champion_level' => 'nullable|integer|min:0|max:50',
+            ],
+            'brawl_stars' => [
+                'game_data.platform' => 'required|in:Android,iOS',
+                'game_data.trophies' => 'required|integer|min:0',
+                'game_data.brawlers' => 'required|integer|min:0',
+                'game_data.skins'    => 'nullable|integer|min:0',
+            ],
+            'clash_royale' => [
+                'game_data.king_level'     => 'required|integer|min:1|max:15',
+                'game_data.arena'          => 'required|string|max:100',
+                'game_data.level_16_cards' => 'nullable|integer|min:0',
+                'game_data.level_15_cards' => 'nullable|integer|min:0',
+                'game_data.level_14_cards' => 'nullable|integer|min:0',
+            ],
+            'hay_day' => [
+                'game_data.platform' => 'required|in:Android,iOS,PC',
+            ],
+            'mobile_legends' => [
+                'game_data.platform' => 'required|in:Android,iOS',
+                'game_data.rank'     => 'required|string|max:100',
+                'game_data.heroes'   => 'nullable|integer|min:0',
+                'game_data.skins'    => 'nullable|integer|min:0',
+            ],
+            'call_of_duty_mobile' => [
+                'game_data.platform' => 'required|in:Android,iOS,PC',
+                'game_data.rank'     => 'required|string|max:100',
+            ],
+            default => [],
+        };
+    }
+
+    private function extractGameData(Request $request): array
+    {
+        $d    = $request->input('game_data', []);
+        $keys = match($request->input('game')) {
+            'clash_of_clans'      => ['th_level', 'king_level', 'queen_level', 'warden_level', 'champion_level'],
+            'brawl_stars'         => ['platform', 'trophies', 'brawlers', 'skins'],
+            'clash_royale'        => ['king_level', 'arena', 'level_16_cards', 'level_15_cards', 'level_14_cards'],
+            'hay_day'             => ['platform'],
+            'mobile_legends'      => ['platform', 'rank', 'heroes', 'skins'],
+            'call_of_duty_mobile' => ['platform', 'rank'],
+            default               => array_keys($d),
+        };
+        return array_intersect_key($d, array_flip($keys));
     }
 }

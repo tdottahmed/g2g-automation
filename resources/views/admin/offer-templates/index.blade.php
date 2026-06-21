@@ -17,13 +17,20 @@
               @endforeach
             </select>
 
+            <select name="game" class="form-select form-select-sm" style="min-width:160px" onchange="this.form.submit()">
+              <option value="">All Games</option>
+              @foreach (App\Models\OfferTemplate::GAMES as $slug => $gname)
+                <option value="{{ $slug }}" {{ request('game') === $slug ? 'selected' : '' }}>{{ $gname }}</option>
+              @endforeach
+            </select>
+
             <select name="status" class="form-select form-select-sm" style="min-width:140px" onchange="this.form.submit()">
               <option value="">All Templates</option>
               <option value="permanent"     {{ request('status') === 'permanent'     ? 'selected' : '' }}>Permanent</option>
               <option value="non_permanent" {{ request('status') === 'non_permanent' ? 'selected' : '' }}>Non-Permanent</option>
             </select>
 
-            @if (request('account') || request('status'))
+            @if (request('account') || request('status') || request('game'))
               <a href="{{ route('offer-templates.index') }}" class="btn btn-sm btn-outline-secondary" title="Clear filters">
                 <i class="ri-close-line"></i>
               </a>
@@ -65,6 +72,7 @@
             </td>
             <td>
               <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="badge {{ $offer->gameBadgeClass() }}" title="{{ $offer->gameLabel() }}">{{ $offer->gameLabel() }}</span>
                 <span class="fw-medium">{{ str($offer->title)->limit(50) }}</span>
                 @if (($offer->offers_to_generate ?? 0) > 0)
                   <span class="badge bg-warning text-dark badge-post-queue"
@@ -80,10 +88,8 @@
                 @endif
               </div>
               <div class="text-muted small mt-1">
-                TH{{ $offer->th_level }}
-                @if ($offer->king_level) &middot; K{{ $offer->king_level }} @endif
-                @if ($offer->queen_level) &middot; Q{{ $offer->queen_level }} @endif
-                &middot; ${{ number_format($offer->price, 2) }}
+                @if ($offer->gameSummary()) {{ $offer->gameSummary() }} &middot; @endif
+                ${{ number_format($offer->price, 2) }}
               </div>
             </td>
             <td>

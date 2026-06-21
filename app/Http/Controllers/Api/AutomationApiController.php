@@ -233,13 +233,10 @@ class AutomationApiController extends Controller
 
         return [
             'template_id'               => $template->id,
+            'game'                      => $template->game,
+            'game_data'                 => $template->game_data ?? [],
             'Title'                     => $template->title ?? 'Untitled Offer',
             'Description'               => $template->description ?? '',
-            'Town Hall Level'           => $template->th_level ?? '',
-            'King Level'                => $template->king_level ?? '',
-            'Queen Level'               => $template->queen_level ?? '',
-            'Warden Level'              => $template->warden_level ?? '',
-            'Champion Level'            => $template->champion_level ?? '',
             'Default price (unit)'      => (string) ($template->price ?? '0'),
             'Minimum purchase quantity' => $template->minimum_order_quantity ?? 1,
             'Instant delivery'          => $template->instant_delivery ? 1 : 0,
