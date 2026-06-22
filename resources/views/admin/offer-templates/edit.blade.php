@@ -106,6 +106,7 @@
                   <option value="">{{ __('Select Platform') }}</option>
                   <option value="Android" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android' ? 'selected' : '' }}>Android</option>
                   <option value="iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'iOS' ? 'selected' : '' }}>iOS</option>
+                  <option value="Android & iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android & iOS' ? 'selected' : '' }}>Android & iOS</option>
                 </select>
                 @error('game_data.platform') <span class="text-danger small">{{ $message }}</span> @enderror
               </div>
@@ -147,7 +148,7 @@
                 <label class="form-label">{{ __('King Level') }} <span class="text-danger">*</span></label>
                 <input type="number" name="game_data[king_level]" class="form-control"
                        value="{{ old('game_data.king_level', $gd['king_level'] ?? '') }}"
-                       placeholder="1–15" min="1" max="15">
+                       placeholder="1–15">
                 @error('game_data.king_level') <span class="text-danger small">{{ $message }}</span> @enderror
               </div>
               <div class="col-md-6">
@@ -196,6 +197,7 @@
                   <option value="Android" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android' ? 'selected' : '' }}>Android</option>
                   <option value="iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'iOS' ? 'selected' : '' }}>iOS</option>
                   <option value="PC" {{ old('game_data.platform', $gd['platform'] ?? '') == 'PC' ? 'selected' : '' }}>PC</option>
+                  <option value="Android & iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android & iOS' ? 'selected' : '' }}>Android & iOS</option>
                 </select>
                 @error('game_data.platform') <span class="text-danger small">{{ $message }}</span> @enderror
               </div>
@@ -219,6 +221,7 @@
                   <option value="">{{ __('Select Platform') }}</option>
                   <option value="Android" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android' ? 'selected' : '' }}>Android</option>
                   <option value="iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'iOS' ? 'selected' : '' }}>iOS</option>
+                  <option value="Android & iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android & iOS' ? 'selected' : '' }}>Android & iOS</option>
                 </select>
                 @error('game_data.platform') <span class="text-danger small">{{ $message }}</span> @enderror
               </div>
@@ -262,6 +265,7 @@
                   <option value="Android" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android' ? 'selected' : '' }}>Android</option>
                   <option value="iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'iOS' ? 'selected' : '' }}>iOS</option>
                   <option value="PC" {{ old('game_data.platform', $gd['platform'] ?? '') == 'PC' ? 'selected' : '' }}>PC (Emulator)</option>
+                  <option value="Android & iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android & iOS' ? 'selected' : '' }}>Android & iOS</option>
                 </select>
                 @error('game_data.platform') <span class="text-danger small">{{ $message }}</span> @enderror
               </div>
