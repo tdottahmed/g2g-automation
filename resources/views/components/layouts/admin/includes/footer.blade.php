@@ -8,7 +8,8 @@
             </div>
             <div class="col-sm-6">
                 <div class="text-sm-end d-none d-sm-block">
-                    Design & Develop by Tanbir Ahmed
+                    Design & Developed by <a href="https://tanbir.nixsoftware.net" target="_blank">Tanbir
+                        Ahmed</a>
                 </div>
             </div>
         </div>

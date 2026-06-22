@@ -50,7 +50,7 @@
             </div>
 
             <div class="d-flex align-items-center">
-                <div class="dropdown d-md-none topbar-head-dropdown header-item">
+                <div class="dropdown d-none topbar-head-dropdown header-item">
                     <button type="button"
                         class="btn btn-icon btn-topbar material-shadow-none btn-ghost-secondary rounded-circle"
                         id="page-header-search-dropdown" data-bs-toggle="dropdown" aria-haspopup="true"
@@ -77,6 +77,54 @@
                         data-toggle="fullscreen">
                         <i class='bx bx-fullscreen fs-22'></i>
                     </button>
+                </div>
+
+                {{-- ── Page Refresh ── --}}
+                <div class="ms-1 header-item d-flex">
+                    <div class="btn-group" id="refresh-group">
+                        {{-- Refresh now --}}
+                        <button type="button" id="refresh-now-btn"
+                            class="btn btn-icon btn-topbar material-shadow-none btn-ghost-secondary"
+                            title="Refresh page">
+                            <span class="position-relative d-inline-flex">
+                                <i class="ri-refresh-line fs-22" id="refresh-icon"></i>
+                                {{-- Pulse dot when auto-refresh is active --}}
+                                <span id="refresh-active-dot"
+                                    class="position-absolute top-0 start-100 translate-middle p-1 bg-success rounded-circle d-none"
+                                    style="width:8px;height:8px;margin-top:2px;margin-left:-4px">
+                                </span>
+                            </span>
+                        </button>
+                        {{-- Interval dropdown toggle --}}
+                        <button type="button"
+                            class="btn btn-topbar material-shadow-none btn-ghost-secondary dropdown-toggle dropdown-toggle-split px-1"
+                            data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                            aria-expanded="false" title="Auto-refresh options"
+                            style="font-size:11px;min-width:0">
+                            <span class="visually-hidden">Refresh options</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end shadow-sm p-2" style="min-width:210px">
+                            <div class="d-flex align-items-center justify-content-between px-2 py-1 mb-2 border-bottom pb-2">
+                                <span class="fw-semibold small">Auto-Refresh</span>
+                                <span class="text-muted small" id="refresh-countdown" style="font-variant-numeric:tabular-nums"></span>
+                            </div>
+                            <button class="dropdown-item rounded-1 py-1 refresh-interval-opt" data-seconds="0">
+                                <i class="ri-close-line me-2 text-muted"></i>Off
+                            </button>
+                            <button class="dropdown-item rounded-1 py-1 refresh-interval-opt" data-seconds="30">
+                                <i class="ri-timer-line me-2 text-success"></i>Every 30 seconds
+                            </button>
+                            <button class="dropdown-item rounded-1 py-1 refresh-interval-opt" data-seconds="60">
+                                <i class="ri-timer-line me-2 text-success"></i>Every 1 minute
+                            </button>
+                            <button class="dropdown-item rounded-1 py-1 refresh-interval-opt" data-seconds="120">
+                                <i class="ri-timer-line me-2 text-success"></i>Every 2 minutes
+                            </button>
+                            <button class="dropdown-item rounded-1 py-1 refresh-interval-opt" data-seconds="300">
+                                <i class="ri-timer-line me-2 text-success"></i>Every 5 minutes
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="ms-1 header-item d-none d-sm-flex">

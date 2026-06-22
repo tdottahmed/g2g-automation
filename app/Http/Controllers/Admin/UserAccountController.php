@@ -15,7 +15,11 @@ class UserAccountController extends Controller
      */
     public function index()
     {
-        $userAccounts = UserAccount::latest()->get();
+        $userAccounts = UserAccount::withCount([
+            'offers as templates_count',
+            'offers as permanent_templates_count' => fn ($q) => $q->where('is_permanent', true),
+        ])->latest()->get();
+
         return view('admin.user-accounts.index', compact('userAccounts'));
     }
 
@@ -103,9 +107,36 @@ class UserAccountController extends Controller
     /**
      * Remove the specified user account from storage.
      */
-    public function destroy(UserAccount $userAccount)
+    public function destroy(Request $request, UserAccount $userAccount)
     {
         $userAccount->delete();
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return redirect()->route('user-accounts.index')->with('success', 'User account deleted successfully.');
+    }
+
+    public function queueDeleteAll(Request $request, UserAccount $userAccount)
+    {
+        $newValue = !$userAccount->queue_delete_all;
+        $userAccount->update(['queue_delete_all' => $newValue, 'queue_force_delete_all' => false]);
+
+        return response()->json(['success' => true, 'queue_delete_all' => $newValue]);
+    }
+
+    public function queueDeleteNonPermanent(UserAccount $userAccount)
+    {
+        $userAccount->update(['queue_delete_all' => true, 'queue_force_delete_all' => false]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function queueForceDeleteAll(UserAccount $userAccount)
+    {
+        $userAccount->update(['queue_delete_all' => true, 'queue_force_delete_all' => true]);
+
+        return response()->json(['success' => true]);
     }
 }

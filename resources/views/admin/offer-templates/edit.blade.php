@@ -1,4 +1,5 @@
 <x-layouts.admin.master>
+
   <x-data-display.card>
     <x-slot name="header">
       <div class="d-flex justify-content-between align-items-center">
@@ -8,20 +9,282 @@
       </div>
     </x-slot>
 
+    @php
+      $activeGame = old('game', $offerTemplate->game ?? 'clash_of_clans');
+      $gd         = $offerTemplate->game_data ?? [];
+      $deliveryJson = old('delivery_method', $offerTemplate->delivery_method ?? '{}');
+      $delivery     = is_string($deliveryJson) ? json_decode($deliveryJson, true) : $deliveryJson;
+      $medias       = $offerTemplate->medias ?? [];
+      if (is_string($medias)) { $medias = json_decode($medias, true) ?: []; }
+    @endphp
+
     <x-data-entry.form method="PUT" action="{{ route('offer-templates.update', $offerTemplate->id) }}"
                        :model="$offerTemplate">
       <input type="hidden" name="region" value="Global" />
       <input type="hidden" name="currency" value="USD" />
 
-      {{-- User Account --}}
-      <x-data-entry.select name="user_account_id" label="User Account" :options="$userAccounts->pluck('owner_name', 'id')" :selected="old('user_account_id', $offerTemplate->user_account_id)"
-                           placeholder="Select User Account" required />
+      {{-- ── Row 1: User Account + Game ──────────────────────────────────────── --}}
+      <div class="row">
+        <div class="col-md-6">
+          <x-data-entry.select name="user_account_id" label="User Account"
+                               :options="$userAccounts->pluck('owner_name', 'id')"
+                               :selected="old('user_account_id', $offerTemplate->user_account_id)"
+                               placeholder="Select User Account" required />
+        </div>
+        <div class="col-md-6">
+          <div class="form-group mb-3">
+            <label for="game">{{ __('Game') }}</label>
+            <select id="game" name="game" class="form-control js-example-basic-single" style="width:100%;">
+              @foreach ($games as $slug => $label)
+                <option value="{{ $slug }}" {{ $activeGame === $slug ? 'selected' : '' }}>{{ $label }}</option>
+              @endforeach
+            </select>
+            @error('game') <span class="text-danger">{{ $message }}</span> @enderror
+          </div>
+        </div>
+      </div>
 
-      {{-- Title --}}
+      {{-- ── Game-specific fields ──────────────────────────────────────────────── --}}
+
+      {{-- Clash of Clans --}}
+      <fieldset data-game="clash_of_clans" class="game-section p-0 m-0 border-0"
+                @if($activeGame !== 'clash_of_clans') style="display:none" disabled @endif>
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-header bg-primary text-white py-2">
+            <h6 class="mb-0"><i class="ri-sword-line me-1"></i> Clash of Clans</h6>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{{ __('Town Hall Level') }} <span class="text-danger">*</span></label>
+                <input type="number" id="coc-th-level" name="game_data[th_level]"
+                       class="form-control" value="{{ old('game_data.th_level', $gd['th_level'] ?? '') }}"
+                       placeholder="e.g. 17">
+                @error('game_data.th_level') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold mb-1">♔ {{ __('Barbarian King') }}</label>
+                <input type="number" id="coc-king" name="game_data[king_level]"
+                       class="form-control" value="{{ old('game_data.king_level', $gd['king_level'] ?? '') }}"
+                       placeholder="0">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold mb-1">♛ {{ __('Archer Queen') }}</label>
+                <input type="number" id="coc-queen" name="game_data[queen_level]"
+                       class="form-control" value="{{ old('game_data.queen_level', $gd['queen_level'] ?? '') }}"
+                       placeholder="0">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold mb-1">⚑ {{ __('Grand Warden') }}</label>
+                <input type="number" id="coc-warden" name="game_data[warden_level]"
+                       class="form-control" value="{{ old('game_data.warden_level', $gd['warden_level'] ?? '') }}"
+                       placeholder="0">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold mb-1">✦ {{ __('Royal Champion') }}</label>
+                <input type="number" id="coc-champion" name="game_data[champion_level]"
+                       class="form-control" value="{{ old('game_data.champion_level', $gd['champion_level'] ?? '') }}"
+                       placeholder="0">
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      {{-- Brawl Stars --}}
+      <fieldset data-game="brawl_stars" class="game-section p-0 m-0 border-0"
+                @if($activeGame !== 'brawl_stars') style="display:none" disabled @endif>
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-header bg-warning text-dark py-2">
+            <h6 class="mb-0">Brawl Stars</h6>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{{ __('Platform') }} <span class="text-danger">*</span></label>
+                <select name="game_data[platform]" class="form-select">
+                  <option value="">{{ __('Select Platform') }}</option>
+                  <option value="Android" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android' ? 'selected' : '' }}>Android</option>
+                  <option value="iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'iOS' ? 'selected' : '' }}>iOS</option>
+                  <option value="Android & iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android & iOS' ? 'selected' : '' }}>Android & iOS</option>
+                </select>
+                @error('game_data.platform') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ __('Trophies') }} <span class="text-danger">*</span></label>
+                <input type="number" name="game_data[trophies]" class="form-control"
+                       value="{{ old('game_data.trophies', $gd['trophies'] ?? '') }}"
+                       placeholder="e.g. 50000" min="0">
+                @error('game_data.trophies') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ __('Brawlers') }} <span class="text-danger">*</span></label>
+                <input type="number" name="game_data[brawlers]" class="form-control"
+                       value="{{ old('game_data.brawlers', $gd['brawlers'] ?? '') }}"
+                       placeholder="Number of brawlers" min="0">
+                @error('game_data.brawlers') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ __('Skins') }}</label>
+                <input type="number" name="game_data[skins]" class="form-control"
+                       value="{{ old('game_data.skins', $gd['skins'] ?? '') }}"
+                       placeholder="Number of skins" min="0">
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      {{-- Clash Royale --}}
+      <fieldset data-game="clash_royale" class="game-section p-0 m-0 border-0"
+                @if($activeGame !== 'clash_royale') style="display:none" disabled @endif>
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-header bg-info text-dark py-2">
+            <h6 class="mb-0">Clash Royale</h6>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{{ __('King Level') }} <span class="text-danger">*</span></label>
+                <input type="number" name="game_data[king_level]" class="form-control"
+                       value="{{ old('game_data.king_level', $gd['king_level'] ?? '') }}"
+                       placeholder="1–15">
+                @error('game_data.king_level') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ __('Arena') }} <span class="text-danger">*</span></label>
+                <input type="text" name="game_data[arena]" class="form-control"
+                       value="{{ old('game_data.arena', $gd['arena'] ?? '') }}"
+                       placeholder="e.g. Arena 15, Challenger">
+                @error('game_data.arena') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">{{ __('Level 16 Cards') }}</label>
+                <input type="number" name="game_data[level_16_cards]" class="form-control"
+                       value="{{ old('game_data.level_16_cards', $gd['level_16_cards'] ?? '') }}"
+                       placeholder="Count" min="0">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">{{ __('Level 15 Cards') }}</label>
+                <input type="number" name="game_data[level_15_cards]" class="form-control"
+                       value="{{ old('game_data.level_15_cards', $gd['level_15_cards'] ?? '') }}"
+                       placeholder="Count" min="0">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">{{ __('Level 14 Cards') }}</label>
+                <input type="number" name="game_data[level_14_cards]" class="form-control"
+                       value="{{ old('game_data.level_14_cards', $gd['level_14_cards'] ?? '') }}"
+                       placeholder="Count" min="0">
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      {{-- Hay Day --}}
+      <fieldset data-game="hay_day" class="game-section p-0 m-0 border-0"
+                @if($activeGame !== 'hay_day') style="display:none" disabled @endif>
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-header bg-success text-white py-2">
+            <h6 class="mb-0">Hay Day</h6>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{{ __('Platform') }} <span class="text-danger">*</span></label>
+                <select name="game_data[platform]" class="form-select">
+                  <option value="">{{ __('Select Platform') }}</option>
+                  <option value="Android" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android' ? 'selected' : '' }}>Android</option>
+                  <option value="iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'iOS' ? 'selected' : '' }}>iOS</option>
+                  <option value="PC" {{ old('game_data.platform', $gd['platform'] ?? '') == 'PC' ? 'selected' : '' }}>PC</option>
+                  <option value="Android & iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android & iOS' ? 'selected' : '' }}>Android & iOS</option>
+                </select>
+                @error('game_data.platform') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      {{-- Mobile Legends --}}
+      <fieldset data-game="mobile_legends" class="game-section p-0 m-0 border-0"
+                @if($activeGame !== 'mobile_legends') style="display:none" disabled @endif>
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-header bg-danger text-white py-2">
+            <h6 class="mb-0">Mobile Legends</h6>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{{ __('Platform') }} <span class="text-danger">*</span></label>
+                <select name="game_data[platform]" class="form-select">
+                  <option value="">{{ __('Select Platform') }}</option>
+                  <option value="Android" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android' ? 'selected' : '' }}>Android</option>
+                  <option value="iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'iOS' ? 'selected' : '' }}>iOS</option>
+                  <option value="Android & iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android & iOS' ? 'selected' : '' }}>Android & iOS</option>
+                </select>
+                @error('game_data.platform') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ __('Rank') }} <span class="text-danger">*</span></label>
+                <input type="text" name="game_data[rank]" class="form-control"
+                       value="{{ old('game_data.rank', $gd['rank'] ?? '') }}"
+                       placeholder="e.g. Mythic, Legend">
+                @error('game_data.rank') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ __('Heroes') }}</label>
+                <input type="number" name="game_data[heroes]" class="form-control"
+                       value="{{ old('game_data.heroes', $gd['heroes'] ?? '') }}"
+                       placeholder="Number of heroes" min="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ __('Skins') }}</label>
+                <input type="number" name="game_data[skins]" class="form-control"
+                       value="{{ old('game_data.skins', $gd['skins'] ?? '') }}"
+                       placeholder="Number of skins" min="0">
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      {{-- Call of Duty Mobile --}}
+      <fieldset data-game="call_of_duty_mobile" class="game-section p-0 m-0 border-0"
+                @if($activeGame !== 'call_of_duty_mobile') style="display:none" disabled @endif>
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-header bg-dark text-white py-2">
+            <h6 class="mb-0">Call of Duty Mobile</h6>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{{ __('Platform') }} <span class="text-danger">*</span></label>
+                <select name="game_data[platform]" class="form-select">
+                  <option value="">{{ __('Select Platform') }}</option>
+                  <option value="Android" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android' ? 'selected' : '' }}>Android</option>
+                  <option value="iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'iOS' ? 'selected' : '' }}>iOS</option>
+                  <option value="PC" {{ old('game_data.platform', $gd['platform'] ?? '') == 'PC' ? 'selected' : '' }}>PC (Emulator)</option>
+                  <option value="Android & iOS" {{ old('game_data.platform', $gd['platform'] ?? '') == 'Android & iOS' ? 'selected' : '' }}>Android & iOS</option>
+                </select>
+                @error('game_data.platform') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ __('Rank') }} <span class="text-danger">*</span></label>
+                <input type="text" name="game_data[rank]" class="form-control"
+                       value="{{ old('game_data.rank', $gd['rank'] ?? '') }}"
+                       placeholder="e.g. Legendary, Master">
+                @error('game_data.rank') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      {{-- ── Common offer fields ──────────────────────────────────────────────── --}}
       <x-data-entry.input type="text" name="title" label="Title" placeholder="Enter title"
                           value="{{ old('title', $offerTemplate->title) }}" required />
 
-      {{-- Description --}}
       <x-data-entry.text-area name="description" label="Description" placeholder="Enter description" rows="3"
                               value="{{ old('description', $offerTemplate->description) }}" />
 
@@ -35,15 +298,7 @@
             <i class="ri-add-line me-1"></i> {{ __('Add Media') }}
           </button>
         </div>
-
         <div class="card-body" id="media-wrapper">
-          @php
-            $medias = $offerTemplate->medias ?? [];
-            if (is_string($medias)) {
-                $medias = json_decode($medias, true) ?: [];
-            }
-          @endphp
-
           @foreach ($medias as $index => $media)
             <div class="row g-2 align-items-end media-row mb-2" data-id="{{ $index }}">
               <div class="col-md-3">
@@ -66,49 +321,10 @@
         </div>
       </div>
 
-      {{-- Levels --}}
-      <div class="row mt-3">
-        <div class="col-md-6">
-          <x-data-entry.select name="th_level" label="Town Hall Level" :options="getLevelsByType('Town Hall')" :selected="old('th_level', $offerTemplate->th_level)"
-                               placeholder="Select TH Level" />
-        </div>
-        <div class="col-md-6">
-          <x-data-entry.select name="king_level" label="King Level" :options="getLevelsByType('King')" :selected="old('king_level', $offerTemplate->king_level)"
-                               placeholder="Select King Level" />
-        </div>
-        <div class="col-md-6">
-          <x-data-entry.select name="queen_level" label="Queen Level" :options="getLevelsByType('Queen')" :selected="old('queen_level', $offerTemplate->queen_level)"
-                               placeholder="Select Queen Level" />
-        </div>
-        <div class="col-md-6">
-          <x-data-entry.select name="warden_level" label="Warden Level" :options="getLevelsByType('Warden')" :selected="old('warden_level', $offerTemplate->warden_level)"
-                               placeholder="Select Warden Level" />
-        </div>
-        <div class="col-md-6">
-          <x-data-entry.select name="champion_level" label="Champion Level" :options="getLevelsByType('Champion')" :selected="old('champion_level', $offerTemplate->champion_level)"
-                               placeholder="Select Champion Level" />
-        </div>
-      </div>
-
-      {{-- Price --}}
       <x-data-entry.input type="number" step="0.01" name="price" label="Price"
                           value="{{ old('price', $offerTemplate->price) }}" required />
 
-      {{-- Currency --}}
-      <x-data-entry.input type="text" name="currency" label="Currency"
-                          value="{{ old('currency', $offerTemplate->currency ?? 'USD') }}" required disabled />
-
-      {{-- Region --}}
-      <x-data-entry.input type="text" name="region" label="Region"
-                          value="{{ old('region', $offerTemplate->region ?? 'Global') }}" disabled />
-
       {{-- Delivery Method --}}
-      @php
-        $deliveryJson = old('delivery_method', $offerTemplate->delivery_method ?? '{}');
-        $delivery = is_string($deliveryJson) ? json_decode($deliveryJson, true) : $deliveryJson;
-      @endphp
-
-
       <div class="card mt-3 border-0 shadow-sm">
         <div class="card-header bg-light">
           <h5 class="mb-0">
@@ -120,7 +336,6 @@
             <input class="form-check-input" type="radio" name="delivery_method_type" value="manual" checked disabled>
             <label class="form-check-label">{{ __('Manual') }}</label>
           </div>
-
           <div class="row mt-2">
             <div class="col-md-4">
               <x-data-entry.input type="number" name="delivery_quantity_from" label="Delivery Quantity From"
@@ -138,12 +353,36 @@
         </div>
       </div>
 
+      <div class="mt-3">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="is_permanent" id="is_permanent" value="1"
+                 {{ old('is_permanent', $offerTemplate->is_permanent) ? 'checked' : '' }}>
+          <label class="form-check-label" for="is_permanent">
+            <i class="ri-shield-check-line me-1 text-success"></i>
+            <strong>{{ __('Permanent') }}</strong>
+            <span class="text-muted small ms-1">— this offer will be skipped during delete-all runs</span>
+          </label>
+        </div>
+      </div>
+
     </x-data-entry.form>
   </x-data-display.card>
 
   @push('scripts')
     <script>
-      $(document).ready(function() {
+      $(document).ready(function () {
+
+        // ── Game switcher ──────────────────────────────────────────────────────
+        function switchGame(game) {
+          $('fieldset[data-game]').prop('disabled', true).hide();
+          $('fieldset[data-game="' + game + '"]').prop('disabled', false).show();
+        }
+
+        $('#game').on('change', function () {
+          switchGame($(this).val());
+        });
+
+        // ── Media rows ────────────────────────────────────────────────────────
         let mediaIndex = {{ count($medias) }};
 
         function createMediaRow(index) {
@@ -166,14 +405,15 @@
           `;
         }
 
-        $('#add-media-btn').on('click', function() {
+        $('#add-media-btn').on('click', function () {
           $('#media-wrapper').append(createMediaRow(mediaIndex));
           mediaIndex++;
         });
 
-        $('#media-wrapper').on('click', '.remove-media-btn', function() {
+        $('#media-wrapper').on('click', '.remove-media-btn', function () {
           $(this).closest('.media-row').remove();
         });
+
       });
     </script>
   @endpush
