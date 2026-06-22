@@ -125,7 +125,7 @@ class AutomationApiController extends Controller
             'user_id'          => $a->id,
             'email'            => $a->email,
             'password'         => $a->password,
-            'permanent_titles' => $a->offers->pluck('title')->values()->all(),
+            'permanent_titles' => $a->queue_force_delete_all ? [] : $a->offers->pluck('title')->values()->all(),
         ])->values()->all();
 
         return response()->json(['users' => $users, 'server_time' => now()->toIso8601String()]);
@@ -135,7 +135,7 @@ class AutomationApiController extends Controller
     {
         $details = $request->input('details', []);
 
-        $userAccount->update(['queue_delete_all' => false]);
+        $userAccount->update(['queue_delete_all' => false, 'queue_force_delete_all' => false]);
 
         OfferAutomationLog::create([
             'offer_template_id' => null,

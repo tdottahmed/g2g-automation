@@ -45,6 +45,91 @@
     @endforeach
   </div>
 
+  {{-- ── Quick Actions ─────────────────────────────────────────────────────────── --}}
+  <x-data-display.card class="mb-4">
+    <x-slot name="header">
+      <h5 class="card-title mb-0">
+        <i class="ri-flashlight-line text-primary me-2"></i>Quick Actions
+      </h5>
+    </x-slot>
+
+    <div class="row g-3">
+
+      {{-- 1. Template Management --}}
+      <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 bg-body-tertiary h-100">
+          <div class="card-body d-flex flex-column gap-2 p-3">
+            <div class="avatar-sm">
+              <div class="avatar-title bg-primary-subtle text-primary rounded-circle">
+                <i class="ri-layout-grid-line fs-18"></i>
+              </div>
+            </div>
+            <h6 class="fw-semibold mb-0">Template Management</h6>
+            <p class="text-muted small mb-0 flex-grow-1">Browse, search, and manage offer templates for a specific account.</p>
+            <button type="button" class="btn btn-sm btn-primary w-100 qa-btn" data-action="manage-templates">
+              <i class="ri-layout-grid-line me-1"></i>Open Templates
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {{-- 2. Start Posting All --}}
+      <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 bg-body-tertiary h-100">
+          <div class="card-body d-flex flex-column gap-2 p-3">
+            <div class="avatar-sm">
+              <div class="avatar-title bg-success-subtle text-success rounded-circle">
+                <i class="ri-send-plane-line fs-18"></i>
+              </div>
+            </div>
+            <h6 class="fw-semibold mb-0">Start Posting All</h6>
+            <p class="text-muted small mb-0 flex-grow-1">Queue all templates for an account to be posted on the next desktop app cycle.</p>
+            <button type="button" class="btn btn-sm btn-success w-100 qa-btn" data-action="queue-post-all">
+              <i class="ri-send-plane-line me-1"></i>Queue Posts
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {{-- 3. Delete All Except Permanent --}}
+      <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 bg-body-tertiary h-100">
+          <div class="card-body d-flex flex-column gap-2 p-3">
+            <div class="avatar-sm">
+              <div class="avatar-title bg-warning-subtle text-warning rounded-circle">
+                <i class="ri-shield-line fs-18"></i>
+              </div>
+            </div>
+            <h6 class="fw-semibold mb-0">Delete Except Permanent</h6>
+            <p class="text-muted small mb-0 flex-grow-1">Queue deletion of all non-permanent offers from g2g.com. Permanent offers are kept safe.</p>
+            <button type="button" class="btn btn-sm btn-warning w-100 qa-btn" data-action="delete-except-permanent">
+              <i class="ri-shield-line me-1"></i>Delete Non-Permanent
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {{-- 4. Delete All Offers (force) --}}
+      <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 bg-body-tertiary h-100">
+          <div class="card-body d-flex flex-column gap-2 p-3">
+            <div class="avatar-sm">
+              <div class="avatar-title bg-danger-subtle text-danger rounded-circle">
+                <i class="ri-delete-bin-line fs-18"></i>
+              </div>
+            </div>
+            <h6 class="fw-semibold mb-0">Delete All Offers</h6>
+            <p class="text-muted small mb-0 flex-grow-1">Queue deletion of <strong>all</strong> live offers, including permanent ones. Use with care.</p>
+            <button type="button" class="btn btn-sm btn-danger w-100 qa-btn" data-action="delete-all-force">
+              <i class="ri-delete-bin-line me-1"></i>Delete Everything
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </x-data-display.card>
+
   {{-- ── Accounts section ─────────────────────────────────────────────────────── --}}
   <x-data-display.card class="mb-4">
     <x-slot name="header">
@@ -207,62 +292,6 @@
     @endif
   </x-data-display.card>
 
-  {{-- ── Recent Logs ──────────────────────────────────────────────────────────── --}}
-  <x-data-display.card>
-    <x-slot name="header">
-      <div class="d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">
-          <i class="ri-history-line text-primary me-2"></i>Recent Activity
-        </h5>
-        <a href="{{ route('offer-logs.index') }}" class="btn btn-sm btn-outline-secondary">
-          View All →
-        </a>
-      </div>
-    </x-slot>
-
-    @if ($recentLogs->isEmpty())
-      <div class="py-5 text-center text-muted">
-        <i class="ri-file-list-3-line display-3 d-block mb-2 opacity-25"></i>
-        No logs yet. Keep the desktop app running to start seeing activity.
-      </div>
-    @else
-      <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th style="width:130px">When</th>
-              <th>Template</th>
-              <th class="text-center" style="width:90px">Status</th>
-              <th class="d-none d-md-table-cell">Message</th>
-            </tr>
-          </thead>
-          <tbody>
-            @foreach ($recentLogs as $log)
-              <tr>
-                <td class="text-muted small text-nowrap">
-                  <span title="{{ $log->executed_at }}">{{ $log->executed_at?->diffForHumans() ?? '—' }}</span>
-                </td>
-                <td class="small fw-medium">{{ $log->template?->title ?? '—' }}</td>
-                <td class="text-center">
-                  @if ($log->status === 'success')
-                    <span class="badge bg-success-subtle text-success border border-success-subtle">
-                      <i class="ri-checkbox-circle-line me-1"></i>success
-                    </span>
-                  @else
-                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
-                      <i class="ri-close-circle-line me-1"></i>failed
-                    </span>
-                  @endif
-                </td>
-                <td class="text-muted small d-none d-md-table-cell">{{ Str::limit($log->message, 90) }}</td>
-              </tr>
-            @endforeach
-          </tbody>
-        </table>
-      </div>
-    @endif
-  </x-data-display.card>
-
   {{-- ══════════════════════════════════════════════════════════════════════════ --}}
   {{-- Template Management Offcanvas                                             --}}
   {{-- ══════════════════════════════════════════════════════════════════════════ --}}
@@ -319,19 +348,14 @@
 
     {{-- Body --}}
     <div class="offcanvas-body p-0">
-      {{-- Loading spinner --}}
       <div id="oc-loading" class="py-5 text-center text-muted d-none">
         <div class="spinner-border spinner-border-sm text-primary mb-2"></div>
         <p class="small mb-0">Loading templates…</p>
       </div>
-
-      {{-- Empty state --}}
       <div id="oc-empty" class="py-5 text-center text-muted d-none">
         <i class="ri-file-list-3-line display-3 d-block mb-2 opacity-25"></i>
         <p class="mb-0">No templates match your filter.</p>
       </div>
-
-      {{-- Template table --}}
       <div class="table-responsive d-none" id="oc-table-wrap">
         <table class="table table-sm table-hover align-middle mb-0">
           <thead class="table-light sticky-top">
@@ -351,8 +375,6 @@
           <tbody id="oc-tbody"></tbody>
         </table>
       </div>
-
-      {{-- Pagination --}}
       <div id="oc-pagination" class="d-none px-3 py-3 border-top d-flex align-items-center justify-content-between gap-2 flex-wrap">
         <div class="text-muted small" id="oc-page-info"></div>
         <div class="d-flex gap-1">
@@ -363,6 +385,81 @@
             Next <i class="ri-arrow-right-s-line"></i>
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  {{-- ══════════════════════════════════════════════════════════════════════════ --}}
+  {{-- Quick Action Account Picker Modal                                         --}}
+  {{-- ══════════════════════════════════════════════════════════════════════════ --}}
+  <div class="modal fade" id="quickActionModal" tabindex="-1" aria-labelledby="qaModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:500px">
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <div class="d-flex align-items-center gap-3">
+            <div class="avatar-sm flex-shrink-0">
+              <div class="avatar-title rounded-circle" id="qa-icon-wrap">
+                <i id="qa-icon" class="fs-18"></i>
+              </div>
+            </div>
+            <div>
+              <h5 class="modal-title mb-0" id="qaModalTitle">Action</h5>
+              <p class="text-muted small mb-0" id="qa-subtitle"></p>
+            </div>
+          </div>
+          <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          {{-- Contextual warning --}}
+          <div class="alert d-none mb-3" id="qa-warning" role="alert">
+            <i class="me-1" id="qa-warn-icon"></i>
+            <span id="qa-warn-text"></span>
+          </div>
+
+          {{-- Account list --}}
+          @if ($userAccounts->isEmpty())
+            <div class="py-4 text-center text-muted">
+              <i class="ri-user-search-line display-5 opacity-25 d-block mb-2"></i>
+              <p class="mb-0 small">No accounts found. Add one first.</p>
+            </div>
+          @else
+            <p class="text-muted small fw-semibold mb-2 text-uppercase" style="letter-spacing:.05em">Select an account</p>
+            <div class="d-flex flex-column gap-2" id="qa-account-list">
+              @foreach ($userAccounts as $account)
+                <div class="qa-account-card d-flex align-items-center gap-3 p-2 px-3 border rounded-2"
+                     role="button"
+                     data-id="{{ $account->id }}"
+                     data-email="{{ $account->email }}"
+                     data-owner="{{ $account->owner_name ?? '' }}"
+                     data-total="{{ $account->total_templates }}"
+                     data-permanent="{{ $account->permanent_templates_count }}">
+                  <img src="https://ui-avatars.com/api/?name={{ urlencode($account->email) }}&background=7269ef&color=fff&size=32"
+                       class="rounded-circle flex-shrink-0" width="32" height="32" alt="">
+                  <div class="flex-grow-1 min-w-0">
+                    <div class="fw-semibold text-truncate small">{{ $account->email }}</div>
+                    @if ($account->owner_name)
+                      <div class="text-muted" style="font-size:.75rem">{{ $account->owner_name }}</div>
+                    @endif
+                  </div>
+                  <div class="text-muted small flex-shrink-0">
+                    {{ $account->total_templates }} tpl
+                  </div>
+                  <div class="form-check mb-0 flex-shrink-0">
+                    <input class="form-check-input qa-radio" type="radio" name="qa-account-pick" style="pointer-events:none">
+                  </div>
+                </div>
+              @endforeach
+            </div>
+          @endif
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="qa-confirm" disabled>Confirm</button>
+        </div>
+
       </div>
     </div>
   </div>
@@ -395,36 +492,40 @@
     });
 
     // ── Open template offcanvas ────────────────────────────────────────────────
+    function openTemplateOffcanvas(accountId, accountEmail, total, permanent) {
+      currentAccountId = accountId;
+      currentPage      = 1;
+
+      document.getElementById('templatesOffcanvasLabel').textContent = accountEmail;
+      document.getElementById('oc-account-meta').textContent =
+        `${total} template(s) · ${permanent} permanent`;
+      document.getElementById('oc-add-template-btn').href =
+        `/offer-templates/create?account=${accountId}`;
+
+      document.getElementById('oc-search').value      = '';
+      document.getElementById('oc-perm-filter').value = '';
+      clearOcBulkSelection();
+
+      const oc = new bootstrap.Offcanvas(document.getElementById('templatesOffcanvas'));
+      oc.show();
+      loadTemplates();
+    }
+
     document.querySelectorAll('.btn-manage-templates').forEach(btn => {
       btn.addEventListener('click', function () {
-        currentAccountId = this.dataset.accountId;
-        currentPage      = 1;
-
-        document.getElementById('templatesOffcanvasLabel').textContent =
-          this.dataset.accountEmail;
-        document.getElementById('oc-account-meta').textContent =
-          `${this.dataset.total} template(s) · ${this.dataset.permanent} permanent`;
-        document.getElementById('oc-add-template-btn').href =
-          `/offer-templates/create?account=${currentAccountId}`;
-
-        // Reset filters
-        document.getElementById('oc-search').value       = '';
-        document.getElementById('oc-perm-filter').value  = '';
-        clearOcBulkSelection();
-
-        const oc = new bootstrap.Offcanvas(document.getElementById('templatesOffcanvas'));
-        oc.show();
-        loadTemplates();
+        openTemplateOffcanvas(
+          this.dataset.accountId,
+          this.dataset.accountEmail,
+          this.dataset.total,
+          this.dataset.permanent
+        );
       });
     });
 
     // ── Search / filter inside offcanvas ───────────────────────────────────────
     document.getElementById('oc-search').addEventListener('input', function () {
       clearTimeout(searchDebounceTimer);
-      searchDebounceTimer = setTimeout(() => {
-        currentPage = 1;
-        loadTemplates();
-      }, 380);
+      searchDebounceTimer = setTimeout(() => { currentPage = 1; loadTemplates(); }, 380);
     });
 
     document.getElementById('oc-perm-filter').addEventListener('change', function () {
@@ -468,9 +569,9 @@
           : '<span class="text-muted">—</span>';
 
         const levels = [
-          t.th_level  ? `TH${t.th_level}`   : null,
-          t.king_level  ? `K${t.king_level}` : null,
-          t.queen_level ? `Q${t.queen_level}` : null,
+          t.th_level    ? `TH${t.th_level}`    : null,
+          t.king_level  ? `K${t.king_level}`   : null,
+          t.queen_level ? `Q${t.queen_level}`  : null,
         ].filter(Boolean).join(' · ');
 
         const queueBadge = (t.offers_to_generate ?? 0) > 0
@@ -517,25 +618,21 @@
           </tr>`;
       }).join('');
 
-      // Bind row actions
       bindOcRowActions();
       updateOcSelectAll();
     }
 
     // ── Bind row-level actions ─────────────────────────────────────────────────
     function bindOcRowActions() {
-      // Checkboxes
       document.querySelectorAll('.oc-cb').forEach(cb => {
         cb.addEventListener('change', updateOcBulkBar);
       });
 
-      // Select-all header
       document.getElementById('oc-select-all').addEventListener('change', function () {
         document.querySelectorAll('.oc-cb').forEach(c => c.checked = this.checked);
         updateOcBulkBar();
       });
 
-      // Permanent toggle
       document.querySelectorAll('.oc-perm-btn').forEach(btn => {
         btn.addEventListener('click', function () {
           const id          = this.dataset.id;
@@ -572,7 +669,6 @@
         });
       });
 
-      // Queue +1
       document.querySelectorAll('.oc-queue-btn').forEach(btn => {
         btn.addEventListener('click', function () {
           const id = this.dataset.id;
@@ -596,7 +692,6 @@
         });
       });
 
-      // Delete from DB
       document.querySelectorAll('.oc-delete-btn').forEach(btn => {
         btn.addEventListener('click', function () {
           const id    = this.dataset.id;
@@ -717,15 +812,12 @@
 
     // ── Pagination ─────────────────────────────────────────────────────────────
     function renderPagination(data) {
-      const wrap    = document.getElementById('oc-pagination');
-      const info    = document.getElementById('oc-page-info');
-      const prev    = document.getElementById('oc-prev');
-      const next    = document.getElementById('oc-next');
+      const wrap = document.getElementById('oc-pagination');
+      const info = document.getElementById('oc-page-info');
+      const prev = document.getElementById('oc-prev');
+      const next = document.getElementById('oc-next');
 
-      if ((data.last_page ?? 1) <= 1) {
-        wrap.classList.add('d-none');
-        return;
-      }
+      if ((data.last_page ?? 1) <= 1) { wrap.classList.add('d-none'); return; }
 
       wrap.classList.remove('d-none');
       info.textContent = `Showing ${data.from}–${data.to} of ${data.total}`;
@@ -740,7 +832,7 @@
       if (currentPage < (lastMeta.last_page ?? 1)) { currentPage++; loadTemplates(); }
     });
 
-    // ── Delete All from g2g ────────────────────────────────────────────────────
+    // ── Delete All from g2g (per-row button) ───────────────────────────────────
     document.querySelectorAll('.btn-delete-all-g2g').forEach(btn => {
       btn.addEventListener('click', function () {
         const id           = this.dataset.accountId;
@@ -793,7 +885,6 @@
         btnEl.className = btnEl.className.replace(/btn-(warning|outline-warning)/, isQueued ? 'btn-warning' : 'btn-outline-warning');
         btnEl.title = isQueued ? 'Cancel delete-all' : 'Queue: delete all g2g offers (skips permanent)';
 
-        // Update status badge in account row
         const row        = document.getElementById(`account-row-${accountId}`);
         const statusCell = row?.querySelector('td:nth-child(5)');
         if (statusCell) {
@@ -853,14 +944,227 @@
       });
     });
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // Quick Action Modal
+    // ══════════════════════════════════════════════════════════════════════════
+
+    const QA_CONFIGS = {
+      'manage-templates': {
+        icon:        'ri-layout-grid-line',
+        iconBg:      'bg-primary-subtle text-primary',
+        title:       'Template Management',
+        subtitle:    'Select an account to open its templates',
+        confirmCls:  'btn-primary',
+        confirmHtml: '<i class="ri-layout-grid-line me-1"></i>Open Templates',
+        warning:     null,
+      },
+      'queue-post-all': {
+        icon:        'ri-send-plane-line',
+        iconBg:      'bg-success-subtle text-success',
+        title:       'Start Posting All Offers',
+        subtitle:    'Queue all templates for the next desktop app cycle',
+        confirmCls:  'btn-success',
+        confirmHtml: '<i class="ri-send-plane-line me-1"></i>Queue Posts',
+        warning: {
+          cls:  'alert-info border-info-subtle',
+          icon: 'ri-information-line text-info',
+          html: 'All templates for the selected account will have their post queue incremented by 1. The desktop app will post them on the next cycle.',
+        },
+      },
+      'delete-except-permanent': {
+        icon:        'ri-shield-line',
+        iconBg:      'bg-warning-subtle text-warning',
+        title:       'Delete All Except Permanent',
+        subtitle:    'Queue deletion of non-permanent offers only',
+        confirmCls:  'btn-warning',
+        confirmHtml: '<i class="ri-shield-line me-1"></i>Queue Delete',
+        warning: {
+          cls:  'alert-warning border-warning-subtle',
+          icon: 'ri-alert-line text-warning',
+          html: 'All <strong>non-permanent</strong> live offers will be deleted from g2g.com on the next desktop app run. <strong>Permanent offers are protected and will not be removed.</strong>',
+        },
+      },
+      'delete-all-force': {
+        icon:        'ri-delete-bin-line',
+        iconBg:      'bg-danger-subtle text-danger',
+        title:       'Delete All Offers',
+        subtitle:    'Permanently delete every live offer including protected ones',
+        confirmCls:  'btn-danger',
+        confirmHtml: '<i class="ri-delete-bin-line me-1"></i>Delete Everything',
+        warning: {
+          cls:  'alert-danger border-danger-subtle',
+          icon: 'ri-error-warning-line text-danger',
+          html: '<strong>This will delete ALL live offers from g2g.com</strong>, including permanent ones. This action cannot be undone.',
+        },
+      },
+    };
+
+    let qaAction     = null;
+    let qaAccountId  = null;
+    let qaEmail      = null;
+    const qaModalEl  = document.getElementById('quickActionModal');
+    const qaModal    = new bootstrap.Modal(qaModalEl);
+    const qaConfirm  = document.getElementById('qa-confirm');
+
+    function openQaModal(action) {
+      qaAction    = action;
+      qaAccountId = null;
+      qaEmail     = null;
+      qaConfirm.disabled = true;
+
+      const cfg = QA_CONFIGS[action];
+
+      document.getElementById('qa-icon').className        = `${cfg.icon} fs-18`;
+      document.getElementById('qa-icon-wrap').className   = `avatar-title rounded-circle ${cfg.iconBg}`;
+      document.getElementById('qaModalTitle').textContent = cfg.title;
+      document.getElementById('qa-subtitle').textContent  = cfg.subtitle;
+      qaConfirm.innerHTML  = cfg.confirmHtml;
+      qaConfirm.className  = `btn ${cfg.confirmCls}`;
+      qaConfirm.disabled   = true;
+
+      const warnEl = document.getElementById('qa-warning');
+      if (cfg.warning) {
+        warnEl.className = `alert ${cfg.warning.cls} d-flex align-items-start gap-2 mb-3`;
+        document.getElementById('qa-warn-icon').className = cfg.warning.icon;
+        document.getElementById('qa-warn-text').innerHTML = cfg.warning.html;
+        warnEl.classList.remove('d-none');
+      } else {
+        warnEl.classList.add('d-none');
+      }
+
+      // Clear selection
+      document.querySelectorAll('.qa-account-card').forEach(card => {
+        card.classList.remove('border-primary', 'bg-primary-subtle');
+        card.querySelector('.qa-radio').checked = false;
+      });
+
+      qaModal.show();
+    }
+
+    // Account card selection
+    document.querySelectorAll('.qa-account-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.qa-account-card').forEach(c => {
+          c.classList.remove('border-primary', 'bg-primary-subtle');
+          c.querySelector('.qa-radio').checked = false;
+        });
+        card.classList.add('border-primary', 'bg-primary-subtle');
+        card.querySelector('.qa-radio').checked = true;
+        qaAccountId = card.dataset.id;
+        qaEmail     = card.dataset.email;
+        qaConfirm.disabled = false;
+      });
+    });
+
+    // Quick action buttons → open modal
+    document.querySelectorAll('.qa-btn').forEach(btn => {
+      btn.addEventListener('click', () => openQaModal(btn.dataset.action));
+    });
+
+    // Confirm handler
+    qaConfirm.addEventListener('click', async () => {
+      if (!qaAccountId) return;
+
+      if (qaAction === 'manage-templates') {
+        qaModal.hide();
+        const card = document.querySelector(`.qa-account-card[data-id="${qaAccountId}"]`);
+        openTemplateOffcanvas(
+          qaAccountId,
+          qaEmail,
+          card?.dataset.total ?? 0,
+          card?.dataset.permanent ?? 0
+        );
+        return;
+      }
+
+      const ENDPOINTS = {
+        'queue-post-all':          { url: '/offer-templates/queue-post-by-account', body: { user_account_id: qaAccountId } },
+        'delete-except-permanent': { url: `/user-accounts/${qaAccountId}/queue-delete-non-permanent`, body: null },
+        'delete-all-force':        { url: `/user-accounts/${qaAccountId}/queue-force-delete-all`, body: null },
+      };
+
+      const ep = ENDPOINTS[qaAction];
+      if (!ep) return;
+
+      qaConfirm.disabled = true;
+      qaConfirm.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Processing…';
+
+      try {
+        const opts = {
+          method: 'POST',
+          headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        };
+        if (ep.body) opts.body = JSON.stringify(ep.body);
+
+        const res  = await fetch(ep.url, opts);
+        const data = await res.json();
+
+        qaModal.hide();
+
+        if (data.success) {
+          const SUCCESS_MSGS = {
+            'queue-post-all': {
+              title: 'Posts Queued!',
+              text:  `All templates for <strong>${escHtml(qaEmail)}</strong> have been queued. The desktop app will post them on the next cycle.`,
+            },
+            'delete-except-permanent': {
+              title: 'Deletion Queued!',
+              text:  `Non-permanent offers for <strong>${escHtml(qaEmail)}</strong> will be deleted on the next desktop app run.`,
+            },
+            'delete-all-force': {
+              title: 'Force Delete Queued!',
+              text:  `ALL offers for <strong>${escHtml(qaEmail)}</strong> (including permanent) will be deleted on the next desktop app run.`,
+            },
+          };
+          const msg = SUCCESS_MSGS[qaAction];
+          Swal.fire({
+            title: msg.title,
+            html:  msg.text,
+            icon:  'success',
+            timer: 3000,
+            showConfirmButton: false,
+          });
+
+          // Update the "Delete All" badge in the accounts table for delete actions
+          if (qaAction === 'delete-except-permanent' || qaAction === 'delete-all-force') {
+            const row        = document.getElementById(`account-row-${qaAccountId}`);
+            const statusCell = row?.querySelector('td:nth-child(5)');
+            if (statusCell) {
+              statusCell.innerHTML = `<span class="badge bg-danger"><i class="ri-delete-bin-line me-1"></i>Queued</span>`;
+            }
+            // Update the per-row delete button state
+            const deleteBtn = row?.querySelector('.btn-delete-all-g2g');
+            if (deleteBtn) {
+              deleteBtn.dataset.queued = '1';
+              deleteBtn.className = deleteBtn.className.replace(/btn-(warning|outline-warning)/, 'btn-warning');
+              deleteBtn.title = 'Cancel delete-all';
+            }
+          }
+        } else {
+          Swal.fire({ title: 'Error', text: data.message ?? 'Action failed.', icon: 'error' });
+        }
+      } catch (err) {
+        qaModal.hide();
+        Swal.fire({ title: 'Error', text: 'Request failed. Please try again.', icon: 'error' });
+      }
+    });
+
+    // Reset confirm button when modal closes
+    qaModalEl.addEventListener('hidden.bs.modal', () => {
+      const cfg = qaAction ? QA_CONFIGS[qaAction] : null;
+      if (cfg) {
+        qaConfirm.innerHTML = cfg.confirmHtml;
+        qaConfirm.className = `btn ${cfg.confirmCls}`;
+        qaConfirm.disabled  = true;
+      }
+    });
+
     // ── Helpers ────────────────────────────────────────────────────────────────
     function showOcState(state) {
       document.getElementById('oc-loading').classList.toggle('d-none',    state !== 'loading');
       document.getElementById('oc-empty').classList.toggle('d-none',      state !== 'empty');
       document.getElementById('oc-table-wrap').classList.toggle('d-none', state !== 'table');
-      if (state !== 'table') {
-        document.getElementById('oc-pagination').classList.add('d-none');
-      }
+      if (state !== 'table') document.getElementById('oc-pagination').classList.add('d-none');
     }
 
     function escHtml(str) {
@@ -869,8 +1173,8 @@
 
     function relativeTime(isoStr) {
       const diff = Math.floor((Date.now() - new Date(isoStr)) / 1000);
-      if (diff < 60)   return `${diff}s ago`;
-      if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+      if (diff < 60)    return `${diff}s ago`;
+      if (diff < 3600)  return `${Math.floor(diff/60)}m ago`;
       if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
       return `${Math.floor(diff/86400)}d ago`;
     }

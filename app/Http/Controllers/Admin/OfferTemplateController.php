@@ -163,6 +163,18 @@ class OfferTemplateController extends Controller
         ]);
     }
 
+    public function queuePostByAccount(Request $request)
+    {
+        $request->validate([
+            'user_account_id' => 'required|integer|exists:user_accounts,id',
+        ]);
+
+        $count = OfferTemplate::where('user_account_id', $request->user_account_id)
+            ->increment('offers_to_generate');
+
+        return response()->json(['success' => true, 'queued' => $count]);
+    }
+
     public function bulkAction(Request $request)
     {
         $request->validate([
