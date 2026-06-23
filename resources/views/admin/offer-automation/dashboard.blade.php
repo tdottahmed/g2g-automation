@@ -429,6 +429,17 @@
           <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
         </div>
 
+        {{-- Step indicator (only visible for 2-step actions) --}}
+        <div id="qa-step-bar" class="d-none border-bottom px-4 py-2 bg-body-tertiary">
+          <div class="d-flex align-items-center gap-2 small">
+            <span class="badge rounded-pill bg-primary" id="qa-pill-1">1</span>
+            <span id="qa-step-lbl-1" class="fw-medium">Select Account</span>
+            <i class="ri-arrow-right-s-line text-muted"></i>
+            <span class="badge rounded-pill border text-muted" id="qa-pill-2">2</span>
+            <span id="qa-step-lbl-2" class="text-muted">Select Game</span>
+          </div>
+        </div>
+
         <div class="modal-body">
           {{-- Contextual warning --}}
           <div class="alert d-none mb-3" id="qa-warning" role="alert">
@@ -436,7 +447,8 @@
             <span id="qa-warn-text"></span>
           </div>
 
-          {{-- Account list --}}
+          {{-- Step 1: Account list --}}
+          <div id="qa-step-1-body">
           @if ($userAccounts->isEmpty())
             <div class="py-4 text-center text-muted">
               <i class="ri-user-search-line display-5 opacity-25 d-block mb-2"></i>
@@ -446,13 +458,21 @@
             <p class="text-muted small fw-semibold mb-2 text-uppercase" style="letter-spacing:.05em">Select an account</p>
             <div class="d-flex flex-column gap-2" id="qa-account-list">
               @foreach ($userAccounts as $account)
+                @php
+                  $acctGames = ($accountGameCounts[$account->id] ?? collect())->map(fn($g) => [
+                    'game'  => $g->game,
+                    'label' => \App\Models\OfferTemplate::GAMES[$g->game] ?? $g->game,
+                    'count' => (int) $g->game_count,
+                  ])->sortByDesc('count')->values()->toArray();
+                @endphp
                 <div class="qa-account-card d-flex align-items-center gap-3 p-2 px-3 border rounded-2"
                      role="button"
                      data-id="{{ $account->id }}"
                      data-email="{{ $account->email }}"
                      data-owner="{{ $account->owner_name ?? '' }}"
                      data-total="{{ $account->total_templates }}"
-                     data-permanent="{{ $account->permanent_templates_count }}">
+                     data-permanent="{{ $account->permanent_templates_count }}"
+                     data-games="{{ json_encode($acctGames) }}">
                   <img src="https://ui-avatars.com/api/?name={{ urlencode($account->email) }}&background=7269ef&color=fff&size=32"
                        class="rounded-circle flex-shrink-0" width="32" height="32" alt="">
                   <div class="flex-grow-1 min-w-0">
@@ -471,10 +491,28 @@
               @endforeach
             </div>
           @endif
+          </div>{{-- /qa-step-1-body --}}
+
+          {{-- Step 2: Game selection (only for delete-except-permanent) --}}
+          <div id="qa-step-2-body" class="d-none">
+            <div class="alert alert-warning border border-warning-subtle d-flex align-items-start gap-2 mb-3">
+              <i class="ri-alert-line text-warning mt-1 flex-shrink-0"></i>
+              <span>All <strong>non-permanent</strong> live offers for the selected game will be deleted from g2g.com on the next desktop app run. <strong>Permanent offers are protected.</strong></span>
+            </div>
+            <p class="text-muted small fw-semibold mb-2 text-uppercase" style="letter-spacing:.05em">Select a game</p>
+            <div class="d-flex flex-column gap-2" id="qa-game-list"></div>
+          </div>
+
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-outline-secondary d-none" id="qa-back">
+            <i class="ri-arrow-left-s-line me-1"></i>Back
+          </button>
+          <button type="button" class="btn btn-primary d-none" id="qa-next" disabled>
+            Next <i class="ri-arrow-right-s-line ms-1"></i>
+          </button>
           <button type="button" class="btn btn-primary" id="qa-confirm" disabled>Confirm</button>
         </div>
 
@@ -993,31 +1031,34 @@
         icon:        'ri-shield-line',
         iconBg:      'bg-warning-subtle text-warning',
         title:       'Delete All Except Permanent',
-        subtitle:    'Queue deletion of non-permanent offers only',
-        confirmCls:  'btn-warning',
-        confirmHtml: '<i class="ri-shield-line me-1"></i>Queue Delete',
-        warning: {
-          cls:  'alert-warning border-warning-subtle',
-          icon: 'ri-alert-line text-warning',
-          html: 'All <strong>non-permanent</strong> live offers will be deleted from g2g.com on the next desktop app run. <strong>Permanent offers are protected and will not be removed.</strong>',
-        },
+        subtitle:    'Select an account, then choose which game to target',
+        confirmCls:  'btn-danger',
+        confirmHtml: '<i class="ri-delete-bin-line me-1"></i>Queue Delete',
+        warning:     null,
       },
     };
 
-    let qaAction     = null;
-    let qaAccountId  = null;
-    let qaEmail      = null;
-    const qaModalEl  = document.getElementById('quickActionModal');
-    const qaModal    = new bootstrap.Modal(qaModalEl);
-    const qaConfirm  = document.getElementById('qa-confirm');
+    let qaAction       = null;
+    let qaAccountId    = null;
+    let qaEmail        = null;
+    let qaSelectedGame = null;
+    let qaGameLabel    = null;
+    const QA_TWO_STEP  = new Set(['delete-except-permanent']);
+    const qaModalEl    = document.getElementById('quickActionModal');
+    const qaModal      = new bootstrap.Modal(qaModalEl);
+    const qaConfirm    = document.getElementById('qa-confirm');
+    const qaNext       = document.getElementById('qa-next');
+    const qaBack       = document.getElementById('qa-back');
 
     function openQaModal(action) {
-      qaAction    = action;
-      qaAccountId = null;
-      qaEmail     = null;
-      qaConfirm.disabled = true;
+      qaAction       = action;
+      qaAccountId    = null;
+      qaEmail        = null;
+      qaSelectedGame = null;
+      qaGameLabel    = null;
 
-      const cfg = QA_CONFIGS[action];
+      const cfg      = QA_CONFIGS[action];
+      const twoStep  = QA_TWO_STEP.has(action);
 
       document.getElementById('qa-icon').className        = `${cfg.icon} fs-18`;
       document.getElementById('qa-icon-wrap').className   = `avatar-title rounded-circle ${cfg.iconBg}`;
@@ -1037,13 +1078,104 @@
         warnEl.classList.add('d-none');
       }
 
-      // Clear selection
+      // Step bar + button visibility
+      document.getElementById('qa-step-bar').classList.toggle('d-none', !twoStep);
+      document.getElementById('qa-step-1-body').classList.remove('d-none');
+      document.getElementById('qa-step-2-body').classList.add('d-none');
+      qaNext.classList.toggle('d-none', !twoStep);
+      qaNext.disabled = true;
+      qaBack.classList.add('d-none');
+      qaConfirm.classList.toggle('d-none', twoStep);
+
+      if (twoStep) updateStepIndicator(1);
+
+      // Clear account selection
       document.querySelectorAll('.qa-account-card').forEach(card => {
         card.classList.remove('border-primary', 'bg-primary-subtle');
         card.querySelector('.qa-radio').checked = false;
       });
 
       qaModal.show();
+    }
+
+    function updateStepIndicator(step) {
+      const pill1 = document.getElementById('qa-pill-1');
+      const lbl1  = document.getElementById('qa-step-lbl-1');
+      const pill2 = document.getElementById('qa-pill-2');
+      const lbl2  = document.getElementById('qa-step-lbl-2');
+      if (step === 1) {
+        pill1.className   = 'badge rounded-pill bg-primary';
+        pill1.innerHTML   = '1';
+        lbl1.className    = 'fw-medium';
+        pill2.className   = 'badge rounded-pill border text-muted';
+        pill2.textContent = '2';
+        lbl2.className    = 'text-muted';
+      } else {
+        pill1.className = 'badge rounded-pill bg-success';
+        pill1.innerHTML = '<i class="ri-check-line"></i>';
+        lbl1.className  = 'text-muted';
+        pill2.className   = 'badge rounded-pill bg-primary';
+        pill2.textContent = '2';
+        lbl2.className    = 'fw-medium';
+      }
+    }
+
+    function populateGameList() {
+      const card     = document.querySelector(`.qa-account-card[data-id="${qaAccountId}"]`);
+      const games    = JSON.parse(card?.dataset.games || '[]');
+      const total    = games.reduce((s, g) => s + g.count, 0);
+      const gameMeta = {
+        clash_of_clans:      { icon: 'ri-shield-line',   cls: 'bg-primary' },
+        brawl_stars:         { icon: 'ri-star-line',     cls: 'bg-warning' },
+        clash_royale:        { icon: 'ri-medal-line',    cls: 'bg-info' },
+        hay_day:             { icon: 'ri-seedling-line', cls: 'bg-success' },
+        mobile_legends:      { icon: 'ri-sword-line',    cls: 'bg-danger' },
+        call_of_duty_mobile: { icon: 'ri-crosshair-2-line', cls: 'bg-dark' },
+      };
+
+      function gameCard(game, label, count, subtitle) {
+        const meta = gameMeta[game] || { icon: 'ri-gamepad-line', cls: 'bg-secondary' };
+        const colorCls = game ? meta.cls : 'bg-secondary';
+        const iconCls  = game ? meta.icon : 'ri-apps-2-line';
+        return `
+          <div class="qa-game-card d-flex align-items-center gap-3 p-2 px-3 border rounded-2" role="button"
+               data-game="${escHtml(game)}" data-label="${escHtml(label)}">
+            <div class="avatar-title rounded-circle ${colorCls} text-white flex-shrink-0"
+                 style="width:32px;height:32px;font-size:16px">
+              <i class="${iconCls}"></i>
+            </div>
+            <div class="flex-grow-1 min-w-0">
+              <div class="fw-semibold small">${escHtml(label)}</div>
+              <div class="text-muted" style="font-size:.75rem">${subtitle}</div>
+            </div>
+            <span class="badge bg-secondary-subtle text-secondary flex-shrink-0">${count}</span>
+            <div class="form-check mb-0 flex-shrink-0">
+              <input class="form-check-input qa-game-radio" type="radio" name="qa-game-pick" style="pointer-events:none">
+            </div>
+          </div>`;
+      }
+
+      const rows = [
+        gameCard('', 'All Games', total, `${total} non-permanent template${total !== 1 ? 's' : ''} across all games`),
+        ...games.map(g => gameCard(g.game, g.label, g.count, `${g.count} non-permanent template${g.count !== 1 ? 's' : ''}`)),
+      ];
+
+      const list = document.getElementById('qa-game-list');
+      list.innerHTML = rows.join('');
+
+      list.querySelectorAll('.qa-game-card').forEach(c => {
+        c.addEventListener('click', () => {
+          list.querySelectorAll('.qa-game-card').forEach(x => {
+            x.classList.remove('border-primary', 'bg-primary-subtle');
+            x.querySelector('.qa-game-radio').checked = false;
+          });
+          c.classList.add('border-primary', 'bg-primary-subtle');
+          c.querySelector('.qa-game-radio').checked = true;
+          qaSelectedGame = c.dataset.game || null;
+          qaGameLabel    = c.dataset.label;
+          qaConfirm.disabled = false;
+        });
+      });
     }
 
     // Account card selection
@@ -1057,8 +1189,44 @@
         card.querySelector('.qa-radio').checked = true;
         qaAccountId = card.dataset.id;
         qaEmail     = card.dataset.email;
-        qaConfirm.disabled = false;
+        if (QA_TWO_STEP.has(qaAction)) {
+          qaNext.disabled = false;
+        } else {
+          qaConfirm.disabled = false;
+        }
       });
+    });
+
+    // Next button: advance to step 2
+    qaNext.addEventListener('click', () => {
+      if (!qaAccountId) return;
+      updateStepIndicator(2);
+      document.getElementById('qa-step-1-body').classList.add('d-none');
+      document.getElementById('qa-step-2-body').classList.remove('d-none');
+      qaNext.classList.add('d-none');
+      qaBack.classList.remove('d-none');
+      qaConfirm.classList.remove('d-none');
+      qaConfirm.disabled = true;
+      qaSelectedGame = null;
+      qaGameLabel    = null;
+      // Clear any prior game selection
+      document.getElementById('qa-game-list').querySelectorAll('.qa-game-card').forEach(c => {
+        c.classList.remove('border-primary', 'bg-primary-subtle');
+      });
+      populateGameList();
+    });
+
+    // Back button: return to step 1
+    qaBack.addEventListener('click', () => {
+      updateStepIndicator(1);
+      document.getElementById('qa-step-1-body').classList.remove('d-none');
+      document.getElementById('qa-step-2-body').classList.add('d-none');
+      qaBack.classList.add('d-none');
+      qaNext.classList.remove('d-none');
+      qaNext.disabled = !qaAccountId;
+      qaConfirm.classList.add('d-none');
+      qaSelectedGame = null;
+      qaGameLabel    = null;
     });
 
     // Quick action buttons → open modal
@@ -1126,7 +1294,7 @@
 
       const ENDPOINTS = {
         'queue-post-all':          { url: '/offer-templates/queue-post-by-account', body: { user_account_id: qaAccountId } },
-        'delete-except-permanent': { url: `/user-accounts/${qaAccountId}/queue-delete-non-permanent`, body: null },
+        'delete-except-permanent': { url: `/user-accounts/${qaAccountId}/queue-delete-non-permanent`, body: qaSelectedGame ? { game: qaSelectedGame } : {} },
       };
 
       const ep = ENDPOINTS[qaAction];
@@ -1140,7 +1308,7 @@
           method: 'POST',
           headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json', 'Content-Type': 'application/json' },
         };
-        if (ep.body) opts.body = JSON.stringify(ep.body);
+        opts.body = JSON.stringify(ep.body ?? {});
 
         const res  = await fetch(ep.url, opts);
         const data = await res.json();
@@ -1155,7 +1323,9 @@
             },
             'delete-except-permanent': {
               title: 'Deletion Queued!',
-              text:  `Non-permanent offers for <strong>${escHtml(qaEmail)}</strong> will be deleted on the next desktop app run.`,
+              text:  qaSelectedGame
+                ? `Non-permanent <strong>${escHtml(qaGameLabel)}</strong> offers for <strong>${escHtml(qaEmail)}</strong> will be deleted on the next desktop app run.`
+                : `All non-permanent offers for <strong>${escHtml(qaEmail)}</strong> will be deleted on the next desktop app run.`,
             },
           };
           const msg = SUCCESS_MSGS[qaAction];
@@ -1172,7 +1342,8 @@
             const row        = document.getElementById(`account-row-${qaAccountId}`);
             const statusCell = row?.querySelector('td:nth-child(5)');
             if (statusCell) {
-              statusCell.innerHTML = `<span class="badge bg-danger"><i class="ri-delete-bin-line me-1"></i>Queued</span>`;
+              const gameTag = qaSelectedGame ? ` · ${escHtml(qaGameLabel)}` : '';
+              statusCell.innerHTML = `<span class="badge bg-danger"><i class="ri-delete-bin-line me-1"></i>Queued${gameTag}</span>`;
             }
             // Update the per-row delete button state
             const deleteBtn = row?.querySelector('.btn-delete-all-g2g');
@@ -1191,7 +1362,7 @@
       }
     });
 
-    // Reset confirm button when modal closes
+    // Reset modal state when it closes
     qaModalEl.addEventListener('hidden.bs.modal', () => {
       const cfg = qaAction ? QA_CONFIGS[qaAction] : null;
       if (cfg) {
@@ -1199,6 +1370,16 @@
         qaConfirm.className = `btn ${cfg.confirmCls}`;
         qaConfirm.disabled  = true;
       }
+      // Reset 2-step state
+      document.getElementById('qa-step-bar').classList.add('d-none');
+      document.getElementById('qa-step-1-body').classList.remove('d-none');
+      document.getElementById('qa-step-2-body').classList.add('d-none');
+      qaNext.classList.add('d-none');
+      qaNext.disabled = true;
+      qaBack.classList.add('d-none');
+      qaConfirm.classList.remove('d-none');
+      qaSelectedGame = null;
+      qaGameLabel    = null;
     });
 
     // ── Helpers ────────────────────────────────────────────────────────────────

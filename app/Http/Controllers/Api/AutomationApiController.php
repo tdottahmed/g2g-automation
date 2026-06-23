@@ -124,10 +124,11 @@ class AutomationApiController extends Controller
             ->get();
 
         $users = $accounts->map(fn ($a) => [
-            'user_id'          => $a->id,
-            'email'            => $a->email,
-            'password'         => $a->password,
-            'permanent_titles' => $a->queue_force_delete_all ? [] : $a->offerTemplates->pluck('title')->values()->all(),
+            'user_id'           => $a->id,
+            'email'             => $a->email,
+            'password'          => $a->password,
+            'permanent_titles'  => $a->queue_force_delete_all ? [] : $a->offerTemplates->pluck('title')->values()->all(),
+            'queue_delete_game' => $a->queue_delete_game,
         ])->values()->all();
 
         return response()->json(['users' => $users, 'server_time' => now()->toIso8601String()]);
@@ -137,7 +138,7 @@ class AutomationApiController extends Controller
     {
         $details = $request->input('details', []);
 
-        $userAccount->update(['queue_delete_all' => false, 'queue_force_delete_all' => false]);
+        $userAccount->update(['queue_delete_all' => false, 'queue_force_delete_all' => false, 'queue_delete_game' => null]);
 
         OfferAutomationLog::create([
             'offer_template_id' => null,
@@ -188,14 +189,21 @@ class AutomationApiController extends Controller
      */
     public function getNonPermanentOffers(UserAccount $userAccount): JsonResponse
     {
-        $offers = $userAccount->offerTemplates()
+        $query = $userAccount->offerTemplates()
             ->where('is_permanent', false)
-            ->select(['offer_templates.title', 'offer_templates.price'])
+            ->select(['offer_templates.title', 'offer_templates.price', 'offer_templates.game']);
+
+        if ($userAccount->queue_delete_game) {
+            $query->where('offer_templates.game', $userAccount->queue_delete_game);
+        }
+
+        $offers = $query
             ->orderBy('offer_templates.title')
             ->get()
             ->map(fn ($o) => [
                 'title' => $o->title,
                 'price' => $o->price !== null ? (string) $o->price : null,
+                'game'  => $o->game,
             ])
             ->values()
             ->all();

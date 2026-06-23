@@ -8,6 +8,7 @@ use App\Models\OfferAutomationLog;
 use App\Models\OfferTemplate;
 use App\Models\UserAccount;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OfferAutomationController extends Controller
 {
@@ -41,6 +42,15 @@ class OfferAutomationController extends Controller
             ->limit(15)
             ->get();
 
+        // Non-permanent template counts per game per account (for delete modal step 2)
+        $accountGameCounts = DB::table('offer_template_user_account as pivot')
+            ->join('offer_templates', 'offer_templates.id', '=', 'pivot.offer_template_id')
+            ->where('offer_templates.is_permanent', false)
+            ->select('pivot.user_account_id', 'offer_templates.game', DB::raw('count(*) as game_count'))
+            ->groupBy('pivot.user_account_id', 'offer_templates.game')
+            ->get()
+            ->groupBy('user_account_id');
+
         return view('admin.offer-automation.dashboard', compact(
             'userAccounts',
             'recentLogs',
@@ -49,7 +59,8 @@ class OfferAutomationController extends Controller
             'queuedPostsCount',
             'postedToday',
             'failedToday',
-            'intervalMinutes'
+            'intervalMinutes',
+            'accountGameCounts'
         ));
     }
 

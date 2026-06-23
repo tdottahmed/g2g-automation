@@ -121,14 +121,23 @@ class UserAccountController extends Controller
     public function queueDeleteAll(Request $request, UserAccount $userAccount)
     {
         $newValue = !$userAccount->queue_delete_all;
-        $userAccount->update(['queue_delete_all' => $newValue, 'queue_force_delete_all' => false]);
+        $userAccount->update([
+            'queue_delete_all'       => $newValue,
+            'queue_force_delete_all' => false,
+            'queue_delete_game'      => null,
+        ]);
 
         return response()->json(['success' => true, 'queue_delete_all' => $newValue]);
     }
 
-    public function queueDeleteNonPermanent(UserAccount $userAccount)
+    public function queueDeleteNonPermanent(Request $request, UserAccount $userAccount)
     {
-        $userAccount->update(['queue_delete_all' => true, 'queue_force_delete_all' => false]);
+        $game = $request->input('game') ?: null;
+        $userAccount->update([
+            'queue_delete_all'       => true,
+            'queue_force_delete_all' => false,
+            'queue_delete_game'      => $game,
+        ]);
 
         return response()->json(['success' => true]);
     }
