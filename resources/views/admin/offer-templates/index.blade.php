@@ -132,6 +132,14 @@
                   <i class="ri-add-circle-line"></i> {{ __('Queue Post +1') }}
                 </button>
               </li>
+              <li>
+                <button
+                  type="button"
+                  class="dropdown-item btn-queue-dequeue-single"
+                  data-template-id="{{ $offer->id }}">
+                  <i class="ri-indeterminate-circle-line"></i> {{ __('Queue Post -1') }}
+                </button>
+              </li>
               <li><hr class="dropdown-divider"></li>
               <li>
                 <button
@@ -175,6 +183,9 @@
         </button>
         <button type="button" class="btn btn-sm btn-info text-dark" data-bulk="queue_post">
           <i class="ri-add-circle-line me-1"></i>Queue Post +1
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-info" data-bulk="queue_dequeue">
+          <i class="ri-indeterminate-circle-line me-1"></i>Queue Post -1
         </button>
         <button type="button" class="btn btn-sm btn-outline-danger" data-bulk="delete">
           <i class="ri-delete-bin-line me-1"></i>Delete from DB
@@ -237,6 +248,7 @@
             mark_permanent:   `Mark ${ids.length} template(s) as permanent?`,
             unmark_permanent: `Unmark ${ids.length} template(s) as permanent?`,
             queue_post:       `Add +1 to post queue for ${ids.length} template(s)?`,
+            queue_dequeue:    `Remove -1 from post queue for ${ids.length} template(s)?`,
             delete:           `Permanently delete ${ids.length} template(s) from the database?`,
           };
 
@@ -246,7 +258,9 @@
               ? 'This action cannot be undone.'
               : action === 'mark_permanent'
                 ? 'These offers will be skipped during delete-all runs.'
-                : 'You can change this anytime.',
+                : action === 'queue_dequeue'
+                  ? 'Queue count will not go below 0.'
+                  : 'You can change this anytime.',
             icon: action === 'delete' ? 'warning' : 'question',
             showCancelButton: true,
             confirmButtonText: 'Yes, proceed',
@@ -392,6 +406,41 @@
                 postBadge.innerHTML = `<i class="ri-send-plane-line me-1"></i>Post ×${data.offers_to_generate}`;
               }
               Swal.fire({ title: 'Queued!', text: `Post queue: ${data.offers_to_generate}`, icon: 'success', timer: 1200, showConfirmButton: false });
+            }
+          });
+        });
+      });
+
+      // ── Queue dequeue single (-1) ────────────────────────────────────────────
+      document.querySelectorAll('.btn-queue-dequeue-single').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const id  = this.dataset.templateId;
+          const row = document.getElementById(`template-row-${id}`);
+
+          fetch(`/offer-templates/${id}/queue-dequeue`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+          })
+          .then(r => r.json())
+          .then(function (data) {
+            if (data.success) {
+              if (row) {
+                const titleDiv = row.querySelector('.d-flex.align-items-center.gap-2');
+                let postBadge  = row.querySelector('.badge-post-queue');
+
+                if (data.offers_to_generate > 0) {
+                  if (!postBadge) {
+                    postBadge = document.createElement('span');
+                    postBadge.className = 'badge bg-warning text-dark badge-post-queue';
+                    postBadge.title = 'Queued for posting';
+                    titleDiv.appendChild(postBadge);
+                  }
+                  postBadge.innerHTML = `<i class="ri-send-plane-line me-1"></i>Post ×${data.offers_to_generate}`;
+                } else if (postBadge) {
+                  postBadge.remove();
+                }
+              }
+              Swal.fire({ title: 'Updated!', text: `Post queue: ${data.offers_to_generate}`, icon: 'success', timer: 1200, showConfirmButton: false });
             }
           });
         });

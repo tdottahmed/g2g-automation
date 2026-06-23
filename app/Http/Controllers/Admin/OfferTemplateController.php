@@ -166,6 +166,18 @@ class OfferTemplateController extends Controller
         ]);
     }
 
+    public function queueDequeue(OfferTemplate $offerTemplate)
+    {
+        if ($offerTemplate->offers_to_generate > 0) {
+            $offerTemplate->decrement('offers_to_generate');
+        }
+
+        return response()->json([
+            'success'            => true,
+            'offers_to_generate' => $offerTemplate->fresh()->offers_to_generate,
+        ]);
+    }
+
     public function queuePostByAccount(Request $request)
     {
         $request->validate([
@@ -189,7 +201,7 @@ class OfferTemplateController extends Controller
     public function bulkAction(Request $request)
     {
         $request->validate([
-            'action' => 'required|in:mark_permanent,unmark_permanent,queue_post,delete',
+            'action' => 'required|in:mark_permanent,unmark_permanent,queue_post,queue_dequeue,delete',
             'ids'    => 'required|array|min:1',
             'ids.*'  => 'integer|exists:offer_templates,id',
         ]);
@@ -206,6 +218,11 @@ class OfferTemplateController extends Controller
                 break;
             case 'queue_post':
                 OfferTemplate::whereIn('id', $ids)->increment('offers_to_generate');
+                break;
+            case 'queue_dequeue':
+                OfferTemplate::whereIn('id', $ids)
+                    ->where('offers_to_generate', '>', 0)
+                    ->decrement('offers_to_generate');
                 break;
             case 'delete':
                 OfferTemplate::whereIn('id', $ids)->delete();

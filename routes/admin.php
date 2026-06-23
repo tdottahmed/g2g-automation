@@ -30,6 +30,7 @@ Route::group(['middleware' => ['role:super-admin|admin|staff|user']], function (
     Route::post('offer-templates/{offerTemplate}/toggle-permanent', [OfferTemplateController::class, 'togglePermanent'])->name('offer-templates.toggle-permanent');
     Route::resource('offer-templates', OfferTemplateController::class);
     Route::post('offer-templates/{offerTemplate}/queue-post', [OfferTemplateController::class, 'queuePost'])->name('offer-templates.queue-post');
+    Route::post('offer-templates/{offerTemplate}/queue-dequeue', [OfferTemplateController::class, 'queueDequeue'])->name('offer-templates.queue-dequeue');
 
     Route::get('offer-logs', [OfferAutomationLogController::class, 'index'])->name('offer-logs.index');
     Route::get('offer-logs/{offerLog}', [OfferAutomationLogController::class, 'show'])->name('offer-logs.show');
