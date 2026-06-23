@@ -7,18 +7,28 @@ use App\Models\OfferTemplate;
 use App\Models\UserAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OfferTemplateController extends Controller
 {
     public function index(Request $request)
     {
-        $offers = OfferTemplate::with('userAccounts')
+        $offers = OfferTemplate::with(['userAccounts' => fn ($q) => $q->withPivot('offers_to_generate')])
             ->when($request->filled('account'), fn ($q) => $q->whereHas('userAccounts', fn ($q2) => $q2->where('user_accounts.id', $request->account)))
             ->when($request->filled('game'),    fn ($q) => $q->where('game', $request->game))
             ->when($request->status === 'permanent',     fn ($q) => $q->where('is_permanent', true))
             ->when($request->status === 'non_permanent', fn ($q) => $q->where('is_permanent', false))
             ->latest()
-            ->get();
+            ->get()
+            ->each(function ($offer) use ($request) {
+                // Expose the relevant account's queue count (or max across all accounts)
+                if ($request->filled('account')) {
+                    $ua = $offer->userAccounts->firstWhere('id', $request->account);
+                    $offer->offers_to_generate = $ua?->pivot->offers_to_generate ?? 0;
+                } else {
+                    $offer->offers_to_generate = $offer->userAccounts->max(fn ($ua) => $ua->pivot->offers_to_generate ?? 0) ?? 0;
+                }
+            });
 
         $userAccounts = UserAccount::orderBy('owner_name')->get();
 
@@ -156,44 +166,74 @@ class OfferTemplateController extends Controller
         return response()->json(['success' => true, 'is_permanent' => $offerTemplate->is_permanent]);
     }
 
-    public function queuePost(OfferTemplate $offerTemplate)
+    public function queuePost(Request $request, OfferTemplate $offerTemplate)
     {
-        $offerTemplate->increment('offers_to_generate');
-
-        return response()->json([
-            'success'            => true,
-            'offers_to_generate' => $offerTemplate->fresh()->offers_to_generate,
+        $request->validate([
+            'user_account_id' => 'nullable|integer|exists:user_accounts,id',
         ]);
+
+        $query = DB::table('offer_template_user_account')
+            ->where('offer_template_id', $offerTemplate->id)
+            ->when($request->user_account_id, fn ($q) => $q->where('user_account_id', $request->user_account_id));
+
+        $query->increment('offers_to_generate');
+
+        $newCount = (int) DB::table('offer_template_user_account')
+            ->where('offer_template_id', $offerTemplate->id)
+            ->when($request->user_account_id, fn ($q) => $q->where('user_account_id', $request->user_account_id))
+            ->max('offers_to_generate');
+
+        return response()->json(['success' => true, 'offers_to_generate' => $newCount]);
     }
 
-    public function queueDequeue(OfferTemplate $offerTemplate)
+    public function queueDequeue(Request $request, OfferTemplate $offerTemplate)
     {
-        if ($offerTemplate->offers_to_generate > 0) {
-            $offerTemplate->decrement('offers_to_generate');
-        }
-
-        return response()->json([
-            'success'            => true,
-            'offers_to_generate' => $offerTemplate->fresh()->offers_to_generate,
+        $request->validate([
+            'user_account_id' => 'nullable|integer|exists:user_accounts,id',
         ]);
+
+        DB::table('offer_template_user_account')
+            ->where('offer_template_id', $offerTemplate->id)
+            ->when($request->user_account_id, fn ($q) => $q->where('user_account_id', $request->user_account_id))
+            ->where('offers_to_generate', '>', 0)
+            ->decrement('offers_to_generate');
+
+        $newCount = (int) DB::table('offer_template_user_account')
+            ->where('offer_template_id', $offerTemplate->id)
+            ->when($request->user_account_id, fn ($q) => $q->where('user_account_id', $request->user_account_id))
+            ->max('offers_to_generate');
+
+        return response()->json(['success' => true, 'offers_to_generate' => $newCount]);
     }
 
     public function queuePostByAccount(Request $request)
     {
         $request->validate([
             'user_account_id' => 'required|integer|exists:user_accounts,id',
+            'game'            => 'nullable|string|in:' . implode(',', array_keys(OfferTemplate::GAMES)),
         ]);
 
-        $count = OfferTemplate::whereHas('userAccounts', fn ($q) => $q->where('user_accounts.id', $request->user_account_id))
-            ->increment('offers_to_generate');
+        if ($request->filled('game')) {
+            $templateIds = DB::table('offer_templates')
+                ->where('game', $request->game)
+                ->pluck('id');
+
+            $count = DB::table('offer_template_user_account')
+                ->where('user_account_id', $request->user_account_id)
+                ->whereIn('offer_template_id', $templateIds)
+                ->increment('offers_to_generate');
+        } else {
+            $count = DB::table('offer_template_user_account')
+                ->where('user_account_id', $request->user_account_id)
+                ->increment('offers_to_generate');
+        }
 
         return response()->json(['success' => true, 'queued' => $count]);
     }
 
     public function queuePostAllAccounts(): JsonResponse
     {
-        $count = OfferTemplate::count();
-        OfferTemplate::query()->increment('offers_to_generate');
+        $count = DB::table('offer_template_user_account')->increment('offers_to_generate');
 
         return response()->json(['success' => true, 'queued' => $count]);
     }
@@ -201,9 +241,10 @@ class OfferTemplateController extends Controller
     public function bulkAction(Request $request)
     {
         $request->validate([
-            'action' => 'required|in:mark_permanent,unmark_permanent,queue_post,queue_dequeue,delete',
-            'ids'    => 'required|array|min:1',
-            'ids.*'  => 'integer|exists:offer_templates,id',
+            'action'          => 'required|in:mark_permanent,unmark_permanent,queue_post,queue_dequeue,delete',
+            'ids'             => 'required|array|min:1',
+            'ids.*'           => 'integer|exists:offer_templates,id',
+            'user_account_id' => 'nullable|integer|exists:user_accounts,id',
         ]);
 
         $ids    = $request->ids;
@@ -217,10 +258,15 @@ class OfferTemplateController extends Controller
                 OfferTemplate::whereIn('id', $ids)->update(['is_permanent' => false]);
                 break;
             case 'queue_post':
-                OfferTemplate::whereIn('id', $ids)->increment('offers_to_generate');
+                DB::table('offer_template_user_account')
+                    ->whereIn('offer_template_id', $ids)
+                    ->when($request->user_account_id, fn ($q) => $q->where('user_account_id', $request->user_account_id))
+                    ->increment('offers_to_generate');
                 break;
             case 'queue_dequeue':
-                OfferTemplate::whereIn('id', $ids)
+                DB::table('offer_template_user_account')
+                    ->whereIn('offer_template_id', $ids)
+                    ->when($request->user_account_id, fn ($q) => $q->where('user_account_id', $request->user_account_id))
                     ->where('offers_to_generate', '>', 0)
                     ->decrement('offers_to_generate');
                 break;

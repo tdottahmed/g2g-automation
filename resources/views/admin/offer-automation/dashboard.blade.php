@@ -467,6 +467,12 @@
                     'label' => \App\Models\OfferTemplate::GAMES[$g->game] ?? $g->game,
                     'count' => (int) $g->game_count,
                   ])->sortByDesc('count')->values()->toArray();
+
+                  $acctAllGames = ($accountAllGameCounts[$account->id] ?? collect())->map(fn($g) => [
+                    'game'  => $g->game,
+                    'label' => \App\Models\OfferTemplate::GAMES[$g->game] ?? $g->game,
+                    'count' => (int) $g->game_count,
+                  ])->sortByDesc('count')->values()->toArray();
                 @endphp
                 <div class="qa-account-card d-flex align-items-center gap-3 p-2 px-3 border rounded-2"
                      role="button"
@@ -475,7 +481,8 @@
                      data-owner="{{ $account->owner_name ?? '' }}"
                      data-total="{{ $account->total_templates }}"
                      data-permanent="{{ $account->permanent_templates_count }}"
-                     data-games="{{ json_encode($acctGames) }}">
+                     data-games="{{ json_encode($acctGames) }}"
+                     data-all-games="{{ json_encode($acctAllGames) }}">
                   <img src="https://ui-avatars.com/api/?name={{ urlencode($account->email) }}&background=7269ef&color=fff&size=32"
                        class="rounded-circle flex-shrink-0" width="32" height="32" alt="">
                   <div class="flex-grow-1 min-w-0">
@@ -496,11 +503,11 @@
           @endif
           </div>{{-- /qa-step-1-body --}}
 
-          {{-- Step 2: Game selection (only for delete-except-permanent) --}}
+          {{-- Step 2: Game selection (shared for delete-except-permanent & queue-post-all) --}}
           <div id="qa-step-2-body" class="d-none">
-            <div class="alert alert-warning border border-warning-subtle d-flex align-items-start gap-2 mb-3">
-              <i class="ri-alert-line text-warning mt-1 flex-shrink-0"></i>
-              <span>All <strong>non-permanent</strong> live offers for the selected game will be deleted from g2g.com on the next desktop app run. <strong>Permanent offers are protected.</strong></span>
+            <div class="alert d-flex align-items-start gap-2 mb-3" id="qa-step-2-alert">
+              <i class="mt-1 flex-shrink-0" id="qa-step-2-alert-icon"></i>
+              <span id="qa-step-2-alert-text"></span>
             </div>
             <p class="text-muted small fw-semibold mb-2 text-uppercase" style="letter-spacing:.05em">Select a game</p>
             <div class="d-flex flex-column gap-2" id="qa-game-list"></div>
@@ -735,6 +742,7 @@
           fetch(`/offer-templates/${id}/queue-post`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+            body: JSON.stringify({ user_account_id: currentAccountId }),
           })
           .then(r => r.json())
           .then(data => {
@@ -850,7 +858,7 @@
           fetch('/offer-templates/bulk-action', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-            body: JSON.stringify({ action, ids }),
+            body: JSON.stringify({ action, ids, user_account_id: currentAccountId }),
           })
           .then(r => r.json())
           .then(data => {
@@ -1009,19 +1017,23 @@
         confirmCls:  'btn-primary',
         confirmHtml: '<i class="ri-layout-grid-line me-1"></i>Open Templates',
         warning:     null,
+        step2Alert:  null,
       },
       'queue-post-all': {
         icon:        'ri-send-plane-line',
         iconBg:      'bg-success-subtle text-success',
         title:       'Post for Account',
-        subtitle:    'Select an account to queue all its templates',
+        subtitle:    'Select an account, then choose which game to post',
         confirmCls:  'btn-success',
-        confirmHtml: '<i class="ri-send-plane-line me-1"></i>Queue for Account',
-        warning: {
+        confirmHtml: '<i class="ri-send-plane-line me-1"></i>Queue Post',
+        warning:     null,
+        step2Alert: {
           cls:  'alert-info border-info-subtle',
           icon: 'ri-information-line text-info',
-          html: 'All templates for the selected account will be queued for posting. The desktop app will process them on the next cycle.',
+          html: 'Templates for the selected game will be queued for posting on the next desktop app run.',
         },
+        gameDataAttr: 'allGames',
+        gameSubtitle: (count) => `${count} template${count !== 1 ? 's' : ''}`,
       },
       'delete-except-permanent': {
         icon:        'ri-shield-line',
@@ -1031,6 +1043,13 @@
         confirmCls:  'btn-danger',
         confirmHtml: '<i class="ri-delete-bin-line me-1"></i>Queue Delete',
         warning:     null,
+        step2Alert: {
+          cls:  'alert-warning border-warning-subtle',
+          icon: 'ri-alert-line text-warning',
+          html: 'All <strong>non-permanent</strong> live offers for the selected game will be deleted from g2g.com on the next desktop app run. <strong>Permanent offers are protected.</strong>',
+        },
+        gameDataAttr: 'games',
+        gameSubtitle: (count) => `${count} non-permanent template${count !== 1 ? 's' : ''}`,
       },
     };
 
@@ -1039,7 +1058,7 @@
     let qaEmail        = null;
     let qaSelectedGame = null;
     let qaGameLabel    = null;
-    const QA_TWO_STEP  = new Set(['delete-except-permanent']);
+    const QA_TWO_STEP  = new Set(['delete-except-permanent', 'queue-post-all']);
     const qaModalEl    = document.getElementById('quickActionModal');
     const qaModal      = new bootstrap.Modal(qaModalEl);
     const qaConfirm    = document.getElementById('qa-confirm');
@@ -1117,9 +1136,15 @@
     }
 
     function populateGameList() {
-      const card     = document.querySelector(`.qa-account-card[data-id="${qaAccountId}"]`);
-      const games    = JSON.parse(card?.dataset.games || '[]');
-      const total    = games.reduce((s, g) => s + g.count, 0);
+      const card       = document.querySelector(`.qa-account-card[data-id="${qaAccountId}"]`);
+      const cfg        = QA_CONFIGS[qaAction];
+      const attrKey    = cfg.gameDataAttr ?? 'games';
+      const subtitleFn = cfg.gameSubtitle ?? ((n) => `${n} template${n !== 1 ? 's' : ''}`);
+
+      // Convert camelCase data attr key to dataset key (e.g. 'allGames' → card.dataset.allGames)
+      const games = JSON.parse(card?.dataset[attrKey] || '[]');
+      const total = games.reduce((s, g) => s + g.count, 0);
+
       const gameMeta = {
         clash_of_clans:      { icon: 'ri-shield-line',   cls: 'bg-primary' },
         brawl_stars:         { icon: 'ri-star-line',     cls: 'bg-warning' },
@@ -1151,9 +1176,10 @@
           </div>`;
       }
 
+      const allSubtitle = `${subtitleFn(total)} across all games`;
       const rows = [
-        gameCard('', 'All Games', total, `${total} non-permanent template${total !== 1 ? 's' : ''} across all games`),
-        ...games.map(g => gameCard(g.game, g.label, g.count, `${g.count} non-permanent template${g.count !== 1 ? 's' : ''}`)),
+        gameCard('', 'All Games', total, allSubtitle),
+        ...games.map(g => gameCard(g.game, g.label, g.count, subtitleFn(g.count))),
       ];
 
       const list = document.getElementById('qa-game-list');
@@ -1205,6 +1231,18 @@
       qaConfirm.disabled = true;
       qaSelectedGame = null;
       qaGameLabel    = null;
+
+      // Set the step 2 alert content based on action
+      const step2Alert = QA_CONFIGS[qaAction]?.step2Alert;
+      const alertEl    = document.getElementById('qa-step-2-alert');
+      if (step2Alert) {
+        alertEl.className = `alert d-flex align-items-start gap-2 mb-3 ${step2Alert.cls}`;
+        document.getElementById('qa-step-2-alert-icon').className = `${step2Alert.icon} mt-1 flex-shrink-0`;
+        document.getElementById('qa-step-2-alert-text').innerHTML  = step2Alert.html;
+      } else {
+        alertEl.classList.add('d-none');
+      }
+
       // Clear any prior game selection
       document.getElementById('qa-game-list').querySelectorAll('.qa-game-card').forEach(c => {
         c.classList.remove('border-primary', 'bg-primary-subtle');
@@ -1289,7 +1327,7 @@
       }
 
       const ENDPOINTS = {
-        'queue-post-all':          { url: '/offer-templates/queue-post-by-account', body: { user_account_id: qaAccountId } },
+        'queue-post-all':          { url: '/offer-templates/queue-post-by-account', body: Object.assign({ user_account_id: qaAccountId }, qaSelectedGame ? { game: qaSelectedGame } : {}) },
         'delete-except-permanent': { url: `/user-accounts/${qaAccountId}/queue-delete-non-permanent`, body: qaSelectedGame ? { game: qaSelectedGame } : {} },
       };
 
@@ -1315,7 +1353,9 @@
           const SUCCESS_MSGS = {
             'queue-post-all': {
               title: 'Posts Queued!',
-              text:  `All templates for <strong>${escHtml(qaEmail)}</strong> have been queued. The desktop app will process them on the next cycle.`,
+              text:  qaSelectedGame
+                ? `<strong>${escHtml(qaGameLabel)}</strong> templates for <strong>${escHtml(qaEmail)}</strong> have been queued. The desktop app will process them on the next cycle.`
+                : `All templates for <strong>${escHtml(qaEmail)}</strong> have been queued. The desktop app will process them on the next cycle.`,
             },
             'delete-except-permanent': {
               title: 'Deletion Queued!',

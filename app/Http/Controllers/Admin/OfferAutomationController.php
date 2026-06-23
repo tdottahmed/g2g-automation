@@ -22,12 +22,12 @@ class OfferAutomationController extends Controller
         $userAccounts = UserAccount::withCount([
             'offerTemplates as total_templates',
             'offerTemplates as permanent_templates_count' => fn ($q) => $q->where('is_permanent', true),
-            'offerTemplates as queued_posts_count'        => fn ($q) => $q->where('offers_to_generate', '>', 0),
+            'offerTemplates as queued_posts_count'        => fn ($q) => $q->where('offer_template_user_account.offers_to_generate', '>', 0),
         ])->latest()->get();
 
         $totalTemplates   = OfferTemplate::count();
         $permanentCount   = OfferTemplate::where('is_permanent', true)->count();
-        $queuedPostsCount = OfferTemplate::where('offers_to_generate', '>', 0)->count();
+        $queuedPostsCount = DB::table('offer_template_user_account')->where('offers_to_generate', '>', 0)->count();
 
         $postedToday = OfferAutomationLog::where('status', 'success')
             ->whereDate('executed_at', today())
@@ -51,6 +51,14 @@ class OfferAutomationController extends Controller
             ->get()
             ->groupBy('user_account_id');
 
+        // All template counts per game per account (for post-by-account modal step 2)
+        $accountAllGameCounts = DB::table('offer_template_user_account as pivot')
+            ->join('offer_templates', 'offer_templates.id', '=', 'pivot.offer_template_id')
+            ->select('pivot.user_account_id', 'offer_templates.game', DB::raw('count(*) as game_count'))
+            ->groupBy('pivot.user_account_id', 'offer_templates.game')
+            ->get()
+            ->groupBy('user_account_id');
+
         return view('admin.offer-automation.dashboard', compact(
             'userAccounts',
             'recentLogs',
@@ -60,7 +68,8 @@ class OfferAutomationController extends Controller
             'postedToday',
             'failedToday',
             'intervalMinutes',
-            'accountGameCounts'
+            'accountGameCounts',
+            'accountAllGameCounts'
         ));
     }
 
@@ -70,7 +79,7 @@ class OfferAutomationController extends Controller
      */
     public function getUserTemplates(Request $request, UserAccount $userAccount)
     {
-        $query = OfferTemplate::whereHas('userAccounts', fn ($q) => $q->where('user_accounts.id', $userAccount->id));
+        $query = $userAccount->offerTemplates()->withPivot('offers_to_generate');
 
         if ($request->filled('search')) {
             $query->where('title', 'like', '%' . $request->search . '%');
@@ -82,11 +91,19 @@ class OfferAutomationController extends Controller
             $query->where('is_permanent', false);
         }
 
-        $templates = $query
-            ->select(['id', 'title', 'is_permanent', 'offers_to_generate', 'last_posted_at', 'price', 'game', 'game_data'])
-            ->latest()
+        $paginated = $query
+            ->select(['offer_templates.id', 'offer_templates.title', 'offer_templates.is_permanent',
+                      'offer_templates.last_posted_at', 'offer_templates.price', 'offer_templates.game', 'offer_templates.game_data'])
+            ->latest('offer_templates.id')
             ->paginate(25);
 
-        return response()->json($templates);
+        // Expose pivot's offers_to_generate as a top-level field for the frontend
+        $paginated->getCollection()->transform(function ($template) {
+            $template->offers_to_generate = $template->pivot->offers_to_generate ?? 0;
+            unset($template->pivot);
+            return $template;
+        });
+
+        return response()->json($paginated);
     }
 }

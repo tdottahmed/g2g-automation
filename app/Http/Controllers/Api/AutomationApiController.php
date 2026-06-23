@@ -10,6 +10,7 @@ use App\Models\UserAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AutomationApiController extends Controller
 {
@@ -26,33 +27,48 @@ class AutomationApiController extends Controller
 
         $accountId = $request->query('account_id');
 
-        $templates = OfferTemplate::with('userAccounts')
-            ->when($accountId, fn ($q) => $q->whereHas('userAccounts', fn ($q2) => $q2->where('user_accounts.id', $accountId)))
-            ->get();
+        // Load accounts with their templates and per-account pivot queue counts
+        $accounts = UserAccount::with([
+            'offerTemplates' => fn ($q) => $q->withPivot('offers_to_generate'),
+        ])
+        ->when($accountId, fn ($q) => $q->where('id', $accountId))
+        ->get();
 
-        $byAccount = [];
+        $byAccount     = [];
+        $pivotsToClear = [];
 
-        foreach ($templates as $template) {
-            $forced = $template->offers_to_generate && $template->offers_to_generate > 0;
+        foreach ($accounts as $account) {
+            foreach ($account->offerTemplates as $template) {
+                $forcedForAccount = ($template->pivot->offers_to_generate ?? 0) > 0;
 
-            if (!$forced && !$this->isWithinSchedulerWindows($schedulerWindows)) {
-                continue;
-            }
-
-            if (!$forced && !$template->shouldPostNow($intervalMinutes)) {
-                continue;
-            }
-
-            foreach ($template->userAccounts as $userAccount) {
-                if ($accountId && (string) $userAccount->id !== (string) $accountId) {
+                if (!$forcedForAccount && !$this->isWithinSchedulerWindows($schedulerWindows)) {
                     continue;
                 }
-                $uid = $userAccount->id;
-                if (!isset($byAccount[$uid])) {
-                    $byAccount[$uid] = ['account' => $userAccount, 'templates' => []];
+
+                if (!$forcedForAccount && !$template->shouldPostNow($intervalMinutes)) {
+                    continue;
                 }
-                $byAccount[$uid]['templates'][] = $this->formatTemplate($template);
+
+                $uid = $account->id;
+                if (!isset($byAccount[$uid])) {
+                    $byAccount[$uid] = ['account' => $account, 'templates' => []];
+                }
+                $byAccount[$uid]['templates'][] = $this->formatTemplate($template, $template->pivot->offers_to_generate ?? 0);
+
+                // Decrement forced pivot count optimistically so it isn't re-served next poll
+                if ($forcedForAccount) {
+                    $pivotsToClear[] = ['template_id' => $template->id, 'account_id' => $account->id];
+                }
             }
+        }
+
+        // Decrement forced counts after building the response to avoid race-clearing
+        foreach ($pivotsToClear as $pair) {
+            DB::table('offer_template_user_account')
+                ->where('offer_template_id', $pair['template_id'])
+                ->where('user_account_id', $pair['account_id'])
+                ->where('offers_to_generate', '>', 0)
+                ->decrement('offers_to_generate');
         }
 
         $result = array_values(array_map(fn ($entry) => [
@@ -75,25 +91,13 @@ class AutomationApiController extends Controller
 
         $template->update(['last_posted_at' => now()]);
 
-        $remainingOffers = null;
-        if ($template->offers_to_generate && $template->offers_to_generate > 0) {
-            $template->decrement('offers_to_generate');
-            $remainingOffers = $template->fresh()->offers_to_generate;
-        }
-
         OfferAutomationLog::logSuccess(
             $template,
             "Successfully posted offer via local runner for template '{$template->title}'",
-            array_merge($details, [
-                'remaining_offers' => $remainingOffers ?? 'unlimited',
-                'posted_at'        => now()->toIso8601String(),
-            ])
+            array_merge($details, ['posted_at' => now()->toIso8601String()])
         );
 
-        return response()->json([
-            'success'          => true,
-            'remaining_offers' => $remainingOffers ?? 'unlimited',
-        ]);
+        return response()->json(['success' => true]);
     }
 
     public function failed(OfferTemplate $template, Request $request): JsonResponse
@@ -114,22 +118,53 @@ class AutomationApiController extends Controller
     }
 
     /**
-     * Returns accounts queued for delete-all, with their permanent template titles so the
-     * desktop runner can skip those offers on g2g.com.
+     * Returns accounts queued for delete-all, with titles the desktop runner must skip.
+     *
+     * When a game filter is active the runner should only delete offers for that game,
+     * so we include titles from ALL other games in the skip list alongside permanent ones.
+     * The runner's selectNonPermanentRows already honours this list — no runner change needed.
      */
     public function pendingDeleteAll(): JsonResponse
     {
         $accounts = UserAccount::where('queue_delete_all', true)
-            ->with(['offerTemplates' => fn ($q) => $q->where('is_permanent', true)->select('offer_templates.id', 'offer_templates.title')])
+            ->with(['offerTemplates' => fn ($q) => $q->select(
+                'offer_templates.id',
+                'offer_templates.title',
+                'offer_templates.is_permanent',
+                'offer_templates.game'
+            )])
             ->get();
 
-        $users = $accounts->map(fn ($a) => [
-            'user_id'           => $a->id,
-            'email'             => $a->email,
-            'password'          => $a->password,
-            'permanent_titles'  => $a->queue_force_delete_all ? [] : $a->offerTemplates->pluck('title')->values()->all(),
-            'queue_delete_game' => $a->queue_delete_game,
-        ])->values()->all();
+        $users = $accounts->map(function ($a) {
+            $game = $a->queue_delete_game;
+
+            if ($a->queue_force_delete_all) {
+                // Force-delete everything — skip nothing
+                $titlesToSkip = [];
+            } elseif ($game) {
+                // Game-specific delete: skip permanent offers (any game) + all offers from other games
+                $titlesToSkip = $a->offerTemplates
+                    ->filter(fn ($t) => $t->is_permanent || $t->game !== $game)
+                    ->pluck('title')
+                    ->values()
+                    ->all();
+            } else {
+                // Delete-all: skip permanent offers only
+                $titlesToSkip = $a->offerTemplates
+                    ->where('is_permanent', true)
+                    ->pluck('title')
+                    ->values()
+                    ->all();
+            }
+
+            return [
+                'user_id'           => $a->id,
+                'email'             => $a->email,
+                'password'          => $a->password,
+                'permanent_titles'  => $titlesToSkip,
+                'queue_delete_game' => $game,
+            ];
+        })->values()->all();
 
         return response()->json(['users' => $users, 'server_time' => now()->toIso8601String()]);
     }
@@ -223,7 +258,7 @@ class AutomationApiController extends Controller
         ]);
     }
 
-    private function formatTemplate(OfferTemplate $template): array
+    private function formatTemplate(OfferTemplate $template, int $offersToGenerate = 0): array
     {
         $deliveryMethod = is_array($template->delivery_method)
             ? $template->delivery_method
@@ -257,7 +292,7 @@ class AutomationApiController extends Controller
             'Delivery hour'             => $deliveryMethod['speed_hour'] ?? '0',
             'Delivery minute'           => $deliveryMethod['speed_min'] ?? '30',
             'mediaData'                 => $mediaData,
-            'offers_to_generate'        => $template->offers_to_generate,
+            'offers_to_generate'        => $offersToGenerate,
             'last_posted_at'            => $template->last_posted_at?->toIso8601String() ?? null,
             'is_permanent'              => $template->is_permanent,
         ];

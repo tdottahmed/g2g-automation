@@ -31,7 +31,7 @@ class OfferTemplate extends Model
 
     public function userAccounts()
     {
-        return $this->belongsToMany(UserAccount::class);
+        return $this->belongsToMany(UserAccount::class)->withPivot('offers_to_generate');
     }
 
     public function logs()
