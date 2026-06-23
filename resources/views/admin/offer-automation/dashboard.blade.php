@@ -56,7 +56,7 @@
     <div class="row g-3">
 
       {{-- 1. Template Management --}}
-      <div class="col-sm-6 col-xl-3">
+      <div class="col-sm-6 col-xl">
         <div class="card border-0 bg-body-tertiary h-100">
           <div class="card-body d-flex flex-column gap-2 p-3">
             <div class="avatar-sm">
@@ -73,8 +73,8 @@
         </div>
       </div>
 
-      {{-- 2. Start Posting All --}}
-      <div class="col-sm-6 col-xl-3">
+      {{-- 2. Post for Account --}}
+      <div class="col-sm-6 col-xl">
         <div class="card border-0 bg-body-tertiary h-100">
           <div class="card-body d-flex flex-column gap-2 p-3">
             <div class="avatar-sm">
@@ -82,17 +82,17 @@
                 <i class="ri-send-plane-line fs-18"></i>
               </div>
             </div>
-            <h6 class="fw-semibold mb-0">Start Posting All</h6>
-            <p class="text-muted small mb-0 flex-grow-1">Queue all templates for an account to be posted on the next desktop app cycle.</p>
+            <h6 class="fw-semibold mb-0">Post for Account</h6>
+            <p class="text-muted small mb-0 flex-grow-1">Queue all templates for one specific account to be posted on the next desktop app cycle.</p>
             <button type="button" class="btn btn-sm btn-success w-100 qa-btn" data-action="queue-post-all">
-              <i class="ri-send-plane-line me-1"></i>Queue Posts
+              <i class="ri-send-plane-line me-1"></i>Queue for Account
             </button>
           </div>
         </div>
       </div>
 
       {{-- 3. Delete All Except Permanent --}}
-      <div class="col-sm-6 col-xl-3">
+      <div class="col-sm-6 col-xl">
         <div class="card border-0 bg-body-tertiary h-100">
           <div class="card-body d-flex flex-column gap-2 p-3">
             <div class="avatar-sm">
@@ -109,8 +109,26 @@
         </div>
       </div>
 
-      {{-- 4. Account Management --}}
-      <div class="col-sm-6 col-xl-3">
+      {{-- 4. Post All Accounts --}}
+      <div class="col-sm-6 col-xl">
+        <div class="card border-0 bg-body-tertiary h-100">
+          <div class="card-body d-flex flex-column gap-2 p-3">
+            <div class="avatar-sm">
+              <div class="avatar-title bg-primary-subtle text-primary rounded-circle">
+                <i class="ri-play-circle-line fs-18"></i>
+              </div>
+            </div>
+            <h6 class="fw-semibold mb-0">Post All Accounts</h6>
+            <p class="text-muted small mb-0 flex-grow-1">Queue all templates across every account for the next desktop app cycle at once.</p>
+            <button type="button" class="btn btn-sm btn-primary w-100" id="qa-post-all-btn">
+              <i class="ri-play-circle-line me-1"></i>Post All Now
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {{-- 5. Account Management --}}
+      <div class="col-sm-6 col-xl">
         <div class="card border-0 bg-body-tertiary h-100">
           <div class="card-body d-flex flex-column gap-2 p-3">
             <div class="avatar-sm">
@@ -961,14 +979,14 @@
       'queue-post-all': {
         icon:        'ri-send-plane-line',
         iconBg:      'bg-success-subtle text-success',
-        title:       'Start Posting All Offers',
-        subtitle:    'Queue all templates for the next desktop app cycle',
+        title:       'Post for Account',
+        subtitle:    'Select an account to queue all its templates',
         confirmCls:  'btn-success',
-        confirmHtml: '<i class="ri-send-plane-line me-1"></i>Queue Posts',
+        confirmHtml: '<i class="ri-send-plane-line me-1"></i>Queue for Account',
         warning: {
           cls:  'alert-info border-info-subtle',
           icon: 'ri-information-line text-info',
-          html: 'All templates for the selected account will have their post queue incremented by 1. The desktop app will post them on the next cycle.',
+          html: 'All templates for the selected account will be queued for posting. The desktop app will process them on the next cycle.',
         },
       },
       'delete-except-permanent': {
@@ -1048,6 +1066,48 @@
       btn.addEventListener('click', () => openQaModal(btn.dataset.action));
     });
 
+    // ── Post All Accounts ──────────────────────────────────────────────────────
+    document.getElementById('qa-post-all-btn')?.addEventListener('click', () => {
+      Swal.fire({
+        title: 'Post All Accounts?',
+        html: 'This will queue <strong>all templates across every account</strong> to be posted on the next desktop app cycle. Are you sure?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '<i class="ri-play-circle-line me-1"></i>Post All Now',
+        cancelButtonText: 'Cancel',
+        customClass: {
+          confirmButton: 'btn btn-primary w-xs me-2 mt-2',
+          cancelButton:  'btn btn-secondary w-xs mt-2',
+        },
+        buttonsStyling: false,
+        showCloseButton: true,
+      }).then(async result => {
+        if (!result.isConfirmed) return;
+
+        try {
+          const res  = await fetch('/offer-templates/queue-post-all-accounts', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            Swal.fire({
+              title: 'All Queued!',
+              html:  `<strong>${data.queued}</strong> template(s) queued across all accounts. The desktop app will post them on the next cycle.`,
+              icon:  'success',
+              timer: 3000,
+              showConfirmButton: false,
+            });
+          } else {
+            Swal.fire({ title: 'Error', text: data.message ?? 'Action failed.', icon: 'error' });
+          }
+        } catch {
+          Swal.fire({ title: 'Error', text: 'Request failed. Please try again.', icon: 'error' });
+        }
+      });
+    });
+
     // Confirm handler
     qaConfirm.addEventListener('click', async () => {
       if (!qaAccountId) return;
@@ -1091,7 +1151,7 @@
           const SUCCESS_MSGS = {
             'queue-post-all': {
               title: 'Posts Queued!',
-              text:  `All templates for <strong>${escHtml(qaEmail)}</strong> have been queued. The desktop app will post them on the next cycle.`,
+              text:  `All templates for <strong>${escHtml(qaEmail)}</strong> have been queued. The desktop app will process them on the next cycle.`,
             },
             'delete-except-permanent': {
               title: 'Deletion Queued!',

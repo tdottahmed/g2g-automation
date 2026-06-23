@@ -13,7 +13,7 @@ use Illuminate\Support\Carbon;
 
 class AutomationApiController extends Controller
 {
-    public function pending(): JsonResponse
+    public function pending(Request $request): JsonResponse
     {
         $intervalMinutes = (int) (
             ApplicationSetup::where('type', 'schedule_interval_minutes')->value('value') ?? 15
@@ -24,7 +24,11 @@ class AutomationApiController extends Controller
             true
         );
 
-        $templates = OfferTemplate::with('userAccounts')->get();
+        $accountId = $request->query('account_id');
+
+        $templates = OfferTemplate::with('userAccounts')
+            ->when($accountId, fn ($q) => $q->whereHas('userAccounts', fn ($q2) => $q2->where('user_accounts.id', $accountId)))
+            ->get();
 
         $byAccount = [];
 
@@ -40,6 +44,9 @@ class AutomationApiController extends Controller
             }
 
             foreach ($template->userAccounts as $userAccount) {
+                if ($accountId && (string) $userAccount->id !== (string) $accountId) {
+                    continue;
+                }
                 $uid = $userAccount->id;
                 if (!isset($byAccount[$uid])) {
                     $byAccount[$uid] = ['account' => $userAccount, 'templates' => []];

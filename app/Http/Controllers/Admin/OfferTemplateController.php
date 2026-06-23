@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\OfferTemplate;
 use App\Models\UserAccount;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class OfferTemplateController extends Controller
@@ -173,6 +174,14 @@ class OfferTemplateController extends Controller
 
         $count = OfferTemplate::whereHas('userAccounts', fn ($q) => $q->where('user_accounts.id', $request->user_account_id))
             ->increment('offers_to_generate');
+
+        return response()->json(['success' => true, 'queued' => $count]);
+    }
+
+    public function queuePostAllAccounts(): JsonResponse
+    {
+        $count = OfferTemplate::count();
+        OfferTemplate::query()->increment('offers_to_generate');
 
         return response()->json(['success' => true, 'queued' => $count]);
     }

@@ -26,6 +26,7 @@ Route::group(['middleware' => ['role:super-admin|admin|staff|user']], function (
     Route::post('user-accounts/{userAccount}/queue-force-delete-all', [UserAccountController::class, 'queueForceDeleteAll'])->name('user-accounts.queue-force-delete-all');
     Route::post('offer-templates/bulk-action', [OfferTemplateController::class, 'bulkAction'])->name('offer-templates.bulk-action');
     Route::post('offer-templates/queue-post-by-account', [OfferTemplateController::class, 'queuePostByAccount'])->name('offer-templates.queue-post-by-account');
+    Route::post('offer-templates/queue-post-all-accounts', [OfferTemplateController::class, 'queuePostAllAccounts'])->name('offer-templates.queue-post-all-accounts');
     Route::post('offer-templates/{offerTemplate}/toggle-permanent', [OfferTemplateController::class, 'togglePermanent'])->name('offer-templates.toggle-permanent');
     Route::resource('offer-templates', OfferTemplateController::class);
     Route::post('offer-templates/{offerTemplate}/queue-post', [OfferTemplateController::class, 'queuePost'])->name('offer-templates.queue-post');
