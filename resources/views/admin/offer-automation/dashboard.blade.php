@@ -909,21 +909,13 @@
             buttonsStyling: false,
           }).then(result => { if (result.isConfirmed) doToggleDeleteAll(id, email, false, permanentCnt, btnEl); });
         } else {
-          const protectedNote = permanentCnt > 0
-            ? `<br><span class="text-success small"><i class="ri-shield-check-line me-1"></i>${permanentCnt} permanent offer(s) will be <strong>skipped</strong>.</span>`
-            : '';
-          Swal.fire({
-            title: 'Delete ALL offers from g2g.com?',
-            html: `<strong>${email}</strong>${protectedNote}
-                   <br><span class="text-muted small">Every non-permanent live offer for this account will be deleted on the next desktop app run.</span>`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, queue delete-all',
-            cancelButtonText: 'Cancel',
-            customClass: { confirmButton: 'btn btn-danger w-xs me-2 mt-2', cancelButton: 'btn btn-secondary w-xs mt-2' },
-            buttonsStyling: false,
-            showCloseButton: true,
-          }).then(result => { if (result.isConfirmed) doToggleDeleteAll(id, email, true, permanentCnt, btnEl); });
+          openQaModal('delete-except-permanent');
+          const accountCard = document.querySelector(`.qa-account-card[data-id="${id}"]`);
+          if (accountCard) {
+            accountCard.click();
+            qaNext.click();
+            qaBack.classList.add('d-none');
+          }
         }
       });
     });
