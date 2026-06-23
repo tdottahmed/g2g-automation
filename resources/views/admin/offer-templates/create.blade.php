@@ -323,17 +323,17 @@
             <div class="col-md-4">
               <label class="form-label">{{ __('Delivery Quantity From') }}</label>
               <input type="number" name="delivery_quantity_from" class="form-control"
-                     placeholder="Enter quantity" value="{{ old('delivery_quantity_from') }}" required>
+                     placeholder="Enter quantity" value="{{ old('delivery_quantity_from', 1) }}" required>
             </div>
             <div class="col-md-4">
               <label class="form-label">{{ __('Delivery Speed Hour') }}</label>
               <input type="number" name="delivery_speed_hour" class="form-control"
-                     placeholder="Hour" value="{{ old('delivery_speed_hour') }}" required>
+                     placeholder="Hour" value="{{ old('delivery_speed_hour', 0) }}" required>
             </div>
             <div class="col-md-4">
               <label class="form-label">{{ __('Delivery Speed Minute') }}</label>
               <input type="number" name="delivery_speed_min" class="form-control"
-                     placeholder="Minute" value="{{ old('delivery_speed_min') }}" required>
+                     placeholder="Minute" value="{{ old('delivery_speed_min', 10) }}" required>
             </div>
           </div>
         </div>
