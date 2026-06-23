@@ -355,6 +355,9 @@
         <button type="button" class="btn btn-sm btn-info text-dark oc-bulk-btn" data-action="queue_post">
           <i class="ri-add-circle-line me-1"></i>Queue +1
         </button>
+        <button type="button" class="btn btn-sm btn-outline-info text-light border-info oc-bulk-btn" data-action="queue_dequeue">
+          <i class="ri-indeterminate-circle-line me-1"></i>Queue -1
+        </button>
         <button type="button" class="btn btn-sm btn-outline-danger oc-bulk-btn" data-action="delete">
           <i class="ri-delete-bin-line me-1"></i>Delete
         </button>
@@ -823,6 +826,7 @@
           mark_permanent:   `Mark ${ids.length} template(s) as permanent?`,
           unmark_permanent: `Unmark ${ids.length} template(s)?`,
           queue_post:       `Add +1 post queue to ${ids.length} template(s)?`,
+          queue_dequeue:    `Subtract -1 post queue from ${ids.length} template(s)?`,
           delete:           `Permanently delete ${ids.length} template(s) from the database?`,
         };
 
