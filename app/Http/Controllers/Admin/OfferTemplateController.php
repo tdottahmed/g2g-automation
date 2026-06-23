@@ -11,8 +11,8 @@ class OfferTemplateController extends Controller
 {
     public function index(Request $request)
     {
-        $offers = OfferTemplate::with('userAccount')
-            ->when($request->filled('account'), fn ($q) => $q->where('user_account_id', $request->account))
+        $offers = OfferTemplate::with('userAccounts')
+            ->when($request->filled('account'), fn ($q) => $q->whereHas('userAccounts', fn ($q2) => $q2->where('user_accounts.id', $request->account)))
             ->when($request->filled('game'),    fn ($q) => $q->where('game', $request->game))
             ->when($request->status === 'permanent',     fn ($q) => $q->where('is_permanent', true))
             ->when($request->status === 'non_permanent', fn ($q) => $q->where('is_permanent', false))
@@ -36,7 +36,8 @@ class OfferTemplateController extends Controller
         $game = $request->input('game', 'clash_of_clans');
 
         $request->validate(array_merge([
-            'user_account_id'        => 'required|integer|exists:user_accounts,id',
+            'user_account_ids'       => 'required|array|min:1',
+            'user_account_ids.*'     => 'integer|exists:user_accounts,id',
             'game'                   => 'required|in:' . implode(',', array_keys(OfferTemplate::GAMES)),
             'title'                  => 'required|string|max:255',
             'price'                  => 'required|numeric|min:0',
@@ -51,7 +52,6 @@ class OfferTemplateController extends Controller
         ], $this->gameDataRules($game)));
 
         $data = [
-            'user_account_id' => $request->user_account_id,
             'game'            => $game,
             'game_data'       => $this->extractGameData($request),
             'title'           => $request->title,
@@ -70,7 +70,8 @@ class OfferTemplateController extends Controller
         ];
 
         try {
-            OfferTemplate::create($data);
+            $template = OfferTemplate::create($data);
+            $template->userAccounts()->sync($request->user_account_ids);
             return redirect()->route('offer-templates.index')->with('success', 'Offer template created successfully.');
         } catch (\Throwable $th) {
             logger()->error('Error creating offer template: ' . $th->getMessage());
@@ -90,19 +91,19 @@ class OfferTemplateController extends Controller
         $game = $request->input('game', 'clash_of_clans');
 
         $request->validate(array_merge([
-            'user_account_id' => 'required|integer|exists:user_accounts,id',
-            'game'            => 'required|in:' . implode(',', array_keys(OfferTemplate::GAMES)),
-            'title'           => 'required|string|max:255',
-            'price'           => 'required|numeric|min:0',
-            'currency'        => 'required|string|max:3',
-            'region'          => 'required|string|max:255',
-            'medias'          => 'nullable|array',
-            'medias.*.title'  => 'nullable|string|max:255',
-            'medias.*.link'   => 'nullable|url|max:500',
+            'user_account_ids'   => 'required|array|min:1',
+            'user_account_ids.*' => 'integer|exists:user_accounts,id',
+            'game'               => 'required|in:' . implode(',', array_keys(OfferTemplate::GAMES)),
+            'title'              => 'required|string|max:255',
+            'price'              => 'required|numeric|min:0',
+            'currency'           => 'required|string|max:3',
+            'region'             => 'required|string|max:255',
+            'medias'             => 'nullable|array',
+            'medias.*.title'     => 'nullable|string|max:255',
+            'medias.*.link'      => 'nullable|url|max:500',
         ], $this->gameDataRules($game)));
 
         $data = [
-            'user_account_id' => $request->user_account_id,
             'game'            => $game,
             'game_data'       => $this->extractGameData($request),
             'title'           => $request->title,
@@ -122,6 +123,7 @@ class OfferTemplateController extends Controller
 
         try {
             $offerTemplate->update($data);
+            $offerTemplate->userAccounts()->sync($request->user_account_ids);
             return redirect()->route('offer-templates.index')->with('success', 'Offer template updated successfully.');
         } catch (\Throwable $th) {
             logger()->error('Error updating offer template: ' . $th->getMessage());
@@ -169,7 +171,7 @@ class OfferTemplateController extends Controller
             'user_account_id' => 'required|integer|exists:user_accounts,id',
         ]);
 
-        $count = OfferTemplate::where('user_account_id', $request->user_account_id)
+        $count = OfferTemplate::whereHas('userAccounts', fn ($q) => $q->where('user_accounts.id', $request->user_account_id))
             ->increment('offers_to_generate');
 
         return response()->json(['success' => true, 'queued' => $count]);

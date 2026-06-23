@@ -24,41 +24,36 @@ class AutomationApiController extends Controller
             true
         );
 
-        $templates = OfferTemplate::with('userAccount')->get();
+        $templates = OfferTemplate::with('userAccounts')->get();
 
-        $result = [];
+        $byAccount = [];
 
-        foreach ($templates->groupBy('user_account_id') as $userTemplates) {
-            $userAccount = $userTemplates->first()->userAccount;
-            if (!$userAccount) {
+        foreach ($templates as $template) {
+            $forced = $template->offers_to_generate && $template->offers_to_generate > 0;
+
+            if (!$forced && !$this->isWithinSchedulerWindows($schedulerWindows)) {
                 continue;
             }
 
-            $pendingTemplates = [];
-
-            foreach ($userTemplates as $template) {
-                $forced = $template->offers_to_generate && $template->offers_to_generate > 0;
-
-                if (!$forced && !$this->isWithinSchedulerWindows($schedulerWindows)) {
-                    continue;
-                }
-
-                if (!$forced && !$template->shouldPostNow($intervalMinutes)) {
-                    continue;
-                }
-
-                $pendingTemplates[] = $this->formatTemplate($template);
+            if (!$forced && !$template->shouldPostNow($intervalMinutes)) {
+                continue;
             }
 
-            if (!empty($pendingTemplates)) {
-                $result[] = [
-                    'user_id'   => $userAccount->id,
-                    'email'     => $userAccount->email,
-                    'password'  => $userAccount->password,
-                    'templates' => $pendingTemplates,
-                ];
+            foreach ($template->userAccounts as $userAccount) {
+                $uid = $userAccount->id;
+                if (!isset($byAccount[$uid])) {
+                    $byAccount[$uid] = ['account' => $userAccount, 'templates' => []];
+                }
+                $byAccount[$uid]['templates'][] = $this->formatTemplate($template);
             }
         }
+
+        $result = array_values(array_map(fn ($entry) => [
+            'user_id'   => $entry['account']->id,
+            'email'     => $entry['account']->email,
+            'password'  => $entry['account']->password,
+            'templates' => $entry['templates'],
+        ], $byAccount));
 
         return response()->json([
             'users'                     => $result,
@@ -118,14 +113,14 @@ class AutomationApiController extends Controller
     public function pendingDeleteAll(): JsonResponse
     {
         $accounts = UserAccount::where('queue_delete_all', true)
-            ->with(['offers' => fn ($q) => $q->where('is_permanent', true)->select('id', 'user_account_id', 'title')])
+            ->with(['offerTemplates' => fn ($q) => $q->where('is_permanent', true)->select('offer_templates.id', 'offer_templates.title')])
             ->get();
 
         $users = $accounts->map(fn ($a) => [
             'user_id'          => $a->id,
             'email'            => $a->email,
             'password'         => $a->password,
-            'permanent_titles' => $a->queue_force_delete_all ? [] : $a->offers->pluck('title')->values()->all(),
+            'permanent_titles' => $a->queue_force_delete_all ? [] : $a->offerTemplates->pluck('title')->values()->all(),
         ])->values()->all();
 
         return response()->json(['users' => $users, 'server_time' => now()->toIso8601String()]);
@@ -166,8 +161,8 @@ class AutomationApiController extends Controller
     public function userAccounts(): JsonResponse
     {
         $accounts = UserAccount::withCount([
-            'offers as total_templates_count',
-            'offers as non_permanent_count' => fn ($q) => $q->where('is_permanent', false),
+            'offerTemplates as total_templates_count',
+            'offerTemplates as non_permanent_count' => fn ($q) => $q->where('is_permanent', false),
         ])->orderBy('email')->get();
 
         return response()->json([
@@ -186,10 +181,10 @@ class AutomationApiController extends Controller
      */
     public function getNonPermanentOffers(UserAccount $userAccount): JsonResponse
     {
-        $offers = OfferTemplate::where('user_account_id', $userAccount->id)
+        $offers = $userAccount->offerTemplates()
             ->where('is_permanent', false)
-            ->select(['title', 'price'])
-            ->orderBy('title')
+            ->select(['offer_templates.title', 'offer_templates.price'])
+            ->orderBy('offer_templates.title')
             ->get()
             ->map(fn ($o) => [
                 'title' => $o->title,

@@ -93,7 +93,15 @@
               </div>
             </td>
             <td>
-              <span class="text-muted small">{{ $offer->userAccount->owner_name ?? '—' }}</span>
+              @if ($offer->userAccounts->isNotEmpty())
+                <div class="d-flex flex-wrap gap-1">
+                  @foreach ($offer->userAccounts as $ua)
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">{{ $ua->owner_name }}</span>
+                  @endforeach
+                </div>
+              @else
+                <span class="text-muted">—</span>
+              @endif
             </td>
             <td>${{ number_format($offer->price, 2) }}</td>
 

@@ -14,8 +14,14 @@ class UserAccount extends Model
         'queue_force_delete_all' => 'boolean',
     ];
 
+    public function offerTemplates()
+    {
+        return $this->belongsToMany(OfferTemplate::class);
+    }
+
+    // Alias kept for legacy callers
     public function offers()
     {
-        return $this->hasMany(OfferTemplate::class);
+        return $this->belongsToMany(OfferTemplate::class);
     }
 }

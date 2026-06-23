@@ -15,13 +15,25 @@
 
       @php $activeGame = old('game', 'clash_of_clans'); @endphp
 
-      {{-- ── Row 1: User Account + Game ──────────────────────────────────────── --}}
+      {{-- ── Row 1: User Accounts + Game ────────────────────────────────────── --}}
       <div class="row">
         <div class="col-md-6">
-          <x-data-entry.select name="user_account_id" label="User Account"
-                               :options="$userAccounts->pluck('owner_name', 'id')"
-                               :selected="old('user_account_id')"
-                               placeholder="Select User Account" required />
+          <div class="form-group mb-3">
+            <label for="user_account_ids" class="form-label">
+              {{ __('User Accounts') }} <span class="text-danger">*</span>
+            </label>
+            <select id="user_account_ids" name="user_account_ids[]"
+                    class="form-control select2-accounts" multiple style="width:100%;" required>
+              @foreach ($userAccounts as $account)
+                <option value="{{ $account->id }}"
+                        {{ in_array($account->id, old('user_account_ids', [])) ? 'selected' : '' }}>
+                  {{ $account->owner_name }}
+                </option>
+              @endforeach
+            </select>
+            @error('user_account_ids')   <span class="text-danger small">{{ $message }}</span> @enderror
+            @error('user_account_ids.*') <span class="text-danger small">{{ $message }}</span> @enderror
+          </div>
         </div>
         <div class="col-md-6">
           <div class="form-group mb-3">
@@ -345,6 +357,13 @@
   @push('scripts')
     <script>
       $(document).ready(function () {
+
+        // ── User accounts multi-select ─────────────────────────────────────────
+        $('#user_account_ids').select2({
+          placeholder: 'Select one or more accounts',
+          allowClear: true,
+          width: '100%',
+        });
 
         // ── Game switcher ──────────────────────────────────────────────────────
         function switchGame(game) {

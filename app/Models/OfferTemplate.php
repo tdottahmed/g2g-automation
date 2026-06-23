@@ -29,9 +29,9 @@ class OfferTemplate extends Model
         'call_of_duty_mobile' => 'Call of Duty Mobile',
     ];
 
-    public function userAccount()
+    public function userAccounts()
     {
-        return $this->belongsTo(UserAccount::class);
+        return $this->belongsToMany(UserAccount::class);
     }
 
     public function logs()

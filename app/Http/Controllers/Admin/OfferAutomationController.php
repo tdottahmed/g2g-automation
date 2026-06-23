@@ -19,9 +19,9 @@ class OfferAutomationController extends Controller
 
         // Load counts only — templates are fetched lazily via AJAX per account
         $userAccounts = UserAccount::withCount([
-            'offers as total_templates',
-            'offers as permanent_templates_count' => fn ($q) => $q->where('is_permanent', true),
-            'offers as queued_posts_count'        => fn ($q) => $q->where('offers_to_generate', '>', 0),
+            'offerTemplates as total_templates',
+            'offerTemplates as permanent_templates_count' => fn ($q) => $q->where('is_permanent', true),
+            'offerTemplates as queued_posts_count'        => fn ($q) => $q->where('offers_to_generate', '>', 0),
         ])->latest()->get();
 
         $totalTemplates   = OfferTemplate::count();
@@ -59,7 +59,7 @@ class OfferAutomationController extends Controller
      */
     public function getUserTemplates(Request $request, UserAccount $userAccount)
     {
-        $query = OfferTemplate::where('user_account_id', $userAccount->id);
+        $query = OfferTemplate::whereHas('userAccounts', fn ($q) => $q->where('user_accounts.id', $userAccount->id));
 
         if ($request->filled('search')) {
             $query->where('title', 'like', '%' . $request->search . '%');

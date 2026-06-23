@@ -10,12 +10,13 @@
     </x-slot>
 
     @php
-      $activeGame = old('game', $offerTemplate->game ?? 'clash_of_clans');
-      $gd         = $offerTemplate->game_data ?? [];
-      $deliveryJson = old('delivery_method', $offerTemplate->delivery_method ?? '{}');
-      $delivery     = is_string($deliveryJson) ? json_decode($deliveryJson, true) : $deliveryJson;
-      $medias       = $offerTemplate->medias ?? [];
+      $activeGame          = old('game', $offerTemplate->game ?? 'clash_of_clans');
+      $gd                  = $offerTemplate->game_data ?? [];
+      $deliveryJson        = old('delivery_method', $offerTemplate->delivery_method ?? '{}');
+      $delivery            = is_string($deliveryJson) ? json_decode($deliveryJson, true) : $deliveryJson;
+      $medias              = $offerTemplate->medias ?? [];
       if (is_string($medias)) { $medias = json_decode($medias, true) ?: []; }
+      $selectedAccountIds  = old('user_account_ids', $offerTemplate->userAccounts->pluck('id')->toArray());
     @endphp
 
     <x-data-entry.form method="PUT" action="{{ route('offer-templates.update', $offerTemplate->id) }}"
@@ -23,13 +24,25 @@
       <input type="hidden" name="region" value="Global" />
       <input type="hidden" name="currency" value="USD" />
 
-      {{-- ── Row 1: User Account + Game ──────────────────────────────────────── --}}
+      {{-- ── Row 1: User Accounts + Game ────────────────────────────────────── --}}
       <div class="row">
         <div class="col-md-6">
-          <x-data-entry.select name="user_account_id" label="User Account"
-                               :options="$userAccounts->pluck('owner_name', 'id')"
-                               :selected="old('user_account_id', $offerTemplate->user_account_id)"
-                               placeholder="Select User Account" required />
+          <div class="form-group mb-3">
+            <label for="user_account_ids" class="form-label">
+              {{ __('User Accounts') }} <span class="text-danger">*</span>
+            </label>
+            <select id="user_account_ids" name="user_account_ids[]"
+                    class="form-control select2-accounts" multiple style="width:100%;" required>
+              @foreach ($userAccounts as $account)
+                <option value="{{ $account->id }}"
+                        {{ in_array($account->id, $selectedAccountIds) ? 'selected' : '' }}>
+                  {{ $account->owner_name }}
+                </option>
+              @endforeach
+            </select>
+            @error('user_account_ids')   <span class="text-danger small">{{ $message }}</span> @enderror
+            @error('user_account_ids.*') <span class="text-danger small">{{ $message }}</span> @enderror
+          </div>
         </div>
         <div class="col-md-6">
           <div class="form-group mb-3">
@@ -371,6 +384,13 @@
   @push('scripts')
     <script>
       $(document).ready(function () {
+
+        // ── User accounts multi-select ─────────────────────────────────────────
+        $('#user_account_ids').select2({
+          placeholder: 'Select one or more accounts',
+          allowClear: true,
+          width: '100%',
+        });
 
         // ── Game switcher ──────────────────────────────────────────────────────
         function switchGame(game) {

@@ -109,20 +109,20 @@
         </div>
       </div>
 
-      {{-- 4. Delete All Offers (force) --}}
+      {{-- 4. Account Management --}}
       <div class="col-sm-6 col-xl-3">
         <div class="card border-0 bg-body-tertiary h-100">
           <div class="card-body d-flex flex-column gap-2 p-3">
             <div class="avatar-sm">
-              <div class="avatar-title bg-danger-subtle text-danger rounded-circle">
-                <i class="ri-delete-bin-line fs-18"></i>
+              <div class="avatar-title bg-info-subtle text-info rounded-circle">
+                <i class="ri-account-circle-line fs-18"></i>
               </div>
             </div>
-            <h6 class="fw-semibold mb-0">Delete All Offers</h6>
-            <p class="text-muted small mb-0 flex-grow-1">Queue deletion of <strong>all</strong> live offers, including permanent ones. Use with care.</p>
-            <button type="button" class="btn btn-sm btn-danger w-100 qa-btn" data-action="delete-all-force">
-              <i class="ri-delete-bin-line me-1"></i>Delete Everything
-            </button>
+            <h6 class="fw-semibold mb-0">Account Management</h6>
+            <p class="text-muted small mb-0 flex-grow-1">Add, edit, or remove g2g.com accounts and manage their credentials.</p>
+            <a href="{{ route('user-accounts.index') }}" class="btn btn-sm btn-info text-white w-100">
+              <i class="ri-account-circle-line me-1"></i>Manage Accounts
+            </a>
           </div>
         </div>
       </div>
@@ -984,19 +984,6 @@
           html: 'All <strong>non-permanent</strong> live offers will be deleted from g2g.com on the next desktop app run. <strong>Permanent offers are protected and will not be removed.</strong>',
         },
       },
-      'delete-all-force': {
-        icon:        'ri-delete-bin-line',
-        iconBg:      'bg-danger-subtle text-danger',
-        title:       'Delete All Offers',
-        subtitle:    'Permanently delete every live offer including protected ones',
-        confirmCls:  'btn-danger',
-        confirmHtml: '<i class="ri-delete-bin-line me-1"></i>Delete Everything',
-        warning: {
-          cls:  'alert-danger border-danger-subtle',
-          icon: 'ri-error-warning-line text-danger',
-          html: '<strong>This will delete ALL live offers from g2g.com</strong>, including permanent ones. This action cannot be undone.',
-        },
-      },
     };
 
     let qaAction     = null;
@@ -1080,7 +1067,6 @@
       const ENDPOINTS = {
         'queue-post-all':          { url: '/offer-templates/queue-post-by-account', body: { user_account_id: qaAccountId } },
         'delete-except-permanent': { url: `/user-accounts/${qaAccountId}/queue-delete-non-permanent`, body: null },
-        'delete-all-force':        { url: `/user-accounts/${qaAccountId}/queue-force-delete-all`, body: null },
       };
 
       const ep = ENDPOINTS[qaAction];
@@ -1111,10 +1097,6 @@
               title: 'Deletion Queued!',
               text:  `Non-permanent offers for <strong>${escHtml(qaEmail)}</strong> will be deleted on the next desktop app run.`,
             },
-            'delete-all-force': {
-              title: 'Force Delete Queued!',
-              text:  `ALL offers for <strong>${escHtml(qaEmail)}</strong> (including permanent) will be deleted on the next desktop app run.`,
-            },
           };
           const msg = SUCCESS_MSGS[qaAction];
           Swal.fire({
@@ -1126,7 +1108,7 @@
           });
 
           // Update the "Delete All" badge in the accounts table for delete actions
-          if (qaAction === 'delete-except-permanent' || qaAction === 'delete-all-force') {
+          if (qaAction === 'delete-except-permanent') {
             const row        = document.getElementById(`account-row-${qaAccountId}`);
             const statusCell = row?.querySelector('td:nth-child(5)');
             if (statusCell) {
